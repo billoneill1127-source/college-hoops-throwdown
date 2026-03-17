@@ -1,0 +1,39 @@
+[
+  {
+    "conference": "Big East",
+    "teams": [
+      {
+        "name": "Connecticut",
+        "nickname": "Huskies",
+        "primaryColor": "#000E2F",
+        "record": "",
+        "logo": "",
+        "players": []
+      }
+    ]
+  },
+  {
+    "conference": "Big Ten",
+    "teams": []
+  },
+  {
+    "conference": "Big 12",
+    "teams": []
+  },
+  {
+    "conference": "SEC",
+    "teams": []
+  },
+  {
+    "conference": "ACC",
+    "teams": []
+  },
+  {
+    "conference": "MAC",
+    "teams": []
+  },
+  {
+    "conference": "WCC",
+    "teams": []
+  }
+]

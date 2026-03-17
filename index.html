@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>College Hoops Throwdown</title>
+<style>
+:root {
+  --primary: #0d2240;
+  --accent: #e8600a;
+  --grey: #8a9bb0;
+  --surface: #f0f4f8;
+  --card-bg: #fff;
+  --text: #0d2240;
+  --text-muted: #6b7a99;
+  --border: #dde3ee;
+  --shadow: 0 2px 8px rgba(13,34,64,.10);
+  --shadow-hover: 0 8px 24px rgba(13,34,64,.18);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--surface); color: var(--text); min-height: 100vh; }
+
+/* ── Header ── */
+header { background: var(--primary); color: #fff; padding: 16px 32px 0; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 14px rgba(0,0,0,.35); }
+.header-row { display: flex; align-items: center; gap: 16px; margin-bottom: 10px; }
+.header-logo { font-size: 1.45rem; font-weight: 800; letter-spacing: -.5px; }
+.header-logo span { color: var(--accent); }
+.header-sub { font-size: .7rem; color: rgba(255,255,255,.45); text-transform: uppercase; letter-spacing: .8px; margin-top: 2px; }
+
+/* ── Top Tabs ── */
+.tabs { display: flex; border-top: 1px solid rgba(255,255,255,.12); margin-top: 4px; }
+.tab-btn { background: none; border: none; color: rgba(255,255,255,.5); font-size: .88rem; font-weight: 500; padding: 10px 22px; cursor: pointer; border-bottom: 3px solid transparent; transition: color .15s, border-color .15s; white-space: nowrap; }
+.tab-btn:hover:not(:disabled) { color: #fff; }
+.tab-btn.active { color: #fff; border-bottom-color: var(--accent); }
+.tab-btn:disabled { opacity: .3; cursor: not-allowed; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* ── Pane wrapper ── */
+.pane-body { padding: 24px 32px; }
+
+/* ── Conference accordion ── */
+.conf-block { background: var(--card-bg); border-radius: 12px; box-shadow: var(--shadow); margin-bottom: 14px; overflow: hidden; }
+.conf-header { background: var(--primary); border-top: 4px solid var(--accent); padding: 13px 18px; cursor: pointer; display: flex; align-items: center; gap: 10px; user-select: none; }
+.conf-header:hover { filter: brightness(1.1); }
+.conf-title { color: #fff; font-size: .98rem; font-weight: 700; flex: 1; }
+.conf-chevron { color: rgba(255,255,255,.6); font-size: .78rem; transition: transform .2s; }
+.conf-block.open .conf-chevron { transform: rotate(90deg); }
+.conf-body { display: none; }
+.conf-block.open .conf-body { display: block; }
+
+/* ── Team rows inside conference ── */
+.team-block { border-bottom: 1px solid var(--border); }
+.team-block:last-child { border-bottom: none; }
+.team-row { display: flex; align-items: center; gap: 12px; padding: 10px 18px; cursor: pointer; transition: background .15s; }
+.team-row:hover { background: #f5f8ff; }
+.team-block.open .team-row { background: #eef2fc; }
+.team-color-dot { width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0; border: 2px solid rgba(0,0,0,.12); }
+.team-name-main { font-weight: 600; font-size: .9rem; }
+.team-nickname { font-size: .75rem; color: var(--text-muted); margin-left: 5px; }
+.team-record { font-size: .78rem; color: var(--text-muted); margin-left: auto; margin-right: 8px; }
+.team-chevron { color: var(--text-muted); font-size: .7rem; transition: transform .2s; flex-shrink: 0; }
+.team-block.open .team-chevron { transform: rotate(90deg); }
+
+/* ── Player table ── */
+.player-table-wrap { display: none; background: #fafbfd; border-top: 1px solid var(--border); overflow-x: auto; }
+.team-block.open .player-table-wrap { display: block; }
+.player-table { width: 100%; border-collapse: collapse; font-size: .81rem; }
+.player-table th { background: #eef2f8; color: var(--text-muted); font-size: .67rem; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; padding: 7px 14px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.player-table td { padding: 7px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.player-table tr:last-child td { border-bottom: none; }
+.player-table tr:hover td { background: #f0f4fa; }
+.player-table .num-col { text-align: right; }
+.pos-badge { display: inline-block; font-size: .67rem; font-weight: 700; padding: 1px 6px; border-radius: 4px; background: rgba(13,34,64,.08); color: var(--text-muted); }
+.class-badge { display: inline-block; font-size: .67rem; padding: 1px 5px; border-radius: 4px; font-weight: 600; }
+.class-SR { background: rgba(232,96,10,.15); color: #b04800; }
+.class-JR { background: rgba(13,34,64,.10); color: var(--primary); }
+.class-SO { background: rgba(138,155,176,.18); color: #4a5a72; }
+.class-FR { background: rgba(138,155,176,.10); color: var(--text-muted); }
+
+/* ── Game Setup ── */
+.setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 24px 32px 0; }
+.team-panel { background: var(--card-bg); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; max-height: 70vh; display: flex; flex-direction: column; }
+.team-panel-hdr { background: var(--primary); border-top: 4px solid var(--accent); padding: 12px 18px; flex-shrink: 0; }
+.team-panel-hdr h3 { color: #fff; font-size: .95rem; font-weight: 700; }
+.team-panel-selected { margin-top: 5px; font-size: .82rem; color: rgba(255,255,255,.7); font-style: italic; min-height: 18px; }
+.team-panel-scroll { overflow-y: auto; flex: 1; }
+.setup-conf-block {}
+.setup-conf-hdr { background: #eef2f8; padding: 8px 16px; cursor: pointer; display: flex; align-items: center; gap: 7px; border-bottom: 1px solid var(--border); user-select: none; font-size: .78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .4px; }
+.setup-conf-hdr:hover { background: #e4eaf5; }
+.setup-conf-chevron { font-size: .65rem; transition: transform .2s; flex-shrink: 0; }
+.setup-conf-block.open .setup-conf-chevron { transform: rotate(90deg); }
+.setup-conf-body { display: none; }
+.setup-conf-block.open .setup-conf-body { display: block; }
+.setup-team-row { display: flex; align-items: center; gap: 9px; padding: 8px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .13s; }
+.setup-team-row:hover { background: #f5f8ff; }
+.setup-team-row.selected { background: rgba(13,34,64,.07); }
+.setup-team-row:last-child { border-bottom: none; }
+.setup-team-name { flex: 1; font-size: .84rem; font-weight: 500; }
+.setup-team-nickname { font-size: .72rem; color: var(--text-muted); }
+.setup-team-record { font-size: .74rem; color: var(--text-muted); margin-right: 4px; }
+.op-btn { font-size: .68rem; font-weight: 700; padding: 2px 9px; border-radius: 12px; border: 2px solid var(--grey); color: var(--grey); background: #fff; cursor: pointer; transition: all .15s; white-space: nowrap; flex-shrink: 0; }
+.op-btn.is-cpu { background: var(--primary); border-color: var(--primary); color: #fff; }
+.op-btn.is-p1 { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* ── Action bar ── */
+.action-bar { display: flex; justify-content: center; align-items: center; gap: 16px; padding: 20px 32px; }
+.action-btn { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 34px; font-size: .95rem; font-weight: 700; letter-spacing: .5px; cursor: pointer; transition: background .15s, transform .1s, opacity .15s; }
+.action-btn:hover:not(:disabled) { background: #c85008; transform: translateY(-1px); }
+.action-btn:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+
+/* ── Set Lineup ── */
+.lineup-wrap { padding: 24px 32px; }
+.section-hdr { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.section-hdr h2 { font-size: 1.05rem; font-weight: 700; }
+.count-badge { font-size: .8rem; color: var(--text-muted); background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 2px 10px; }
+.lineup-table { width: 100%; border-collapse: collapse; font-size: .82rem; background: var(--card-bg); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow); }
+.lineup-table th { background: var(--primary); color: rgba(255,255,255,.8); font-size: .67rem; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; padding: 9px 14px; text-align: left; white-space: nowrap; }
+.lineup-table td { padding: 9px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.lineup-table tr:last-child td { border-bottom: none; }
+.lineup-table tr:hover td { background: #f5f8ff; }
+.lineup-table tr.selected td { background: rgba(232,96,10,.07); }
+.select-cb { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
+
+/* ── Gameplan ── */
+.gameplan-wrap { padding: 24px 32px; max-width: 860px; }
+.gp-section { margin-bottom: 28px; }
+.gp-section-title { font-size: .82rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--text-muted); margin-bottom: 12px; padding-bottom: 7px; border-bottom: 2px solid var(--border); }
+.strategy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.strat-card { background: var(--card-bg); border: 2px solid var(--border); border-radius: 10px; padding: 14px 15px; cursor: pointer; transition: border-color .15s, background .15s; }
+.strat-card:hover { border-color: var(--accent); background: #fff8f3; }
+.strat-card.selected { border-color: var(--accent); background: rgba(232,96,10,.07); }
+.strat-name { font-weight: 700; font-size: .88rem; margin-bottom: 5px; }
+.strat-desc { font-size: .72rem; color: var(--text-muted); line-height: 1.45; }
+
+/* ── No data ── */
+.no-data { padding: 28px; color: var(--text-muted); font-size: .85rem; font-style: italic; text-align: center; }
+
+/* ── Responsive ── */
+@media (max-width: 860px) {
+  .setup-grid { grid-template-columns: 1fr; }
+  .pane-body, .lineup-wrap, .gameplan-wrap { padding: 14px 16px; }
+  .setup-grid { padding: 14px 16px 0; }
+  .action-bar { padding: 14px 16px; }
+  .strategy-grid { grid-template-columns: repeat(2, 1fr); }
+  header { padding: 12px 16px 0; }
+}
+@media (max-width: 560px) {
+  .strategy-grid { grid-template-columns: 1fr; }
+  .tab-btn { padding: 10px 14px; font-size: .8rem; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-row">
+    <div>
+      <div class="header-sub">2025–26 Season</div>
+      <div class="header-logo">College Hoops <span>Throwdown</span></div>
+    </div>
+  </div>
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="rosters">Team Rosters</button>
+    <button class="tab-btn" data-tab="statcheck">Stat Check</button>
+    <button class="tab-btn" data-tab="setup">Game Setup</button>
+    <button class="tab-btn" data-tab="lineup" id="lineupTab" disabled>Set Lineup</button>
+    <button class="tab-btn" data-tab="gameplan" id="gameplanTab" disabled>Gameplan</button>
+  </nav>
+</header>
+
+<div id="rostersPane" class="tab-pane active"></div>
+<div id="statCheckPane" class="tab-pane"></div>
+<div id="gameSetupPane" class="tab-pane"></div>
+<div id="lineupPane" class="tab-pane"></div>
+<div id="gameplanPane" class="tab-pane"></div>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────
+// Populated from data.json — replace [] with imported JSON
+const DATA = [];
+
+// ── GAME STATE ───────────────────────────────────────────────
+const G = {
+  visitor: null, home: null,
+  visitorOp: 'CPU', homeOp: 'CPU',
+  p1Team: null,
+  lineup: [],
+  offStrategy: null, defStrategy: null
+};
+
+// ── UTILITIES ────────────────────────────────────────────────
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function fmtStat(v, dec) {
+  if (v == null || v === '' || isNaN(v)) return '-';
+  return Number(v).toFixed(dec != null ? dec : 1);
+}
+function fmtPct(v) {
+  if (v == null || v === '' || isNaN(v)) return '-';
+  return (Number(v) * 100).toFixed(1) + '%';
+}
+function heightStr(inches) {
+  if (!inches) return '-';
+  const h = parseInt(inches);
+  return Math.floor(h / 12) + "'" + (h % 12) + '"';
+}
+function repsFactor(mp) {
+  const m = parseFloat(mp) || 0;
+  return m > 30 ? 1.05 : m >= 20 ? 1.02 : m >= 15 ? 1.00 : m >= 10 ? 0.98 : 0.95;
+}
+function vetFactor(cls) {
+  const c = (cls || '').toUpperCase();
+  return c === 'SR' ? 1.02 : c === 'FR' ? 0.98 : 1.00;
+}
+function applyStat(val, reps, vet) {
+  if (val == null || val === '' || isNaN(val)) return null;
+  return parseFloat(val) * reps * vet;
+}
+function applyInvVet(val, vet) {
+  if (val == null || val === '' || isNaN(val)) return null;
+  return parseFloat(val) * (1 / vet);
+}
+
+// ── TAB SWITCHING ────────────────────────────────────────────
+function switchTab(tabName) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  const btn = document.querySelector('[data-tab="' + tabName + '"]');
+  const paneId = { rosters:'rostersPane', statcheck:'statCheckPane', setup:'gameSetupPane', lineup:'lineupPane', gameplan:'gameplanPane' }[tabName];
+  if (btn && !btn.disabled) btn.classList.add('active');
+  if (paneId) document.getElementById(paneId).classList.add('active');
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => { if (!btn.disabled) switchTab(btn.dataset.tab); });
+});
+
+// ── ROSTER / STAT CHECK PANES ─────────────────────────────────
+function buildPlayerRow(p, showStats) {
+  const reps = repsFactor(p.mp);
+  const vet  = vetFactor(p.class);
+  const clsBadge = '<span class="class-badge class-' + esc(p.class || '') + '">' + esc(p.class || '') + '</span>';
+  const posBadge = '<span class="pos-badge">' + esc(p.position || '') + '</span>';
+
+  if (showStats) {
+    return '<tr>' +
+      '<td>' + esc(p.number || '') + '</td>' +
+      '<td><strong>' + esc(p.name) + '</strong></td>' +
+      '<td>' + posBadge + '</td>' +
+      '<td>' + heightStr(p.height) + '</td>' +
+      '<td>' + clsBadge + '</td>' +
+      '<td class="num-col">' + fmtStat(applyStat(p.fga, reps, vet)) + '</td>' +
+      '<td class="num-col">' + fmtPct(p.threeP) + '</td>' +
+      '<td class="num-col">' + fmtPct(p.twoP) + '</td>' +
+      '<td class="num-col">' + fmtPct(p.ftPct) + '</td>' +
+      '<td class="num-col">' + fmtStat(applyStat(p.orb, reps, vet)) + '</td>' +
+      '<td class="num-col">' + fmtStat(applyStat(p.drb, reps, vet)) + '</td>' +
+      '<td class="num-col">' + fmtStat(applyStat(p.ast, reps, vet)) + '</td>' +
+      '<td class="num-col">' + fmtStat(applyStat(p.stl, reps, vet)) + '</td>' +
+      '<td class="num-col">' + fmtStat(applyStat(p.blk, reps, vet)) + '</td>' +
+      '<td class="num-col">' + fmtStat(applyInvVet(p.tov, vet)) + '</td>' +
+      '<td class="num-col">' + fmtStat(applyInvVet(p.pf, vet)) + '</td>' +
+      '</tr>';
+  } else {
+    return '<tr>' +
+      '<td>' + esc(p.number || '') + '</td>' +
+      '<td><strong>' + esc(p.name) + '</strong></td>' +
+      '<td>' + posBadge + '</td>' +
+      '<td>' + heightStr(p.height) + '</td>' +
+      '<td>' + clsBadge + '</td>' +
+      '<td class="num-col">' + fmtStat(p.ppg) + '</td>' +
+      '<td class="num-col">' + fmtStat(p.rpg) + '</td>' +
+      '<td class="num-col">' + fmtStat(p.apg) + '</td>' +
+      '<td class="num-col">' + fmtStat(p.bpg) + '</td>' +
+      '<td class="num-col">' + fmtStat(p.spg) + '</td>' +
+      '</tr>';
+  }
+}
+
+function renderRosterPane(paneEl, showStats) {
+  if (!DATA.length) {
+    paneEl.innerHTML = '<div class="pane-body"><div class="no-data">No roster data loaded. Populate data.json to get started.</div></div>';
+    return;
+  }
+  const rosterHeaders = '<th>#</th><th>Name</th><th>Pos</th><th>Ht</th><th>Cl</th><th>PPG</th><th>RPG</th><th>APG</th><th>BPG</th><th>SPG</th>';
+  const statHeaders   = '<th>#</th><th>Name</th><th>Pos</th><th>Ht</th><th>Cl</th><th>FGA</th><th>3P%</th><th>2P%</th><th>FT%</th><th>ORB</th><th>DRB</th><th>AST</th><th>STL</th><th>BLK</th><th>TOV</th><th>PF</th>';
+  const headers = showStats ? statHeaders : rosterHeaders;
+
+  const html = DATA.map(conf => {
+    const teamBlocks = (conf.teams || []).map(team => {
+      const players = [...(team.players || [])].sort((a, b) => (parseFloat(b.mp) || 0) - (parseFloat(a.mp) || 0));
+      const rows = players.map(p => buildPlayerRow(p, showStats)).join('');
+      const logoHtml = team.logo
+        ? '<img src="' + esc(team.logo) + '" style="height:22px;width:22px;object-fit:contain;margin-right:4px;vertical-align:middle" onerror="this.style.display=\'none\'">'
+        : '<span class="team-color-dot" style="background:' + esc(team.primaryColor || '#888') + '"></span>';
+      return '<div class="team-block">' +
+        '<div class="team-row">' +
+          logoHtml +
+          '<span><span class="team-name-main" style="color:' + esc(team.primaryColor || 'inherit') + '">' + esc(team.name) + '</span>' +
+          '<span class="team-nickname">' + esc(team.nickname || '') + '</span></span>' +
+          '<span class="team-record">' + esc(team.record || '') + '</span>' +
+          '<span class="team-chevron">&#9654;</span>' +
+        '</div>' +
+        '<div class="player-table-wrap"><div style="overflow-x:auto">' +
+          '<table class="player-table"><thead><tr>' + headers + '</tr></thead>' +
+          '<tbody>' + (rows || '<tr><td colspan="10" style="text-align:center;color:var(--text-muted);padding:12px">No players found</td></tr>') + '</tbody>' +
+        '</table></div></div>' +
+      '</div>';
+    }).join('');
+    return '<div class="conf-block">' +
+      '<div class="conf-header"><span class="conf-title">' + esc(conf.conference) + '</span><span class="conf-chevron">&#9654;</span></div>' +
+      '<div class="conf-body">' + teamBlocks + '</div>' +
+    '</div>';
+  }).join('');
+
+  paneEl.innerHTML = '<div class="pane-body">' + html + '</div>';
+
+  // Conference accordions
+  paneEl.querySelectorAll('.conf-header').forEach(hdr => {
+    hdr.addEventListener('click', () => hdr.closest('.conf-block').classList.toggle('open'));
+  });
+  // Team row toggles
+  paneEl.querySelectorAll('.team-row').forEach(row => {
+    row.addEventListener('click', () => row.closest('.team-block').classList.toggle('open'));
+  });
+}
+
+// ── GAME SETUP ────────────────────────────────────────────────
+function buildSetupConferences(side) {
+  return DATA.map(conf => {
+    const teamRows = (conf.teams || []).map(team => {
+      const selected = G[side] && G[side].name === team.name;
+      const op = side === 'visitor' ? G.visitorOp : G.homeOp;
+      const opCls = op === 'P1' ? 'is-p1' : 'is-cpu';
+      return '<div class="setup-team-row' + (selected ? ' selected' : '') + '" data-team-name="' + esc(team.name) + '" data-conf="' + esc(conf.conference) + '">' +
+        '<span class="team-color-dot" style="background:' + esc(team.primaryColor || '#888') + '"></span>' +
+        '<span class="setup-team-name">' + esc(team.name) + ' <span class="setup-team-nickname">' + esc(team.nickname || '') + '</span></span>' +
+        '<span class="setup-team-record">' + esc(team.record || '') + '</span>' +
+        (selected ? '<button class="op-btn ' + opCls + '" data-side="' + side + '">' + op + '</button>' : '') +
+        '</div>';
+    }).join('');
+    return '<div class="setup-conf-block">' +
+      '<div class="setup-conf-hdr"><span class="setup-conf-chevron">&#9654;</span> ' + esc(conf.conference) + '</div>' +
+      '<div class="setup-conf-body" style="display:none">' + teamRows + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function wireSetupPanel(panelEl, side) {
+  panelEl.querySelectorAll('.setup-conf-hdr').forEach(hdr => {
+    hdr.addEventListener('click', () => {
+      const block = hdr.closest('.setup-conf-block');
+      block.classList.toggle('open');
+      hdr.querySelector('.setup-conf-body') // body is sibling
+      hdr.nextElementSibling.style.display = block.classList.contains('open') ? 'block' : 'none';
+    });
+  });
+
+  panelEl.querySelectorAll('.setup-team-row').forEach(row => {
+    row.addEventListener('click', e => {
+      if (e.target.classList.contains('op-btn')) return;
+      const teamName = row.dataset.teamName;
+      const confName = row.dataset.conf;
+      const conf = DATA.find(c => c.conference === confName);
+      const team = conf ? conf.teams.find(t => t.name === teamName) : null;
+      if (!team) return;
+      G[side] = team;
+      refreshSetupPanel(side);
+      checkSetupReady();
+    });
+  });
+
+  panelEl.querySelectorAll('.op-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const s = btn.dataset.side;
+      // Toggle: CPU <-> P1 (P2 disabled in v1)
+      const cur = s === 'visitor' ? G.visitorOp : G.homeOp;
+      const next = cur === 'CPU' ? 'P1' : 'CPU';
+      if (s === 'visitor') G.visitorOp = next; else G.homeOp = next;
+      refreshSetupPanel(s);
+      checkSetupReady();
+    });
+  });
+}
+
+function refreshSetupPanel(side) {
+  const panelEl = document.getElementById(side + 'Panel');
+  if (!panelEl) return;
+  const team = G[side];
+  panelEl.querySelector('.team-panel-selected').textContent = team ? team.name + ' ' + (team.nickname || '') : 'No team selected';
+  panelEl.querySelector('.panel-teams-wrap').innerHTML = buildSetupConferences(side);
+  wireSetupPanel(panelEl, side);
+  // Re-open conference of selected team
+  if (team) {
+    panelEl.querySelectorAll('.setup-conf-block').forEach(block => {
+      const hasSelected = block.querySelector('.setup-team-row.selected');
+      if (hasSelected) {
+        block.classList.add('open');
+        block.querySelector('.setup-conf-body').style.display = 'block';
+      }
+    });
+  }
+}
+
+function checkSetupReady() {
+  const hasVisitor = !!G.visitor;
+  const hasHome    = !!G.home;
+  const hasP1      = G.visitorOp === 'P1' || G.homeOp === 'P1';
+  const diffTeams  = !G.visitor || !G.home || G.visitor.name !== G.home.name;
+  const btn = document.getElementById('lineupActionBtn');
+  if (btn) btn.disabled = !(hasVisitor && hasHome && hasP1 && diffTeams);
+}
+
+function renderGameSetup() {
+  const pane = document.getElementById('gameSetupPane');
+  pane.innerHTML =
+    '<div class="setup-grid">' +
+      '<div class="team-panel" id="visitorPanel">' +
+        '<div class="team-panel-hdr"><h3>&#9992;&nbsp; Visitor</h3><div class="team-panel-selected">' + (G.visitor ? G.visitor.name : 'No team selected') + '</div></div>' +
+        '<div class="team-panel-scroll"><div class="panel-teams-wrap"></div></div>' +
+      '</div>' +
+      '<div class="team-panel" id="homePanel">' +
+        '<div class="team-panel-hdr"><h3>&#127968;&nbsp; Home</h3><div class="team-panel-selected">' + (G.home ? G.home.name : 'No team selected') + '</div></div>' +
+        '<div class="team-panel-scroll"><div class="panel-teams-wrap"></div></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="action-bar"><button class="action-btn" id="lineupActionBtn" disabled>LINEUP &#9654;</button></div>';
+
+  refreshSetupPanel('visitor');
+  refreshSetupPanel('home');
+  checkSetupReady();
+
+  document.getElementById('lineupActionBtn').addEventListener('click', () => {
+    G.p1Team = G.visitorOp === 'P1' ? G.visitor : G.home;
+    G.lineup = [];
+    G.offStrategy = null;
+    G.defStrategy = null;
+    renderLineupPane();
+    document.getElementById('lineupTab').disabled = false;
+    document.getElementById('gameplanTab').disabled = true;
+    switchTab('lineup');
+  });
+}
+
+// ── SET LINEUP ────────────────────────────────────────────────
+function renderLineupPane() {
+  const team = G.p1Team;
+  if (!team) return;
+  const pane = document.getElementById('lineupPane');
+  const players = [...(team.players || [])].sort((a, b) => (parseFloat(b.mp) || 0) - (parseFloat(a.mp) || 0));
+
+  const rows = players.map((p, i) =>
+    '<tr data-idx="' + i + '">' +
+      '<td><input type="checkbox" class="select-cb lineup-check" data-idx="' + i + '"></td>' +
+      '<td>' + esc(p.number || '') + '</td>' +
+      '<td><strong>' + esc(p.name) + '</strong></td>' +
+      '<td><span class="pos-badge">' + esc(p.position || '') + '</span></td>' +
+      '<td>' + heightStr(p.height) + '</td>' +
+      '<td><span class="class-badge class-' + esc(p.class || '') + '">' + esc(p.class || '') + '</span></td>' +
+      '<td class="num-col">' + fmtStat(p.ppg) + '</td>' +
+      '<td class="num-col">' + fmtStat(p.rpg) + '</td>' +
+      '<td class="num-col">' + fmtStat(p.apg) + '</td>' +
+      '<td class="num-col">' + fmtStat(p.bpg) + '</td>' +
+      '<td class="num-col">' + fmtStat(p.spg) + '</td>' +
+    '</tr>'
+  ).join('');
+
+  pane.innerHTML =
+    '<div class="lineup-wrap">' +
+      '<div class="section-hdr">' +
+        '<h2>Set Lineup &mdash; ' + esc(team.name) + ' ' + esc(team.nickname || '') + '</h2>' +
+        '<span class="count-badge" id="lineupCount">0 / 5 selected</span>' +
+      '</div>' +
+      '<div style="overflow-x:auto;background:var(--card-bg);border-radius:10px;box-shadow:var(--shadow)">' +
+        '<table class="lineup-table"><thead><tr>' +
+          '<th></th><th>#</th><th>Name</th><th>Pos</th><th>Ht</th><th>Cl</th><th>PPG</th><th>RPG</th><th>APG</th><th>BPG</th><th>SPG</th>' +
+        '</tr></thead><tbody>' + rows + '</tbody></table>' +
+      '</div>' +
+      '<div class="action-bar"><button class="action-btn" id="gameplanActionBtn" disabled>GAMEPLAN &#9654;</button></div>' +
+    '</div>';
+
+  pane.querySelectorAll('.lineup-check').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const idx = parseInt(cb.dataset.idx);
+      if (cb.checked) {
+        if (G.lineup.length >= 5) { cb.checked = false; return; }
+        G.lineup.push(players[idx]);
+        cb.closest('tr').classList.add('selected');
+      } else {
+        G.lineup = G.lineup.filter(p => p !== players[idx]);
+        cb.closest('tr').classList.remove('selected');
+      }
+      document.getElementById('lineupCount').textContent = G.lineup.length + ' / 5 selected';
+      document.getElementById('gameplanActionBtn').disabled = G.lineup.length !== 5;
+    });
+  });
+
+  document.getElementById('gameplanActionBtn').addEventListener('click', () => {
+    renderGameplanPane();
+    document.getElementById('gameplanTab').disabled = false;
+    switchTab('gameplan');
+  });
+}
+
+// ── GAMEPLAN ──────────────────────────────────────────────────
+const OFFENSE = [
+  { name: 'Five Out',    desc: 'Spread the floor — all five players on the perimeter, driving lanes open.' },
+  { name: 'Pick & Roll', desc: 'Ball handler attacks off screens; drive-or-kick reads create easy looks.' },
+  { name: 'Pick & Pop',  desc: 'Stretch big pops to the three after setting the screen.' },
+  { name: 'Motion',      desc: 'Continuous player and ball movement to disrupt defense and create openings.' },
+  { name: 'High Post',   desc: 'Big initiates from the elbow, creating angles for cutters and shooters.' },
+  { name: 'Low Post',    desc: 'Feed the block and punish smaller defenders inside.' },
+];
+const DEFENSE = [
+  { name: 'Man to Man',       desc: 'Each defender locked on a specific opponent across the court.' },
+  { name: '2-3 Zone',         desc: 'Two guards up top, three across the paint protecting the interior.' },
+  { name: '1-3-1 Zone',       desc: 'Forces the baseline; traps corners aggressively.' },
+  { name: 'Matchup Zone',     desc: 'Zone principles combined with man-to-man matchup awareness.' },
+  { name: 'Half Court Trap',  desc: 'Pressure at half court to disrupt sets and force turnovers.' },
+  { name: 'Full Court Press', desc: 'Deny inbounds and attack the ball the full length of the floor.' },
+];
+
+function renderGameplanPane() {
+  const team = G.p1Team;
+  const pane = document.getElementById('gameplanPane');
+
+  function cards(strategies, type) {
+    return strategies.map(s =>
+      '<div class="strat-card' + (G[type + 'Strategy'] === s.name ? ' selected' : '') + '" data-strat="' + esc(s.name) + '" data-type="' + type + '">' +
+        '<div class="strat-name">' + esc(s.name) + '</div>' +
+        '<div class="strat-desc">' + esc(s.desc) + '</div>' +
+      '</div>'
+    ).join('');
+  }
+
+  pane.innerHTML =
+    '<div class="gameplan-wrap">' +
+      '<div class="section-hdr" style="margin-bottom:20px">' +
+        '<h2>Gameplan &mdash; ' + esc(team ? team.name + ' ' + (team.nickname || '') : '') + '</h2>' +
+      '</div>' +
+      '<div class="gp-section"><div class="gp-section-title">&#9651; Offensive Strategy</div><div class="strategy-grid">' + cards(OFFENSE, 'off') + '</div></div>' +
+      '<div class="gp-section"><div class="gp-section-title">&#9661; Defensive Strategy</div><div class="strategy-grid">' + cards(DEFENSE, 'def') + '</div></div>' +
+      '<div class="action-bar" style="justify-content:flex-start;padding:8px 0 0">' +
+        '<button class="action-btn" id="startGameBtn" disabled>START GAME &#9654;</button>' +
+      '</div>' +
+    '</div>';
+
+  pane.querySelectorAll('.strat-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const type = card.dataset.type;
+      const name = card.dataset.strat;
+      G[type + 'Strategy'] = name;
+      pane.querySelectorAll('.strat-card[data-type="' + type + '"]').forEach(c => {
+        c.classList.toggle('selected', c.dataset.strat === name);
+      });
+      document.getElementById('startGameBtn').disabled = !(G.offStrategy && G.defStrategy);
+    });
+  });
+
+  // START GAME handler — placeholder for v1 gameplay engine
+  document.getElementById('startGameBtn').addEventListener('click', () => {
+    alert('Game engine coming in next version!\n\nVisitor: ' + (G.visitor ? G.visitor.name : '?') +
+          '\nHome: ' + (G.home ? G.home.name : '?') +
+          '\nP1 Team: ' + (G.p1Team ? G.p1Team.name : '?') +
+          '\nOffense: ' + G.offStrategy +
+          '\nDefense: ' + G.defStrategy);
+  });
+}
+
+// ── BOOT ──────────────────────────────────────────────────────
+renderRosterPane(document.getElementById('rostersPane'), false);
+renderRosterPane(document.getElementById('statCheckPane'), true);
+renderGameSetup();
+</script>
+</body>
+</html>
