@@ -224,6 +224,16 @@ function applyInvVet(val, vet) {
   return parseFloat(val) * (1 / vet);
 }
 
+// ── STAT DEFAULTS (substituted when null or zero) ────────────
+const STAT_DEFAULTS = {
+  fga: 5, threeP: 0.10, twoP: 0.20, ftPct: 0.50,
+  orb: 1, drb: 1, ast: 1, stl: 0.1, blk: 0.1, tov: 1, pf: 5
+};
+function sd(val, key) {
+  const v = parseFloat(val);
+  return (val == null || isNaN(v) || v === 0) ? STAT_DEFAULTS[key] : v;
+}
+
 // ── TAB SWITCHING ────────────────────────────────────────────
 function switchTab(tabName) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -252,17 +262,17 @@ function buildPlayerRow(p, showStats) {
       '<td>' + posBadge + '</td>' +
       '<td>' + heightStr(p.height) + '</td>' +
       '<td>' + clsBadge + '</td>' +
-      '<td class="num-col">' + fmtStat(applyStat(p.fga, reps, vet)) + '</td>' +
-      '<td class="num-col">' + fmtPct(p.threeP) + '</td>' +
-      '<td class="num-col">' + fmtPct(p.twoP) + '</td>' +
-      '<td class="num-col">' + fmtPct(p.ftPct) + '</td>' +
-      '<td class="num-col">' + fmtStat(applyStat(p.orb, reps, vet)) + '</td>' +
-      '<td class="num-col">' + fmtStat(applyStat(p.drb, reps, vet)) + '</td>' +
-      '<td class="num-col">' + fmtStat(applyStat(p.ast, reps, vet)) + '</td>' +
-      '<td class="num-col">' + fmtStat(applyStat(p.stl, reps, vet)) + '</td>' +
-      '<td class="num-col">' + fmtStat(applyStat(p.blk, reps, vet)) + '</td>' +
-      '<td class="num-col">' + fmtStat(applyInvVet(p.tov, vet)) + '</td>' +
-      '<td class="num-col">' + fmtStat(applyInvVet(p.pf, vet)) + '</td>' +
+      '<td class="num-col">' + fmtStat(applyStat(sd(p.fga,'fga'), reps, vet)) + '</td>' +
+      '<td class="num-col">' + fmtPct(sd(p.threeP,'threeP')) + '</td>' +
+      '<td class="num-col">' + fmtPct(sd(p.twoP,'twoP')) + '</td>' +
+      '<td class="num-col">' + fmtPct(sd(p.ftPct,'ftPct')) + '</td>' +
+      '<td class="num-col">' + fmtStat(applyStat(sd(p.orb,'orb'), reps, vet)) + '</td>' +
+      '<td class="num-col">' + fmtStat(applyStat(sd(p.drb,'drb'), reps, vet)) + '</td>' +
+      '<td class="num-col">' + fmtStat(applyStat(sd(p.ast,'ast'), reps, vet)) + '</td>' +
+      '<td class="num-col">' + fmtStat(applyStat(sd(p.stl,'stl'), reps, vet)) + '</td>' +
+      '<td class="num-col">' + fmtStat(applyStat(sd(p.blk,'blk'), reps, vet)) + '</td>' +
+      '<td class="num-col">' + fmtStat(applyInvVet(sd(p.tov,'tov'), vet)) + '</td>' +
+      '<td class="num-col">' + fmtStat(applyInvVet(sd(p.pf,'pf'), vet)) + '</td>' +
       '</tr>';
   } else {
     return '<tr>' +
