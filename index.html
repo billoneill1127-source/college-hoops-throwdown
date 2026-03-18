@@ -57,7 +57,7 @@ header { background: var(--primary); color: #fff; padding: 16px 32px 0; position
 .team-block.open .team-row { background: #eef2fc; }
 .team-color-dot { width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0; border: 2px solid rgba(0,0,0,.12); }
 .team-name-main { font-weight: 600; font-size: .9rem; }
-.team-nickname { font-size: .75rem; color: var(--text-muted); margin-left: 5px; }
+.team-nickname { font-size: .75rem; margin-left: 5px; font-weight: 600; }
 .team-record { font-size: .78rem; color: var(--text-muted); margin-left: auto; margin-right: 8px; }
 .team-chevron { color: var(--text-muted); font-size: .7rem; transition: transform .2s; flex-shrink: 0; }
 .team-block.open .team-chevron { transform: rotate(90deg); }
@@ -97,7 +97,7 @@ header { background: var(--primary); color: #fff; padding: 16px 32px 0; position
 .setup-team-row.selected { background: rgba(13,34,64,.07); }
 .setup-team-row:last-child { border-bottom: none; }
 .setup-team-name { flex: 1; font-size: .84rem; font-weight: 500; }
-.setup-team-nickname { font-size: .72rem; color: var(--text-muted); }
+.setup-team-nickname { font-size: .72rem; font-weight: 600; }
 .setup-team-record { font-size: .74rem; color: var(--text-muted); margin-right: 4px; }
 .op-btn { font-size: .68rem; font-weight: 700; padding: 2px 9px; border-radius: 12px; border: 2px solid var(--grey); color: var(--grey); background: #fff; cursor: pointer; transition: all .15s; white-space: nowrap; flex-shrink: 0; }
 .op-btn.is-cpu { background: var(--primary); border-color: var(--primary); color: #fff; }
@@ -300,7 +300,7 @@ function renderRosterPane(paneEl, showStats) {
         '<div class="team-row">' +
           logoHtml +
           '<span><span class="team-name-main" style="color:' + esc(team.primaryColor || 'inherit') + '">' + esc(team.name) + '</span>' +
-          '<span class="team-nickname">' + esc(team.nickname || '') + '</span></span>' +
+          '<span class="team-nickname" style="color:' + esc(team.primaryColor || 'inherit') + '">' + esc(team.nickname || '') + '</span></span>' +
           '<span class="team-record">' + esc(team.record || '') + '</span>' +
           '<span class="team-chevron">&#9654;</span>' +
         '</div>' +
@@ -337,7 +337,7 @@ function buildSetupConferences(side) {
       const opCls = op === 'P1' ? 'is-p1' : 'is-cpu';
       return '<div class="setup-team-row' + (selected ? ' selected' : '') + '" data-team-name="' + esc(team.name) + '" data-conf="' + esc(conf.conference) + '">' +
         '<span class="team-color-dot" style="background:' + esc(team.primaryColor || '#888') + '"></span>' +
-        '<span class="setup-team-name">' + esc(team.name) + ' <span class="setup-team-nickname">' + esc(team.nickname || '') + '</span></span>' +
+        '<span class="setup-team-name" style="color:' + esc(team.primaryColor || 'inherit') + '">' + esc(team.name) + ' <span class="setup-team-nickname">' + esc(team.nickname || '') + '</span></span>' +
         '<span class="setup-team-record">' + esc(team.record || '') + '</span>' +
         (selected ? '<button class="op-btn ' + opCls + '" data-side="' + side + '">' + op + '</button>' : '') +
         '</div>';
