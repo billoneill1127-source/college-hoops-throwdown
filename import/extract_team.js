@@ -5,8 +5,9 @@
 //    https://www.sports-reference.com/cbb/schools/illinois/men/2026.html
 // 2. Open browser console: press F12, click "Console" tab
 // 3. Paste this entire script and press Enter
-// 4. A JSON file will download automatically (e.g. illinois.json)
-// 5. Move the downloaded file to: import/team-data/
+// 4. The console will print JSON between ---BEGIN--- and ---END--- markers
+// 5. Right-click the output, choose "Copy object" (or select and copy manually)
+//    Paste into a new text file, save as e.g. illinois.json in import/team-data/
 // 6. Repeat for each team, then run: .\import\combine_teams.ps1
 //
 // NOTE: If the page asks you to solve a CAPTCHA first, do so,
@@ -173,19 +174,19 @@
 
   console.log(`Built ${players.length} players for ${slug}`);
 
-  // --- Download JSON ---------------------------------------------------------
+  // --- Output JSON -----------------------------------------------------------
+  // Copy the text below, paste into a new file named  slug + '.json'
+  // (e.g. illinois.json), save it in import/team-data/, then run combine_teams.ps1
 
   const output = { srSlug: slug, players: players };
-  const blob = new Blob([JSON.stringify(output, null, 2)], { type: 'application/json' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = slug + '.json';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  const jsonStr = JSON.stringify(output, null, 2);
 
-  console.log(`Downloaded: ${slug}.json  -- move it to import/team-data/ and run combine_teams.ps1`);
+  console.log('');
+  console.log('=== COPY EVERYTHING BETWEEN THE MARKERS BELOW ===');
+  console.log('---BEGIN---');
+  console.log(jsonStr);
+  console.log('---END---');
+  console.log('');
+  console.log(`Save as: import/team-data/${slug}.json`);
 
 })();
