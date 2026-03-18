@@ -177,8 +177,7 @@ header { background: var(--primary); color: #fff; padding: 16px 32px 0; position
 
 <script>
 // ── DATA ─────────────────────────────────────────────────────
-// Populated from data.json — replace [] with imported JSON
-const DATA = [];
+let DATA = [];
 
 // ── GAME STATE ───────────────────────────────────────────────
 const G = {
@@ -572,9 +571,17 @@ function renderGameplanPane() {
 }
 
 // ── BOOT ──────────────────────────────────────────────────────
-renderRosterPane(document.getElementById('rostersPane'), false);
-renderRosterPane(document.getElementById('statCheckPane'), true);
-renderGameSetup();
+fetch('data.json')
+  .then(r => r.json())
+  .then(d => {
+    DATA = d;
+    renderRosterPane(document.getElementById('rostersPane'), false);
+    renderRosterPane(document.getElementById('statCheckPane'), true);
+    renderGameSetup();
+  })
+  .catch(() => {
+    document.getElementById('rostersPane').innerHTML = '<div class="pane-body"><div class="no-data">Could not load data.json.</div></div>';
+  });
 </script>
 </body>
 </html>
