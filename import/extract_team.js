@@ -62,7 +62,8 @@
         const stat = cell.getAttribute('data-stat');
         const val  = cell.innerText.trim();
         row[stat] = val;
-        if (stat === 'player' && val && val !== 'Player') hasPlayer = true;
+        // roster uses 'player'; stats tables use 'name_display'
+        if ((stat === 'player' || stat === 'name_display') && val && val !== 'Player') hasPlayer = true;
       });
       if (hasPlayer) rows.push(row);
     });
@@ -91,12 +92,12 @@
   }
 
   const pgMap = {}, p100Map = {}, skip = ['TOT','2TM','3TM'];
-  for (const r of pgRows)   { const n=r.player; if(n&&!skip.includes(n)&&!pgMap[n])   pgMap[n]=r; }
-  for (const r of p100Rows) { const n=r.player; if(n&&!skip.includes(n)&&!p100Map[n]) p100Map[n]=r; }
+  for (const r of pgRows)   { const n=r.name_display||r.player; if(n&&!skip.includes(n)&&!pgMap[n])   pgMap[n]=r; }
+  for (const r of p100Rows) { const n=r.name_display||r.player; if(n&&!skip.includes(n)&&!p100Map[n]) p100Map[n]=r; }
 
   const players = [];
   for (const r of rosterRows) {
-    const name = r.player;
+    const name = r.player||r.name_display;
     if (!name || !name.trim()) continue;
     const cls  = (getFirst(r,['class_year','class','yr'])||'').replace(/\s/g,'').toUpperCase();
     const pg   = pgMap[name]   || {};
