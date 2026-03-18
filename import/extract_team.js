@@ -87,12 +87,13 @@
 
   // Roster is always present immediately; stats tables load lazily
   const [rosterTbl, pgTbl, p100Tbl] = await Promise.all([
-    waitForTable('roster',   5000),
-    waitForTable('per_game', 10000),
+    waitForTable('roster',           5000),
+    waitForTable('players_per_game', 10000),
     Promise.race([
-      waitForTable('per_poss',     10000),
-      waitForTable('per_100',      10000),
-      waitForTable('per_100_poss', 10000),
+      waitForTable('players_per_poss', 10000),
+      waitForTable('per_poss',         10000),
+      waitForTable('per_100',          10000),
+      waitForTable('per_100_poss',     10000),
     ])
   ]);
 
@@ -136,15 +137,15 @@
       height:   convertHt(getFirst(r,['height','ht'])),
       weight:   parseNum(getFirst(r,['weight','wt'])),
       class: cls, mp,
-      ppg:    parseNum(getFirst(pg,   ['pts_per_g','pts'])),
-      rpg:    parseNum(getFirst(pg,   ['trb_per_g','trb'])),
-      apg:    parseNum(getFirst(pg,   ['ast_per_g','ast'])),
-      bpg:    parseNum(getFirst(pg,   ['blk_per_g','blk'])),
-      spg:    parseNum(getFirst(pg,   ['stl_per_g','stl'])),
+      ppg:    parseNum(getFirst(pg,   ['pts_per_g','pts','points'])),
+      rpg:    parseNum(getFirst(pg,   ['trb_per_g','trb','tot_reb'])),
+      apg:    parseNum(getFirst(pg,   ['ast_per_g','ast','assists'])),
+      bpg:    parseNum(getFirst(pg,   ['blk_per_g','blk','blocks'])),
+      spg:    parseNum(getFirst(pg,   ['stl_per_g','stl','steals'])),
       fga:    s(parseNum(getFirst(p100,['fga_per_poss','fga']))),
-      threeP: s(normPct(getFirst(p100, ['fg3_pct','3p_pct']))),
-      twoP:   s(normPct(getFirst(p100, ['fg2_pct','2p_pct']))),
-      ftPct:  s(normPct(getFirst(p100, ['ft_pct','ftpct']))),
+      threeP: s(normPct(getFirst(p100, ['fg3_pct','3p_pct','fg3_pct']))),
+      twoP:   s(normPct(getFirst(p100, ['fg2_pct','2p_pct','fg2_pct']))),
+      ftPct:  s(normPct(getFirst(p100, ['ft_pct','ftpct','ft_pct']))),
       orb:    s(parseNum(getFirst(p100,['orb_per_poss','orb']))),
       drb:    s(parseNum(getFirst(p100,['drb_per_poss','drb']))),
       ast:    s(parseNum(getFirst(p100,['ast_per_poss','ast']))),
