@@ -572,7 +572,8 @@ function renderGameplanPane() {
 
 // ── BOOT ──────────────────────────────────────────────────────
 fetch('data.json')
-  .then(r => r.json())
+  .then(r => r.text())
+  .then(t => JSON.parse(t.replace(/^\uFEFF/, '')))
   .then(d => {
     DATA = d;
     renderRosterPane(document.getElementById('rostersPane'), false);
