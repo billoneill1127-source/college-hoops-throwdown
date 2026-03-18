@@ -3,17 +3,14 @@
 // HOW TO USE:
 // 1. Go to the team's sports-reference page, e.g.:
 //    https://www.sports-reference.com/cbb/schools/indiana/men/2026.html
-// 2. Wait for the page to fully load, then SCROLL DOWN past the stats tables
-//    so sports-reference loads them into the page
+// 2. Wait for the page to fully load
 // 3. Open browser console: press F12, click "Console" tab
 // 4. Paste this entire script and press Enter
-// 5. Copy everything between ---BEGIN--- and ---END---
-//    Paste into a text file, save as e.g. indiana.json in import/team-data/
-// 6. Repeat for each team, then run: .\import\combine_teams.ps1
+// 5. An alert will pop up when done — JSON is already copied to your clipboard
+// 6. Paste into a new text file, save as e.g. indiana.json in import/team-data/
+// 7. Repeat for each team, then run: .\import\combine_teams.ps1
 
 (async function() {
-
-  // --- Helpers ---------------------------------------------------------------
 
   function getFirst(obj, keys) {
     for (const k of keys) if (obj[k] !== undefined && obj[k] !== '') return obj[k];
@@ -21,12 +18,10 @@
   }
   function parseNum(v) {
     if (v == null || v === '' || v === '.' || v === '-') return null;
-    const f = parseFloat(v);
-    return isNaN(f) ? null : Math.round(f * 10000) / 10000;
+    const f = parseFloat(v); return isNaN(f) ? null : Math.round(f * 10000) / 10000;
   }
   function normPct(v) {
-    const f = parseNum(v);
-    if (f == null) return null;
+    const f = parseNum(v); if (f == null) return null;
     return f > 1 ? Math.round(f / 100 * 10000) / 10000 : f;
   }
   function convertHt(ht) {
@@ -44,31 +39,25 @@
     return c === 'SR' ? 1.02 : c === 'FR' ? 0.98 : 1.00;
   }
 
-  // --- Wait for a table to appear in the DOM ---------------------------------
-  // Sports-reference loads stats tables lazily; polling lets their JS run first
-
-  function waitForTable(id, timeoutMs) {
+  function waitForTable(id, ms) {
     return new Promise(resolve => {
-      const tbl = document.getElementById(id);
-      if (tbl) { resolve(tbl); return; }
+      const t = document.getElementById(id);
+      if (t) { resolve(t); return; }
       const start = Date.now();
       const iv = setInterval(() => {
-        const t = document.getElementById(id);
-        if (t) { clearInterval(iv); resolve(t); return; }
-        if (Date.now() - start > timeoutMs) { clearInterval(iv); resolve(null); }
+        const t2 = document.getElementById(id);
+        if (t2) { clearInterval(iv); resolve(t2); return; }
+        if (Date.now() - start > ms) { clearInterval(iv); resolve(null); }
       }, 400);
     });
   }
-
-  // --- Parse a DOM table -----------------------------------------------------
 
   function parseDomTable(tbl) {
     if (!tbl) return [];
     const rows = [];
     tbl.querySelectorAll('tr').forEach(tr => {
       if (tr.classList.contains('thead')) return;
-      const row = {};
-      let hasPlayer = false;
+      const row = {}; let hasPlayer = false;
       tr.querySelectorAll('td[data-stat],th[data-stat]').forEach(cell => {
         const stat = cell.getAttribute('data-stat');
         const val  = cell.innerText.trim();
@@ -80,12 +69,8 @@
     return rows;
   }
 
-  // --- Main ------------------------------------------------------------------
-
   const slug = (location.pathname.match(/\/cbb\/schools\/([^/]+)\//) || [])[1] || 'unknown';
-  console.log('Waiting for tables to load for ' + slug + '...');
 
-  // Roster is always present immediately; stats tables load lazily
   const [rosterTbl, pgTbl, p100Tbl] = await Promise.all([
     waitForTable('roster',           5000),
     waitForTable('players_per_game', 10000),
@@ -93,7 +78,6 @@
       waitForTable('players_per_poss', 10000),
       waitForTable('per_poss',         10000),
       waitForTable('per_100',          10000),
-      waitForTable('per_100_poss',     10000),
     ])
   ]);
 
@@ -101,71 +85,65 @@
   const pgRows     = parseDomTable(pgTbl);
   const p100Rows   = parseDomTable(p100Tbl);
 
-  console.log('Roster: ' + rosterRows.length + '  PerGame: ' + pgRows.length + '  Per100: ' + p100Rows.length);
-
   if (!rosterRows.length) {
-    console.error('ERROR: Roster table not found. Make sure the page is fully loaded.');
+    alert('ERROR: Roster table not found. Make sure the page is fully loaded.');
     return;
   }
-  if (!pgRows.length)   console.warn('WARNING: Per Game table not found - stats will be null');
-  if (!p100Rows.length) console.warn('WARNING: Per 100 Poss table not found - stats will be null');
-
-  // --- Build lookup maps -----------------------------------------------------
 
   const pgMap = {}, p100Map = {}, skip = ['TOT','2TM','3TM'];
   for (const r of pgRows)   { const n=r.player; if(n&&!skip.includes(n)&&!pgMap[n])   pgMap[n]=r; }
   for (const r of p100Rows) { const n=r.player; if(n&&!skip.includes(n)&&!p100Map[n]) p100Map[n]=r; }
 
-  // --- Build player list -----------------------------------------------------
-
   const players = [];
   for (const r of rosterRows) {
     const name = r.player;
     if (!name || !name.trim()) continue;
-    const cls  = (getFirst(r, ['class_year','class','yr']) || '').replace(/\s/g,'').toUpperCase();
+    const cls  = (getFirst(r,['class_year','class','yr'])||'').replace(/\s/g,'').toUpperCase();
     const pg   = pgMap[name]   || {};
     const p100 = p100Map[name] || {};
-    const mp   = parseNum(getFirst(pg, ['mp_per_g','mp']));
-    const reps = repsFactor(mp);
-    const vet  = vetFactor(cls);
+    const mp   = parseNum(getFirst(pg,['mp_per_g','mp']));
+    const reps = repsFactor(mp), vet = vetFactor(cls);
     const s  = v => v == null ? null : Math.round(v * reps * vet * 10000) / 10000;
     const si = v => v == null ? null : Math.round(v / vet * 10000) / 10000;
-
     players.push({
-      number:   getFirst(r,['uniform_number','number','no']) || '',
-      name, position: getFirst(r,['pos','position']) || '',
-      height:   convertHt(getFirst(r,['height','ht'])),
-      weight:   parseNum(getFirst(r,['weight','wt'])),
+      number:   getFirst(r,['uniform_number','number','no'])||'',
+      name, position: getFirst(r,['pos','position'])||'',
+      height: convertHt(getFirst(r,['height','ht'])),
+      weight: parseNum(getFirst(r,['weight','wt'])),
       class: cls, mp,
-      ppg:    parseNum(getFirst(pg,   ['pts_per_g','pts','points'])),
-      rpg:    parseNum(getFirst(pg,   ['trb_per_g','trb','tot_reb'])),
-      apg:    parseNum(getFirst(pg,   ['ast_per_g','ast','assists'])),
-      bpg:    parseNum(getFirst(pg,   ['blk_per_g','blk','blocks'])),
-      spg:    parseNum(getFirst(pg,   ['stl_per_g','stl','steals'])),
+      ppg: parseNum(getFirst(pg,['pts_per_g','pts'])),
+      rpg: parseNum(getFirst(pg,['trb_per_g','trb'])),
+      apg: parseNum(getFirst(pg,['ast_per_g','ast'])),
+      bpg: parseNum(getFirst(pg,['blk_per_g','blk'])),
+      spg: parseNum(getFirst(pg,['stl_per_g','stl'])),
       fga:    s(parseNum(getFirst(p100,['fga_per_poss','fga']))),
-      threeP: s(normPct(getFirst(p100, ['fg3_pct','3p_pct','fg3_pct']))),
-      twoP:   s(normPct(getFirst(p100, ['fg2_pct','2p_pct','fg2_pct']))),
-      ftPct:  s(normPct(getFirst(p100, ['ft_pct','ftpct','ft_pct']))),
-      orb:    s(parseNum(getFirst(p100,['orb_per_poss','orb']))),
-      drb:    s(parseNum(getFirst(p100,['drb_per_poss','drb']))),
-      ast:    s(parseNum(getFirst(p100,['ast_per_poss','ast']))),
-      stl:    s(parseNum(getFirst(p100,['stl_per_poss','stl']))),
-      blk:    s(parseNum(getFirst(p100,['blk_per_poss','blk']))),
-      tov:    si(parseNum(getFirst(p100,['tov_per_poss','tov']))),
-      pf:     si(parseNum(getFirst(p100,['pf_per_poss','pf'])))
+      threeP: s(normPct(getFirst(p100,['fg3_pct','3p_pct']))),
+      twoP:   s(normPct(getFirst(p100,['fg2_pct','2p_pct']))),
+      ftPct:  s(normPct(getFirst(p100,['ft_pct','ftpct']))),
+      orb:  s(parseNum(getFirst(p100,['orb_per_poss','orb']))),
+      drb:  s(parseNum(getFirst(p100,['drb_per_poss','drb']))),
+      ast:  s(parseNum(getFirst(p100,['ast_per_poss','ast']))),
+      stl:  s(parseNum(getFirst(p100,['stl_per_poss','stl']))),
+      blk:  s(parseNum(getFirst(p100,['blk_per_poss','blk']))),
+      tov:  si(parseNum(getFirst(p100,['tov_per_poss','tov']))),
+      pf:   si(parseNum(getFirst(p100,['pf_per_poss','pf'])))
     });
   }
 
-  console.log('Built ' + players.length + ' players for ' + slug);
-
-  // --- Output ----------------------------------------------------------------
-
   const jsonStr = JSON.stringify({ srSlug: slug, players }, null, 2);
-  console.log('');
-  console.log('=== COPY EVERYTHING BETWEEN THE MARKERS BELOW ===');
-  console.log('---BEGIN---');
-  console.log(jsonStr);
-  console.log('---END---');
-  console.log('Save as: import/team-data/' + slug + '.json');
+
+  // Copy to clipboard
+  try {
+    await navigator.clipboard.writeText(jsonStr);
+    alert('Done! ' + players.length + ' players for ' + slug + '.\n\nJSON copied to clipboard.\nPaste into: import/team-data/' + slug + '.json');
+  } catch(e) {
+    // Clipboard blocked — fall back to a selectable text area on the page
+    const ta = document.createElement('textarea');
+    ta.value = jsonStr;
+    ta.style.cssText = 'position:fixed;top:10px;left:10px;width:90vw;height:80vh;z-index:99999;font-size:11px;background:#fff;border:3px solid red;padding:8px';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    alert('Done! ' + players.length + ' players for ' + slug + '.\n\nClipboard was blocked.\nA text box has appeared on the page — select all and copy it manually.\nThen paste into: import/team-data/' + slug + '.json');
+  }
 
 })();
