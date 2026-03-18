@@ -177,7 +177,8 @@ header { background: var(--primary); color: #fff; padding: 16px 32px 0; position
 
 <script>
 // ── DATA ─────────────────────────────────────────────────────
-let DATA = [];
+// AUTO-GENERATED — do not edit by hand; run import\update_data.ps1 to refresh
+const DATA = [{"conference":"Big East","teams":[{"name":"Connecticut","nickname":"Huskies","primaryColor":"#000E2F","record":"","logo":"","players":[]}]},{"conference":"Big Ten","teams":[{"name":"Illinois","nickname":"Fighting Illini","primaryColor":"#13294B","record":"","logo":"","players":[{"number":"23","name":"Keaton Wagler","position":"G","height":78,"weight":185,"class":"FR","mp":null,"ppg":null,"rpg":null,"apg":null,"bpg":null,"spg":null,"fga":null,"threeP":null,"twoP":null,"ftPct":null,"orb":null,"drb":null,"ast":null,"stl":null,"blk":null,"tov":null,"pf":null},{"number":"0","name":"David Mirkovic","position":"F","height":81,"weight":250,"class":"FR","mp":null,"ppg":null,"rpg":null,"apg":null,"bpg":null,"spg":null,"fga":null,"threeP":null,"twoP":null,"ftPct":null,"orb":null,"drb":null,"ast":null,"stl":null,"blk":null,"tov":null,"pf":null},{"number":"2","name":"Andrej Stojakovic","position":"G","height":79,"weight":190,"class":"JR","mp":null,"ppg":null,"rpg":null,"apg":null,"bpg":null,"spg":null,"fga":null,"threeP":null,"twoP":null,"ftPct":null,"orb":null,"drb":null,"ast":null,"stl":null,"blk":null,"tov":null,"pf":null},{"number":"4","name":"Kylan Boswell","position":"G","height":74,"weight":195,"class":"SR","mp":null,"ppg":null,"rpg":null,"apg":null,"bpg":null,"spg":null,"fga":null,"threeP":null,"twoP":null,"ftPct":null,"orb":null,"drb":null,"ast":null,"stl":null,"blk":null,"tov":null,"pf":null},{"number":"13","name":"Tomislav Ivisic","position":"C","height":85,"weight":255,"class":"SO","mp":null,"ppg":null,"rpg":null,"apg":null,"bpg":null,"spg":null,"fga":null,"threeP":null,"twoP":null,"ftPct":null,"orb":null,"drb":null,"ast":null,"stl":null,"blk":null,"tov":null,"pf":null},{"number":"44","name":"Zvonimir Ivisic","position":"F","height":86,"weight":234,"class":"JR","mp":null,"ppg":null,"rpg":null,"apg":null,"bpg":null,"spg":null,"fga":null,"threeP":null,"twoP":null,"ftPct":null,"orb":null,"drb":null,"ast":null,"stl":null,"blk":null,"tov":null,"pf":null},{"number":"3","name":"Ben Humrichous","position":"F","height":81,"weight":220,"class":"SR","mp":null,"ppg":null,"rpg":null,"apg":null,"bpg":null,"spg":null,"fga":null,"threeP":null,"twoP":null,"ftPct":null,"orb":null,"drb":null,"ast":null,"stl":null,"blk":null,"tov":null,"pf":null},{"number":"15","name":"Jake Davis","position":"F","height":78,"weight":210,"class":"JR","mp":null,"ppg":null,"rpg":null,"apg":null,"bpg":null,"spg":null,"fga":null,"threeP":null,"twoP":null,"ftPct":null,"orb":null,"drb":null,"ast":null,"stl":null,"blk":null,"tov":null,"pf":null},{"number":"77","name":"Mihailo Petrovic","position":"G","height":75,"weight":180,"class":"SO","mp":null,"ppg":null,"rpg":null,"apg":null,"bpg":null,"spg":null,"fga":null,"threeP":null,"twoP":null,"ftPct":null,"orb":null,"drb":null,"ast":null,"stl":null,"blk":null,"tov":null,"pf":null},{"number":"1","name":"Brandon Lee","position":"G","height":76,"weight":195,"class":"FR","mp":null,"ppg":null,"rpg":null,"apg":null,"bpg":null,"spg":null,"fga":null,"threeP":null,"twoP":null,"ftPct":null,"orb":null,"drb":null,"ast":null,"stl":null,"blk":null,"tov":null,"pf":null},{"number":"5","name":"AJ Redd","position":"G","height":75,"weight":170,"class":"SR","mp":null,"ppg":null,"rpg":null,"apg":null,"bpg":null,"spg":null,"fga":null,"threeP":null,"twoP":null,"ftPct":null,"orb":null,"drb":null,"ast":null,"stl":null,"blk":null,"tov":null,"pf":null},{"number":"31","name":"Jason Jakstys","position":"F","height":82,"weight":210,"class":"SO","mp":null,"ppg":null,"rpg":null,"apg":null,"bpg":null,"spg":null,"fga":null,"threeP":null,"twoP":null,"ftPct":null,"orb":null,"drb":null,"ast":null,"stl":null,"blk":null,"tov":null,"pf":null},{"number":"8","name":"Blake Fagbemi","position":"G","height":72,"weight":180,"class":"FR","mp":null,"ppg":null,"rpg":null,"apg":null,"bpg":null,"spg":null,"fga":null,"threeP":null,"twoP":null,"ftPct":null,"orb":null,"drb":null,"ast":null,"stl":null,"blk":null,"tov":null,"pf":null},{"number":"20","name":"Ty Rodgers","position":"G","height":78,"weight":200,"class":"JR","mp":null,"ppg":null,"rpg":null,"apg":null,"bpg":null,"spg":null,"fga":null,"threeP":null,"twoP":null,"ftPct":null,"orb":null,"drb":null,"ast":null,"stl":null,"blk":null,"tov":null,"pf":null}]}]},{"conference":"Big 12","teams":[]},{"conference":"SEC","teams":[]},{"conference":"ACC","teams":[]},{"conference":"MAC","teams":[]},{"conference":"WCC","teams":[]}];
 
 // ── GAME STATE ───────────────────────────────────────────────
 const G = {
@@ -571,18 +572,9 @@ function renderGameplanPane() {
 }
 
 // ── BOOT ──────────────────────────────────────────────────────
-fetch('data.json')
-  .then(r => r.text())
-  .then(t => JSON.parse(t.replace(/^\uFEFF/, '')))
-  .then(d => {
-    DATA = d;
-    renderRosterPane(document.getElementById('rostersPane'), false);
-    renderRosterPane(document.getElementById('statCheckPane'), true);
-    renderGameSetup();
-  })
-  .catch(() => {
-    document.getElementById('rostersPane').innerHTML = '<div class="pane-body"><div class="no-data">Could not load data.json.</div></div>';
-  });
+renderRosterPane(document.getElementById('rostersPane'), false);
+renderRosterPane(document.getElementById('statCheckPane'), true);
+renderGameSetup();
 </script>
 </body>
 </html>

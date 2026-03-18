@@ -20,3 +20,12 @@ if (-not $updated) { Write-Warning "Big Ten entry not found in data.json"; exit 
 $utf8NoBom = New-Object System.Text.UTF8Encoding $false
 [System.IO.File]::WriteAllText($dataPath, ($data | ConvertTo-Json -Depth 20), $utf8NoBom)
 Write-Host "data.json updated successfully" -ForegroundColor Green
+
+# Also inject the data inline into index.html so the page works without a server
+$indexPath  = Join-Path $root "index.html"
+$indexHtml  = [System.IO.File]::ReadAllText($indexPath, $utf8NoBom)
+$jsonCompact = $data | ConvertTo-Json -Depth 20 -Compress
+$newLine     = "const DATA = $jsonCompact;"
+$indexHtml   = $indexHtml -replace '(?m)^const DATA = .*$', $newLine
+[System.IO.File]::WriteAllText($indexPath, $indexHtml, $utf8NoBom)
+Write-Host "index.html DATA updated successfully" -ForegroundColor Green
