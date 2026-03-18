@@ -3,15 +3,13 @@
 // HOW TO USE:
 // 1. Go to the team's sports-reference page, e.g.:
 //    https://www.sports-reference.com/cbb/schools/indiana/men/2026.html
-// 2. Wait for the page to fully load
+// 2. Wait for the page to fully load, then SCROLL DOWN past the stats tables
+//    so sports-reference loads them into the page
 // 3. Open browser console: press F12, click "Console" tab
 // 4. Paste this entire script and press Enter
-// 5. Wait up to ~15 seconds for "---BEGIN---" to appear
-// 6. Copy everything between ---BEGIN--- and ---END---, paste into
-//    a text file, save as e.g. indiana.json in import/team-data/
-// 7. Repeat for each team, then run: .\import\combine_teams.ps1
-//
-// NOTE: If you see a CAPTCHA, solve it, let the page reload, then paste again.
+// 5. Copy everything between ---BEGIN--- and ---END---
+//    Paste into a text file, save as e.g. indiana.json in import/team-data/
+// 6. Repeat for each team, then run: .\import\combine_teams.ps1
 
 (async function() {
 
@@ -38,29 +36,33 @@
   }
   function repsFactor(mp) {
     const m = parseFloat(mp) || 0;
-    if (m > 30) return 1.05;
-    if (m >= 20) return 1.02;
-    if (m >= 15) return 1.00;
-    if (m >= 10) return 0.98;
-    return 0.95;
+    if (m > 30) return 1.05; if (m >= 20) return 1.02;
+    if (m >= 15) return 1.00; if (m >= 10) return 0.98; return 0.95;
   }
   function vetFactor(cls) {
-    const c = (cls || '').replace(/\s/g, '').toUpperCase();
-    if (c === 'SR') return 1.02;
-    if (c === 'FR') return 0.98;
-    return 1.00;
-  }
-  function decodeHtml(s) {
-    return s.replace(/<[^>]+>/g, '')
-            .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
-            .replace(/&nbsp;/g,' ').replace(/&#39;/g,"'").replace(/&quot;/g,'"')
-            .trim();
+    const c = (cls || '').replace(/\s/g,'').toUpperCase();
+    return c === 'SR' ? 1.02 : c === 'FR' ? 0.98 : 1.00;
   }
 
-  // --- Roster from DOM (always present) --------------------------------------
+  // --- Wait for a table to appear in the DOM ---------------------------------
+  // Sports-reference loads stats tables lazily; polling lets their JS run first
 
-  function parseDomTable(id) {
-    const tbl = document.getElementById(id);
+  function waitForTable(id, timeoutMs) {
+    return new Promise(resolve => {
+      const tbl = document.getElementById(id);
+      if (tbl) { resolve(tbl); return; }
+      const start = Date.now();
+      const iv = setInterval(() => {
+        const t = document.getElementById(id);
+        if (t) { clearInterval(iv); resolve(t); return; }
+        if (Date.now() - start > timeoutMs) { clearInterval(iv); resolve(null); }
+      }, 400);
+    });
+  }
+
+  // --- Parse a DOM table -----------------------------------------------------
+
+  function parseDomTable(tbl) {
     if (!tbl) return [];
     const rows = [];
     tbl.querySelectorAll('tr').forEach(tr => {
@@ -70,7 +72,7 @@
       tr.querySelectorAll('td[data-stat],th[data-stat]').forEach(cell => {
         const stat = cell.getAttribute('data-stat');
         const val  = cell.innerText.trim();
-        row[stat]  = val;
+        row[stat] = val;
         if (stat === 'player' && val && val !== 'Player') hasPlayer = true;
       });
       if (hasPlayer) rows.push(row);
@@ -78,63 +80,25 @@
     return rows;
   }
 
-  // --- Stats tables from raw HTML (hidden in comments) -----------------------
-
-  function extractTable(html, id) {
-    const pat = new RegExp('<table[^>]+id="' + id + '"[^>]*>[\\s\\S]*?<\\/table>', 'i');
-    let m = html.match(pat);
-    if (m) return m[0];
-    const uncommented = html.replace(/<!--/g, '').replace(/-->/g, '');
-    m = uncommented.match(pat);
-    return m ? m[0] : null;
-  }
-
-  function parseHtmlTable(tableHtml) {
-    if (!tableHtml) return [];
-    const rows = [];
-    const trPat   = /<tr(?![^>]*class="thead")[^>]*>([\s\S]*?)<\/tr>/gi;
-    const cellPat = /<t[dh][^>]+data-stat="([^"]+)"[^>]*>([\s\S]*?)<\/t[dh]>/gi;
-    let trm;
-    while ((trm = trPat.exec(tableHtml)) !== null) {
-      const rowHtml = trm[1];
-      const row = {};
-      let hasPlayer = false;
-      let cm;
-      cellPat.lastIndex = 0;
-      while ((cm = cellPat.exec(rowHtml)) !== null) {
-        const stat = cm[1], val = decodeHtml(cm[2]);
-        row[stat] = val;
-        if (stat === 'player' && val && val !== 'Player') hasPlayer = true;
-      }
-      if (hasPlayer) rows.push(row);
-    }
-    return rows;
-  }
-
-  // --- Fetch raw HTML with 15-second timeout ---------------------------------
+  // --- Main ------------------------------------------------------------------
 
   const slug = (location.pathname.match(/\/cbb\/schools\/([^/]+)\//) || [])[1] || 'unknown';
-  console.log('Fetching raw HTML for ' + slug + '... (up to 15s)');
+  console.log('Waiting for tables to load for ' + slug + '...');
 
-  let html = null;
-  try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 15000);
-    const resp  = await fetch(location.href, { signal: ctrl.signal });
-    clearTimeout(timer);
-    html = await resp.text();
-    console.log('Raw HTML fetched (' + Math.round(html.length / 1024) + ' KB)');
-  } catch(e) {
-    console.warn('Fetch failed or timed out (' + e.message + ') — stats will be null');
-  }
+  // Roster is always present immediately; stats tables load lazily
+  const [rosterTbl, pgTbl, p100Tbl] = await Promise.all([
+    waitForTable('roster',   5000),
+    waitForTable('per_game', 10000),
+    Promise.race([
+      waitForTable('per_poss',     10000),
+      waitForTable('per_100',      10000),
+      waitForTable('per_100_poss', 10000),
+    ])
+  ]);
 
-  // --- Parse tables ----------------------------------------------------------
-
-  const rosterRows = parseDomTable('roster');
-  const pgRows     = html ? parseHtmlTable(extractTable(html, 'per_game'))   : [];
-  const p100Rows   = html ? parseHtmlTable(extractTable(html, 'per_poss') ||
-                                            extractTable(html, 'per_100')   ||
-                            extractTable(html, 'per_100_poss'))              : [];
+  const rosterRows = parseDomTable(rosterTbl);
+  const pgRows     = parseDomTable(pgTbl);
+  const p100Rows   = parseDomTable(p100Tbl);
 
   console.log('Roster: ' + rosterRows.length + '  PerGame: ' + pgRows.length + '  Per100: ' + p100Rows.length);
 
@@ -142,12 +106,14 @@
     console.error('ERROR: Roster table not found. Make sure the page is fully loaded.');
     return;
   }
+  if (!pgRows.length)   console.warn('WARNING: Per Game table not found - stats will be null');
+  if (!p100Rows.length) console.warn('WARNING: Per 100 Poss table not found - stats will be null');
 
   // --- Build lookup maps -----------------------------------------------------
 
   const pgMap = {}, p100Map = {}, skip = ['TOT','2TM','3TM'];
-  for (const r of pgRows)   { const n = r.player; if (n && !skip.includes(n) && !pgMap[n])   pgMap[n]   = r; }
-  for (const r of p100Rows) { const n = r.player; if (n && !skip.includes(n) && !p100Map[n]) p100Map[n] = r; }
+  for (const r of pgRows)   { const n=r.player; if(n&&!skip.includes(n)&&!pgMap[n])   pgMap[n]=r; }
+  for (const r of p100Rows) { const n=r.player; if(n&&!skip.includes(n)&&!p100Map[n]) p100Map[n]=r; }
 
   // --- Build player list -----------------------------------------------------
 
@@ -155,41 +121,37 @@
   for (const r of rosterRows) {
     const name = r.player;
     if (!name || !name.trim()) continue;
-
     const cls  = (getFirst(r, ['class_year','class','yr']) || '').replace(/\s/g,'').toUpperCase();
     const pg   = pgMap[name]   || {};
     const p100 = p100Map[name] || {};
     const mp   = parseNum(getFirst(pg, ['mp_per_g','mp']));
     const reps = repsFactor(mp);
     const vet  = vetFactor(cls);
-
     const s  = v => v == null ? null : Math.round(v * reps * vet * 10000) / 10000;
     const si = v => v == null ? null : Math.round(v / vet * 10000) / 10000;
 
     players.push({
-      number:   getFirst(r, ['uniform_number','number','no']) || '',
-      name,
-      position: getFirst(r, ['pos','position']) || '',
-      height:   convertHt(getFirst(r, ['height','ht'])),
-      weight:   parseNum(getFirst(r, ['weight','wt'])),
-      class:    cls,
-      mp,
+      number:   getFirst(r,['uniform_number','number','no']) || '',
+      name, position: getFirst(r,['pos','position']) || '',
+      height:   convertHt(getFirst(r,['height','ht'])),
+      weight:   parseNum(getFirst(r,['weight','wt'])),
+      class: cls, mp,
       ppg:    parseNum(getFirst(pg,   ['pts_per_g','pts'])),
       rpg:    parseNum(getFirst(pg,   ['trb_per_g','trb'])),
       apg:    parseNum(getFirst(pg,   ['ast_per_g','ast'])),
       bpg:    parseNum(getFirst(pg,   ['blk_per_g','blk'])),
       spg:    parseNum(getFirst(pg,   ['stl_per_g','stl'])),
-      fga:    s(parseNum(getFirst(p100, ['fga_per_poss','fga']))),
-      threeP: s(normPct(getFirst(p100,  ['fg3_pct','3p_pct']))),
-      twoP:   s(normPct(getFirst(p100,  ['fg2_pct','2p_pct']))),
-      ftPct:  s(normPct(getFirst(p100,  ['ft_pct','ftpct']))),
-      orb:    s(parseNum(getFirst(p100, ['orb_per_poss','orb']))),
-      drb:    s(parseNum(getFirst(p100, ['drb_per_poss','drb']))),
-      ast:    s(parseNum(getFirst(p100, ['ast_per_poss','ast']))),
-      stl:    s(parseNum(getFirst(p100, ['stl_per_poss','stl']))),
-      blk:    s(parseNum(getFirst(p100, ['blk_per_poss','blk']))),
-      tov:    si(parseNum(getFirst(p100, ['tov_per_poss','tov']))),
-      pf:     si(parseNum(getFirst(p100, ['pf_per_poss','pf'])))
+      fga:    s(parseNum(getFirst(p100,['fga_per_poss','fga']))),
+      threeP: s(normPct(getFirst(p100, ['fg3_pct','3p_pct']))),
+      twoP:   s(normPct(getFirst(p100, ['fg2_pct','2p_pct']))),
+      ftPct:  s(normPct(getFirst(p100, ['ft_pct','ftpct']))),
+      orb:    s(parseNum(getFirst(p100,['orb_per_poss','orb']))),
+      drb:    s(parseNum(getFirst(p100,['drb_per_poss','drb']))),
+      ast:    s(parseNum(getFirst(p100,['ast_per_poss','ast']))),
+      stl:    s(parseNum(getFirst(p100,['stl_per_poss','stl']))),
+      blk:    s(parseNum(getFirst(p100,['blk_per_poss','blk']))),
+      tov:    si(parseNum(getFirst(p100,['tov_per_poss','tov']))),
+      pf:     si(parseNum(getFirst(p100,['pf_per_poss','pf'])))
     });
   }
 
