@@ -1,0 +1,132 @@
+I have started to build a game application based upon college basketball statistics and am looking to outline my game play instructions so I can provide them to claude code.  Could use help to flesh it out.  The general idea of the game is that the main screen would include:
+
+A scoreboard, with both teams' scores, clock, player basic statistics (points, rebounds, assists) displayed under each team's score.  There would also be a running dialog of game action communicating scoring and other game events.
+
+The game would generally follow college basketball clock of two 20 minute halves followed by a five minute overtime if game is tied at the end.
+
+Clock:
+
+The game is turn based, but turns are managed by the application.  A time allocation per team possession would manage the "running" of the clock:
+
+A possession ending in a missed or made basket should be equivalent to the average time per possession in this year's men's basketball season (or 20 seconds if that data cannot be found)
+
+A possession ending in a turnover by offense or steal by defense will take ten seconds
+
+A possession beginning with an offensive rebound will take eight seconds
+
+Timeouts will be initiated by the application and will be initiated after a possession that ends when the clock has gone under 16, 12, 8 and 4 minutes.  At this time, the user will have an opportunity to adjust strategy.
+
+Play:
+
+With each possession, team and player statistics will be used to determine the outcome of the play.
+
+All of the player base statistics used are either shooting percentages or player statistics per 100 possessions.  Since the player stats will be based upon 100 possessions, we will need a table that stores the number of possessions per game of each team (at the team level, 2025-26 season) and the game will need to have a mechanism that interrogates an individual player and determines if an action takes place.  For example:
+
+Team - 78 possessions per game
+Player - 1 steal per 100 possessions
+Chance to steal on any given possession - .0078
+
+As a possession begins, the logic should be as follows:
+
+1. Check for steal - for each defensive player in the lineup, check for a steal.  If there is a steal, the possession moves to the other team and clock is decremented.
+
+2. Check for other turnover - for each offensive player, check for a turnover.  Since steals count in turnovers, the turnover likelihood should be 55% of the normally calculated number.  If there is a turnover, the possession moves to the other team and clock is decremented.
+
+3. Determine the player taking the shot.  This will be done using a combination of field goal attempts per 100 FGA on a player basis adjusted by the offensive and defensive strategies
+
+4. Determine whether the shot is a two-pointer or a three-pointer.  This will be determined by the percentage of FGA the shooting player attempts adjusted by the offensive and defensive strategies
+
+5. Determine whether the shot is made.  This will be determined by the player's 2P% or 3P% adjusted by the offensive and defensive strategies, whether the player is home or visitor and by a factor based upon momentum to be described later
+
+6. If shot is made, the possession switches to the other team, the score is incremented accordingly, the clock is decremented accordingly.
+
+7. If the shot is missed, determine which team gets the rebound (logic to follow).  Decrement the clock.
+
+8. Continue with next possession the team that gets the rebound.  If it is the offense getting the rebound the clock should decrement less per the rules above for consecutive possessions after an offensive rebound.
+
+The game should have a variety of creative ways to describe the outcome of the action, but none of the math should be shown.  The feedback to the user should generally be in the form of a play-by-play announcement (text format) and include player names, references to the teams, colorful descriptors, references to the score, streaks by players, scoring or rebounding statistical milestones ("Wagler has 20!).
+
+More to come on the other factors influencing play, but would like help fleshing some of these ideas out and describing in a way that claude code can understand easily.  Data has been hard to source, so would like to stick with the per 100 possession information as much as possible, but open to ideas and need to figure out what we should be storing as team tendencies vs. play
+
+////////////////3/19 instructions///////////////
+
+Minutes per game is currently stored at the player level
+
+After a steal or turnover, turnover per 100 of the offensive team should be used to determine which player turned the ball over, this is both for stat tracking accuracy and for commentary.
+
+Need to add an assist determination.  I think it should come between turnover check and determine shooter.  It should work similarly and use assists per 100 poss to determine if an assist has occurred.  Start with guards, then forwards, then center.  If no assist, proceed as normal.  If an assist is determined, go through determine shooter and shot type, but the basket is automatically good.
+
+If no assist is determined, proceed through determine shooter and shot type.  However when determining FG% on non-assisted shots, we need to reduce to account for the fact we are counting all assists as good shots.  Likely need team assist rate to come up with a reasonable amount to reduce percentages, but open to ideas.  shooting percentages for non-assisted will be pretty low but should balance.  Can adjust if not working.
+
+After shot outcome is determined, need a step to determine if a shooting foul has occurred by looking at personal fouls (PF) per 100, which we already store.  There likely needs to be a mechanism for determining fouls prior to shot as well, but haven't thought it all through.
+
+The rebound system stage 1 can start with team rebound statistic, but should be impacted by the ORB and DRB per 100 values of the players on the court (If I have all great rebounders in game I should get more), vs. the opposite values on the other team.  Should influence the outcome.
+
+When assigning credit for rebound in stage 2, F & C position players should have their rate boosted when the shot is a two pointer and G should have their rate boosted when a 3 pointer.
+
+I have already added default ratings where nulls appear, so should not be a need to handle this in individual elements of game.
+
+If a player has null or zero statistical values for those statistics used in game play (those on STAT CHECK tab), substitute the following values:
+
+FGA - 5
+3P% - 10
+2P% - 20
+FT% - 50
+ORB - 1
+DRB - 1
+AST - 1
+STL - 0.1
+BLK - 0.1
+TOV - 1
+PF - 5
+
+"STAT CHECK" is a form I had Claude code create for de-bugging, its not part of the game
+
+Likewise, I have already provided offensive and defensive strategies.  What I envision is a table where they work in concert to provide modifiers, so every combination of these would have a list of modifiers.
+
+OFFENSIVE STRATEGIES
+
+Five Out
+Pick & Roll
+Pick & Pop
+Motion
+High Post
+Low Post
+
+DEFENSIVE STRATEGIES
+
+Man to Man
+2-3 Zone
+1-3-1 Zone
+Matchup Zone
+Half Court Trap
+Full Court Press
+
+On a made 2 pointer, I would like to come up with a chance the shot is a dunk, the main purpose of which would be to drive the commentary and boost momentum
+
+I think momentum should not begin with a single made basket other than a dunk, but I like the other choices
+
+Momentum should not stop on a defensive stop, but rather by a basket scored by the other team only.
+
+Relative to the scoreboard, there needs to be a timing to the game so the player can absorb what is going on and react.  Perhaps start with commentary lines appearing every three seconds, but allow a control so the player can speed or slow this.
+
+Minor point, but I picture the scoreboard like a traditional high school board where the numbers are made up of a grid of individual light bulbs.
+
+There should be a timeout feature that allows the player to call a timeout, getting three per half. During any timeout, the player should be presented first with the ability to change lineup and then strategy (in later versions these can be done at other times).
+
+For sake of completeness, we should add a section on free throws:
+
+After a shooting foul resulting in a made basket...one free throw
+After a shooting foul resulting in a missed two-pointer...two free throws.  Field goal attempt not counted in player stats.
+After a shooting foul resulting in a missed three-pointer...three free throws.  Field goal attempt not counted in player stats.
+
+Track team fouls (shooting and non-shooting) per half.  Award possession to opposing team on non-shooting team foul 1 through 6.
+
+After a non-shooting foul that is team foul 7 through 9 in the half award one free throw to the fouled team.  If made, award a second to the fouled team.
+After a non-shooting foul that is team foul 10 or more in the half award two free throws to the other team.
+
+If the last free throw in a sequence is made, award possession to the non-shooting team and continue.
+
+If the last free throw in a sequence is missed, invoke rebound logic, but provide offensive team a flat 15% chance at the rebound if they are the inferior team rebounding team and a flat 20% chance at the rebound if they are they superior rebounding team.
+
+On a separate topic, the name of the head coach of each team should be stored at the team level as well as the city in which the school resides. These values can be used to make commentary more fun.  Also (for appendix) I would like to think about a technical foul possibility, likely after a team has a significant negative momentum or if their team fouls are greater than three more than their opponent in a half.

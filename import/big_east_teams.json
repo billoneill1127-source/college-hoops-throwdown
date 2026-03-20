@@ -1,0 +1,16 @@
+{
+  "conference": "Big East",
+  "teams": [
+    { "slug": "connecticut",  "srSlug": "connecticut",  "name": "Connecticut", "nickname": "Huskies",      "primaryColor": "#000E2F", "record": "", "logo": "", "city": "Storrs" },
+    { "slug": "depaul",       "srSlug": "depaul",       "name": "DePaul",      "nickname": "Blue Demons",  "primaryColor": "#005EB8", "record": "", "logo": "", "city": "Chicago" },
+    { "slug": "georgetown",   "srSlug": "georgetown",   "name": "Georgetown",  "nickname": "Hoyas",        "primaryColor": "#041E42", "record": "", "logo": "", "city": "Washington" },
+    { "slug": "marquette",    "srSlug": "marquette",    "name": "Marquette",   "nickname": "Golden Eagles","primaryColor": "#003366", "record": "", "logo": "", "city": "Milwaukee" },
+    { "slug": "providence",   "srSlug": "providence",   "name": "Providence",  "nickname": "Friars",       "primaryColor": "#321D6E", "record": "", "logo": "", "city": "Providence" },
+    { "slug": "seton-hall",   "srSlug": "seton-hall",   "name": "Seton Hall",  "nickname": "Pirates",      "primaryColor": "#004488", "record": "", "logo": "", "city": "South Orange" },
+    { "slug": "st-johns",     "srSlug": "st-johns",     "name": "St. John's",  "nickname": "Red Storm",    "primaryColor": "#CC0000", "record": "", "logo": "", "city": "Queens" },
+    { "slug": "villanova",    "srSlug": "villanova",    "name": "Villanova",   "nickname": "Wildcats",     "primaryColor": "#003E91", "record": "", "logo": "", "city": "Villanova" },
+    { "slug": "xavier",       "srSlug": "xavier",       "name": "Xavier",      "nickname": "Musketeers",   "primaryColor": "#0E3386", "record": "", "logo": "", "city": "Cincinnati" },
+    { "slug": "butler",       "srSlug": "butler",       "name": "Butler",      "nickname": "Bulldogs",     "primaryColor": "#13294B", "record": "", "logo": "", "city": "Indianapolis" },
+    { "slug": "creighton",    "srSlug": "creighton",    "name": "Creighton",   "nickname": "Bluejays",     "primaryColor": "#005CA9", "record": "", "logo": "", "city": "Omaha" }
+  ]
+}

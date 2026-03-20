@@ -1,0 +1,23 @@
+{
+  "conference": "ACC",
+  "teams": [
+    { "slug": "boston-college", "srSlug": "boston-college", "name": "Boston College",  "nickname": "Eagles",        "primaryColor": "#8B0000", "record": "", "logo": "", "city": "Chestnut Hill" },
+    { "slug": "california",     "srSlug": "california",     "name": "California",      "nickname": "Golden Bears",  "primaryColor": "#003262", "record": "", "logo": "", "city": "Berkeley" },
+    { "slug": "clemson",        "srSlug": "clemson",        "name": "Clemson",          "nickname": "Tigers",        "primaryColor": "#F56600", "record": "", "logo": "", "city": "Clemson" },
+    { "slug": "duke",           "srSlug": "duke",           "name": "Duke",             "nickname": "Blue Devils",   "primaryColor": "#012169", "record": "", "logo": "", "city": "Durham" },
+    { "slug": "florida-state",  "srSlug": "florida-state",  "name": "Florida State",    "nickname": "Seminoles",     "primaryColor": "#782F40", "record": "", "logo": "", "city": "Tallahassee" },
+    { "slug": "georgia-tech",   "srSlug": "georgia-tech",   "name": "Georgia Tech",     "nickname": "Yellow Jackets","primaryColor": "#B3A369", "record": "", "logo": "", "city": "Atlanta" },
+    { "slug": "louisville",     "srSlug": "louisville",     "name": "Louisville",       "nickname": "Cardinals",     "primaryColor": "#AD0000", "record": "", "logo": "", "city": "Louisville" },
+    { "slug": "miami-fl",       "srSlug": "miami-fl",       "name": "Miami (FL)",       "nickname": "Hurricanes",    "primaryColor": "#F47321", "record": "", "logo": "", "city": "Coral Gables" },
+    { "slug": "north-carolina", "srSlug": "north-carolina", "name": "North Carolina",   "nickname": "Tar Heels",     "primaryColor": "#4B9CD3", "record": "", "logo": "", "city": "Chapel Hill" },
+    { "slug": "nc-state",       "srSlug": "nc-state",       "name": "NC State",         "nickname": "Wolfpack",      "primaryColor": "#CC0000", "record": "", "logo": "", "city": "Raleigh" },
+    { "slug": "notre-dame",     "srSlug": "notre-dame",     "name": "Notre Dame",       "nickname": "Fighting Irish", "primaryColor": "#0C2340", "record": "", "logo": "", "city": "Notre Dame" },
+    { "slug": "pittsburgh",     "srSlug": "pittsburgh",     "name": "Pittsburgh",       "nickname": "Panthers",      "primaryColor": "#003594", "record": "", "logo": "", "city": "Pittsburgh" },
+    { "slug": "smu",            "srSlug": "smu",            "name": "SMU",              "nickname": "Mustangs",      "primaryColor": "#0039A6", "record": "", "logo": "", "city": "Dallas" },
+    { "slug": "stanford",       "srSlug": "stanford",       "name": "Stanford",         "nickname": "Cardinal",      "primaryColor": "#8C1515", "record": "", "logo": "", "city": "Stanford" },
+    { "slug": "syracuse",       "srSlug": "syracuse",       "name": "Syracuse",         "nickname": "Orange",        "primaryColor": "#F76900", "record": "", "logo": "", "city": "Syracuse" },
+    { "slug": "virginia",       "srSlug": "virginia",       "name": "Virginia",         "nickname": "Cavaliers",     "primaryColor": "#232D4B", "record": "", "logo": "", "city": "Charlottesville" },
+    { "slug": "virginia-tech",  "srSlug": "virginia-tech",  "name": "Virginia Tech",    "nickname": "Hokies",        "primaryColor": "#630031", "record": "", "logo": "", "city": "Blacksburg" },
+    { "slug": "wake-forest",    "srSlug": "wake-forest",    "name": "Wake Forest",      "nickname": "Demon Deacons", "primaryColor": "#9E7E38", "record": "", "logo": "", "city": "Winston-Salem" }
+  ]
+}
