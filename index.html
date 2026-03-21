@@ -456,6 +456,7 @@ function closeModal(e) {
     document.getElementById('rosterModal').style.display = 'none';
     const homeBtn=document.getElementById('rosterModalHomeBtn'); if(homeBtn)homeBtn.style.display='none';
     const htBtn=document.getElementById('halftimeLineupBtn'); if(htBtn)htBtn.style.display='none';
+    const printBtn=document.getElementById('bsPrintBtn'); if(printBtn)printBtn.style.display='none';
   }
 }
 
@@ -1450,30 +1451,67 @@ function showNext(){
 }
 
 function showHalftimeModal(){ showBoxScore(true); }
+function bsBuildTeamTable(t, src, stats, pstate){
+  const allP=t.allPlayers||[...t.lineup,...(t.bench||[])];
+  const playerMap=Object.fromEntries(allP.map(p=>[p.name,p]));
+  const tf={fgm:0,fga:0,tpm:0,tpa:0,ftm:0,fta:0,reb:0,ast:0,stl:0,blk:0,tov:0,pf:0,pts:0,mp:0};
+  const pl=((src||{}).players||[]).filter(p=>stats[p.name]).sort((a,b)=>(stats[b.name].pts||0)-(stats[a.name].pts||0));
+  let h='<table class="player-table"><thead><tr><th>Player</th><th class="num-col">MP</th><th class="num-col">Pts</th><th class="num-col">Reb</th><th class="num-col">Ast</th><th class="num-col">Stl</th><th class="num-col">Blk</th><th class="num-col">TO</th><th class="num-col">FG</th><th class="num-col">3P</th><th class="num-col">FT</th><th class="num-col">PF</th></tr></thead><tbody>';
+  if(!pl.length) h+='<tr><td colspan="12" style="text-align:center;color:#8b949e;padding:10px">No stats</td></tr>';
+  for(const p of pl){
+    const s=stats[p.name]; const po=playerMap[p.name];
+    const secs=pstate[p.name]!=null?(pstate[p.name].totalGameSecs||0):(po?po.totalGameSecs||0:0);
+    const mp=Math.round(secs/60);
+    tf.mp+=mp; tf.pts+=s.pts||0; tf.reb+=s.reb||0; tf.ast+=s.ast||0; tf.stl+=s.stl||0; tf.blk+=s.blk||0; tf.tov+=s.tov||0; tf.fgm+=s.fgm||0; tf.fga+=s.fga||0; tf.tpm+=s.tpm||0; tf.tpa+=s.tpa||0; tf.ftm+=s.ftm||0; tf.fta+=s.fta||0; tf.pf+=s.pf||0;
+    h+=`<tr><td>${esc(p.name)}</td><td class="num-col">${mp}</td><td class="num-col">${s.pts}</td><td class="num-col">${s.reb}</td><td class="num-col">${s.ast}</td><td class="num-col">${s.stl}</td><td class="num-col">${s.blk||0}</td><td class="num-col">${s.tov}</td><td class="num-col">${s.fgm+'/'+s.fga}</td><td class="num-col">${s.tpm+'/'+s.tpa}</td><td class="num-col">${s.ftm+'/'+s.fta}</td><td class="num-col">${s.pf}</td></tr>`;
+  }
+  h+=`<tr style="font-weight:700;border-top:2px solid #555;color:#fff"><td>TOTALS</td><td class="num-col">${tf.mp}</td><td class="num-col">${tf.pts}</td><td class="num-col">${tf.reb}</td><td class="num-col">${tf.ast}</td><td class="num-col">${tf.stl}</td><td class="num-col">${tf.blk}</td><td class="num-col">${tf.tov}</td><td class="num-col">${tf.fgm+'/'+tf.fga}</td><td class="num-col">${tf.tpm+'/'+tf.tpa}</td><td class="num-col">${tf.ftm+'/'+tf.fta}</td><td class="num-col">${tf.pf}</td></tr>`;
+  h+='</tbody></table>';
+  return h;
+}
 function showBsTab(side){
   const t=side==='away'?GAME.away:GAME.home, src=side==='away'?G.visitor:G.home;
   const tabA=document.getElementById('bsTabAway'), tabH=document.getElementById('bsTabHome');
   if(tabA){ tabA.style.borderBottomColor=side==='away'?GAME.away.primaryColor:'transparent'; tabA.style.color=side==='away'?GAME.away.primaryColor:'#8b949e'; tabA.style.fontWeight=side==='away'?'700':'500'; }
   if(tabH){ tabH.style.borderBottomColor=side==='home'?GAME.home.primaryColor:'transparent'; tabH.style.color=side==='home'?GAME.home.primaryColor:'#8b949e'; tabH.style.fontWeight=side==='home'?'700':'500'; }
   const cont=document.getElementById('bsContent'); if(!cont)return;
-  const allP=t.allPlayers||[...t.lineup,...(t.bench||[])];
-  const playerMap=Object.fromEntries(allP.map(p=>[p.name,p]));
+  cont.innerHTML=bsBuildTeamTable(t, src, bsSnapStats||GAME.stats, bsSnapPlayerState||{});
+}
+function printBoxScore(){
   const stats=bsSnapStats||GAME.stats;
   const pstate=bsSnapPlayerState||{};
-  // Team totals
-  const tf={fgm:0,fga:0,tpm:0,tpa:0,ftm:0,fta:0,reb:0,ast:0,tov:0,pf:0,pts:0};
-  for(const p of allP){ const s=stats[p.name]; if(s){ for(const k of Object.keys(tf)) tf[k]+=(s[k]||0); } }
-  const fgPct=tf.fga?Math.round(tf.fgm/tf.fga*100)+'%':'—';
-  const tpPct=tf.tpa?Math.round(tf.tpm/tf.tpa*100)+'%':'—';
-  const ftPct=tf.fta?Math.round(tf.ftm/tf.fta*100)+'%':'—';
-  let h=`<div style="padding:8px 10px 6px;border-bottom:1px solid var(--border)"><table style="width:100%;border-collapse:collapse;font-size:.77rem"><thead><tr style="color:#8b949e;font-size:.68rem;text-transform:uppercase;letter-spacing:.4px"><th style="text-align:left;padding:3px 6px">Team</th><th class="num-col">Pts</th><th class="num-col">FG%</th><th class="num-col">3P%</th><th class="num-col">FT%</th><th class="num-col">Reb</th><th class="num-col">Ast</th><th class="num-col">TO</th><th class="num-col">PF</th></tr></thead><tbody><tr><td style="padding:4px 6px;font-weight:700;color:${esc(t.primaryColor)}">${esc(t.name)}</td><td class="num-col" style="color:#fff;font-weight:700">${tf.pts}</td><td class="num-col">${fgPct}</td><td class="num-col">${tpPct}</td><td class="num-col">${ftPct}</td><td class="num-col">${tf.reb}</td><td class="num-col">${tf.ast}</td><td class="num-col">${tf.tov}</td><td class="num-col">${tf.pf}</td></tr></tbody></table></div>`;
-  // Player stats
-  h+='<table class="player-table"><thead><tr><th>Player</th><th class="num-col">MP</th><th class="num-col">Pts</th><th class="num-col">Reb</th><th class="num-col">Ast</th><th class="num-col">Stl</th><th class="num-col">Blk</th><th class="num-col">TO</th><th class="num-col">FG</th><th class="num-col">3P</th><th class="num-col">FT</th><th class="num-col">PF</th></tr></thead><tbody>';
-  const pl=((src||{}).players||[]).filter(p=>stats[p.name]).sort((a,b)=>(stats[b.name].pts||0)-(stats[a.name].pts||0));
-  if(!pl.length)h+='<tr><td colspan="12" style="text-align:center;color:#8b949e;padding:10px">No stats</td></tr>';
-  for(const p of pl){const s=stats[p.name];const po=playerMap[p.name];const secs=pstate[p.name]!=null?((pstate[p.name].totalGameSecs)||0):(po?po.totalGameSecs||0:0);const mp=Math.round(secs/60);h+=`<tr><td>${esc(p.name)}</td><td class="num-col">${mp}</td><td class="num-col">${s.pts}</td><td class="num-col">${s.reb}</td><td class="num-col">${s.ast}</td><td class="num-col">${s.stl}</td><td class="num-col">${s.blk||0}</td><td class="num-col">${s.tov}</td><td class="num-col">${s.fgm+'/'+s.fga}</td><td class="num-col">${s.tpm+'/'+s.tpa}</td><td class="num-col">${s.ftm+'/'+s.fta}</td><td class="num-col">${s.pf}</td></tr>`;}
-  h+='</tbody></table>';
-  cont.innerHTML=h;
+  const htEv=eventQueue.find(ev=>ev.type==='halftime');
+  const h1H=htEv?htEv.snapshot.homeScore:0, h1A=htEv?htEv.snapshot.awayScore:0;
+  const isHT=!!bsSnapStats;
+  let scoreRows='';
+  if(isHT){
+    scoreRows=`<tr><th>Team</th><th>1H</th></tr><tr><td>${esc(GAME.away.name)}</td><td>${h1A}</td></tr><tr><td>${esc(GAME.home.name)}</td><td>${h1H}</td></tr>`;
+  } else {
+    let regH=GAME.homeScore,regA=GAME.awayScore;
+    for(let i=eventQueue.length-1;i>=0;i--){ const sn=eventQueue[i].snapshot; if(sn&&sn.half===2){regH=sn.homeScore;regA=sn.awayScore;break;} }
+    const h2H=regH-h1H,h2A=regA-h1A,otH=GAME.homeScore-regH,otA=GAME.awayScore-regA,hasOT=otH+otA>0;
+    const otCol=hasOT?'<th>OT</th>':''; const otA_=hasOT?`<td>${otA}</td>`:''; const otH_=hasOT?`<td>${otH}</td>`:'';
+    scoreRows=`<tr><th>Team</th><th>1H</th><th>2H</th>${otCol}<th>Final</th></tr><tr><td>${esc(GAME.away.name)}</td><td>${h1A}</td><td>${h2A}</td>${otA_}<td><b>${GAME.awayScore}</b></td></tr><tr><td>${esc(GAME.home.name)}</td><td>${h1H}</td><td>${h2H}</td>${otH_}<td><b>${GAME.homeScore}</b></td></tr>`;
+  }
+  const buildPrintTable=(t,src)=>{
+    const allP=t.allPlayers||[...t.lineup,...(t.bench||[])];
+    const pm=Object.fromEntries(allP.map(p=>[p.name,p]));
+    const tf={fgm:0,fga:0,tpm:0,tpa:0,ftm:0,fta:0,reb:0,ast:0,stl:0,blk:0,tov:0,pf:0,pts:0,mp:0};
+    const pl=((src||{}).players||[]).filter(p=>stats[p.name]).sort((a,b)=>(stats[b.name].pts||0)-(stats[a.name].pts||0));
+    let h=`<h3 style="margin:16px 0 4px;color:${esc(t.primaryColor)}">${esc(t.name)}</h3><table border="1" cellpadding="4" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#eee"><th align="left">Player</th><th>MP</th><th>Pts</th><th>Reb</th><th>Ast</th><th>Stl</th><th>Blk</th><th>TO</th><th>FG</th><th>3P</th><th>FT</th><th>PF</th></tr></thead><tbody>`;
+    for(const p of pl){
+      const s=stats[p.name]; const po=pm[p.name];
+      const secs=pstate[p.name]!=null?(pstate[p.name].totalGameSecs||0):(po?po.totalGameSecs||0:0);
+      const mp=Math.round(secs/60);
+      tf.mp+=mp;tf.pts+=s.pts||0;tf.reb+=s.reb||0;tf.ast+=s.ast||0;tf.stl+=s.stl||0;tf.blk+=s.blk||0;tf.tov+=s.tov||0;tf.fgm+=s.fgm||0;tf.fga+=s.fga||0;tf.tpm+=s.tpm||0;tf.tpa+=s.tpa||0;tf.ftm+=s.ftm||0;tf.fta+=s.fta||0;tf.pf+=s.pf||0;
+      h+=`<tr><td>${esc(p.name)}</td><td align="center">${mp}</td><td align="center">${s.pts}</td><td align="center">${s.reb}</td><td align="center">${s.ast}</td><td align="center">${s.stl}</td><td align="center">${s.blk||0}</td><td align="center">${s.tov}</td><td align="center">${s.fgm}/${s.fga}</td><td align="center">${s.tpm}/${s.tpa}</td><td align="center">${s.ftm}/${s.fta}</td><td align="center">${s.pf}</td></tr>`;
+    }
+    h+=`<tr style="font-weight:bold;background:#f5f5f5"><td>TOTALS</td><td align="center">${tf.mp}</td><td align="center">${tf.pts}</td><td align="center">${tf.reb}</td><td align="center">${tf.ast}</td><td align="center">${tf.stl}</td><td align="center">${tf.blk}</td><td align="center">${tf.tov}</td><td align="center">${tf.fgm}/${tf.fga}</td><td align="center">${tf.tpm}/${tf.tpa}</td><td align="center">${tf.ftm}/${tf.fta}</td><td align="center">${tf.pf}</td></tr></tbody></table>`;
+    return h;
+  };
+  const w=window.open('','_blank','width=960,height=720');
+  w.document.write(`<!DOCTYPE html><html><head><title>Box Score</title><style>body{font-family:Arial,sans-serif;padding:20px;color:#111}table{border-collapse:collapse}h2{margin-bottom:4px}@media print{button{display:none}}</style></head><body><button onclick="window.print()" style="margin-bottom:12px;padding:6px 16px;font-size:13px;cursor:pointer">Print</button><h2>Box Score — ${esc(isHT?'Halftime':'Final')}</h2><table border="1" cellpadding="4" cellspacing="0" style="border-collapse:collapse;font-size:13px;margin-bottom:16px">${scoreRows}</table>${buildPrintTable(GAME.away,G.visitor)}${buildPrintTable(GAME.home,G.home)}</body></html>`);
+  w.document.close();
 }
 function showBoxScore(isHalftime){
   const htEv=eventQueue.find(ev=>ev.type==='halftime');
@@ -1482,7 +1520,7 @@ function showBoxScore(isHalftime){
   const h1H=htEv?htEv.snapshot.homeScore:0, h1A=htEv?htEv.snapshot.awayScore:0;
   let scoreHtml;
   if(isHalftime){
-    scoreHtml=`<div style="padding:10px 16px 6px;border-bottom:1px solid var(--border)"><table style="width:100%;border-collapse:collapse;font-size:.83rem"><thead><tr style="color:#8b949e;font-size:.7rem;text-transform:uppercase;letter-spacing:.5px"><th style="text-align:left;padding:4px 10px">Team</th><th style="text-align:center;padding:4px 10px;color:#e6edf3;font-weight:700">1H</th></tr></thead><tbody><tr style="border-top:1px solid var(--border)"><td style="padding:5px 10px;font-weight:600;color:${esc(GAME.away.primaryColor)}">${esc(GAME.away.name)}</td><td style="text-align:center;padding:5px 10px;font-weight:700;font-size:1rem;color:#fff">${h1A}</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:5px 10px;font-weight:600;color:${esc(GAME.home.primaryColor)}">${esc(GAME.home.name)}</td><td style="text-align:center;padding:5px 10px;font-weight:700;font-size:1rem;color:#fff">${h1H}</td></tr></tbody></table></div>`;
+    scoreHtml=`<div style="padding:10px 16px 6px;border-bottom:1px solid var(--border)"><table style="width:100%;border-collapse:collapse;font-size:1.3rem"><thead><tr style="color:#8b949e;font-size:1rem;text-transform:uppercase;letter-spacing:.5px"><th style="text-align:left;padding:4px 10px">Team</th><th style="text-align:center;padding:4px 10px;color:#e6edf3;font-weight:700">1H</th></tr></thead><tbody><tr style="border-top:1px solid var(--border)"><td style="padding:5px 10px;font-weight:700;font-size:1.6rem;color:${esc(GAME.away.primaryColor)}">${esc(GAME.away.name)}</td><td style="text-align:center;padding:5px 10px;font-weight:700;font-size:2rem;color:#fff">${h1A}</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:5px 10px;font-weight:700;font-size:1.6rem;color:${esc(GAME.home.primaryColor)}">${esc(GAME.home.name)}</td><td style="text-align:center;padding:5px 10px;font-weight:700;font-size:2rem;color:#fff">${h1H}</td></tr></tbody></table></div>`;
   } else {
     let regH=GAME.homeScore, regA=GAME.awayScore;
     for(let i=eventQueue.length-1;i>=0;i--){ const sn=eventQueue[i].snapshot; if(sn&&sn.half===2){regH=sn.homeScore;regA=sn.awayScore;break;} }
@@ -1491,16 +1529,21 @@ function showBoxScore(isHalftime){
     const otCol=hasOT?`<th style="text-align:center;padding:4px 10px">OT</th>`:'';
     const otRowA=hasOT?`<td style="text-align:center;padding:5px 10px">${otA}</td>`:'';
     const otRowH=hasOT?`<td style="text-align:center;padding:5px 10px">${otH}</td>`:'';
-    scoreHtml=`<div style="padding:10px 16px 6px;border-bottom:1px solid var(--border)"><table style="width:100%;border-collapse:collapse;font-size:.83rem"><thead><tr style="color:#8b949e;font-size:.7rem;text-transform:uppercase;letter-spacing:.5px"><th style="text-align:left;padding:4px 10px">Team</th><th style="text-align:center;padding:4px 10px">1H</th><th style="text-align:center;padding:4px 10px">2H</th>${otCol}<th style="text-align:center;padding:4px 10px;color:#fff;font-weight:700">Final</th></tr></thead><tbody><tr style="border-top:1px solid var(--border)"><td style="padding:5px 10px;font-weight:600;color:${esc(GAME.away.primaryColor)}">${esc(GAME.away.name)}</td><td style="text-align:center;padding:5px 10px">${h1A}</td><td style="text-align:center;padding:5px 10px">${h2A}</td>${otRowA}<td style="text-align:center;padding:5px 10px;font-weight:700;font-size:1rem;color:#fff">${GAME.awayScore}</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:5px 10px;font-weight:600;color:${esc(GAME.home.primaryColor)}">${esc(GAME.home.name)}</td><td style="text-align:center;padding:5px 10px">${h1H}</td><td style="text-align:center;padding:5px 10px">${h2H}</td>${otRowH}<td style="text-align:center;padding:5px 10px;font-weight:700;font-size:1rem;color:#fff">${GAME.homeScore}</td></tr></tbody></table></div>`;
+    scoreHtml=`<div style="padding:10px 16px 6px;border-bottom:1px solid var(--border)"><table style="width:100%;border-collapse:collapse;font-size:1.3rem"><thead><tr style="color:#8b949e;font-size:1rem;text-transform:uppercase;letter-spacing:.5px"><th style="text-align:left;padding:4px 10px">Team</th><th style="text-align:center;padding:4px 10px">1H</th><th style="text-align:center;padding:4px 10px">2H</th>${otCol}<th style="text-align:center;padding:4px 10px;color:#fff;font-weight:700">Final</th></tr></thead><tbody><tr style="border-top:1px solid var(--border)"><td style="padding:5px 10px;font-weight:700;font-size:1.6rem;color:${esc(GAME.away.primaryColor)}">${esc(GAME.away.name)}</td><td style="text-align:center;padding:5px 10px">${h1A}</td><td style="text-align:center;padding:5px 10px">${h2A}</td>${otRowA}<td style="text-align:center;padding:5px 10px;font-weight:700;font-size:2rem;color:#fff">${GAME.awayScore}</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:5px 10px;font-weight:700;font-size:1.6rem;color:${esc(GAME.home.primaryColor)}">${esc(GAME.home.name)}</td><td style="text-align:center;padding:5px 10px">${h1H}</td><td style="text-align:center;padding:5px 10px">${h2H}</td>${otRowH}<td style="text-align:center;padding:5px 10px;font-weight:700;font-size:2rem;color:#fff">${GAME.homeScore}</td></tr></tbody></table></div>`;
   }
   const tabHtml=`<div style="display:flex;border-bottom:1px solid var(--border);padding:0 16px"><button id="bsTabAway" onclick="showBsTab('away')" style="padding:7px 16px;border:none;border-bottom:2px solid ${esc(GAME.away.primaryColor)};background:none;font-size:.82rem;font-weight:700;cursor:pointer;color:${esc(GAME.away.primaryColor)}">${esc(GAME.away.name)}</button><button id="bsTabHome" onclick="showBsTab('home')" style="padding:7px 16px;border:none;border-bottom:2px solid transparent;background:none;font-size:.82rem;font-weight:500;cursor:pointer;color:#8b949e">${esc(GAME.home.name)}</button></div><div id="bsContent"></div>`;
   const ov=document.getElementById('rosterModal'); if(!ov)return;
   const title=document.getElementById('modalTitle'); if(title)title.textContent=isHalftime?'Halftime Statistics':'Box Score';
   const body=document.getElementById('modalBody'); if(body)body.innerHTML=scoreHtml+tabHtml;
   const homeBtn=document.getElementById('rosterModalHomeBtn'); if(homeBtn)homeBtn.style.display=isHalftime?'none':'inline-block';
+  // Print button — always visible on box score
+  let printBtn=document.getElementById('bsPrintBtn');
+  const mh=ov.querySelector('.modal-header');
+  if(!printBtn&&mh){ printBtn=document.createElement('button'); printBtn.id='bsPrintBtn'; printBtn.style.cssText='margin-right:8px;font-size:.8rem;padding:4px 12px;border-radius:5px;background:#444;color:#fff;border:none;cursor:pointer;font-weight:700'; printBtn.textContent='\uD83D\uDDA8 Print'; mh.insertBefore(printBtn,mh.firstChild); }
+  if(printBtn){ printBtn.style.display='inline-block'; printBtn.onclick=printBoxScore; }
   let htBtn=document.getElementById('halftimeLineupBtn');
   if(isHalftime){
-    if(!htBtn){ const mh=ov.querySelector('.modal-header'); if(mh){ htBtn=document.createElement('button'); htBtn.id='halftimeLineupBtn'; htBtn.style.cssText='margin-right:8px;font-size:.8rem;padding:4px 12px;border-radius:5px;background:var(--accent);color:#fff;border:none;cursor:pointer;font-weight:700'; htBtn.textContent='Lineups & Strategy \u25B6'; mh.insertBefore(htBtn,mh.firstChild); } }
+    if(!htBtn&&mh){ htBtn=document.createElement('button'); htBtn.id='halftimeLineupBtn'; htBtn.style.cssText='margin-right:8px;font-size:.8rem;padding:4px 12px;border-radius:5px;background:var(--accent);color:#fff;border:none;cursor:pointer;font-weight:700'; htBtn.textContent='Lineups & Strategy \u25B6'; mh.insertBefore(htBtn,mh.firstChild); }
     if(htBtn){ htBtn.style.display='inline-block'; htBtn.onclick=()=>{ ov.style.display='none'; renderLineupPane(); renderGameplanPane(); showScreen('lineup'); }; }
   } else {
     if(htBtn) htBtn.style.display='none';
