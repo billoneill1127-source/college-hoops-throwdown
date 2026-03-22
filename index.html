@@ -302,7 +302,6 @@ header { background: var(--primary); color: #fff; padding: 0 28px; position: sti
     <p>Built as a passion project for college basketball fans. All team names, nicknames, and logos are property of their respective institutions.</p>
     <p>Created by Claude Code with help from Bill O'Neill</p>
     <p>Release 1.0</p>
-    <p>Strategy function has no impact on game...coming soon.</p>
   </div>
 </div>
 
@@ -670,6 +669,62 @@ const DEFENSE = [
   { name: 'Half Court Trap',  desc: 'Pressure at half court to disrupt sets and force turnovers.' },
   { name: 'Full Court Press', desc: 'Deny inbounds and attack the ball the full length of the floor.' },
 ];
+function normalizeStrat(s){ return s.toLowerCase().replace(/&/g,'and').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,''); }
+// Strategy modifier table: [tpa,cwm,fwm,gwm,tp2,tp3,orb,ast,stl,tov,foul,fb]
+// tpa/tp2/tp3/orb: divide by 100 for decimal. cwm/fwm/gwm: additive to 1.0. ast/stl/tov/foul: extra check counts. fb: offense fast break.
+const STRATEGY_MODS = {
+  'five_out|man_to_man':          [5,  0,   0,   0.5, 0,  -2,  0, 0,0,0,0,false],
+  'five_out|2_3_zone':            [5,  0,   0,   0.5, 0,   5,  5, 0,0,0,0,false],
+  'five_out|1_3_1_zone':          [-10,0,   0,   0,  -5,  -5,  3, 0,0,0,0,false],
+  'five_out|matchup_zone':        [-10,0,   0.5, 0,   0,  -2,  5, 0,0,0,0,false],
+  'five_out|half_court_trap':     [-10,0.5, 0.5, 0,   5,   0,  3, 0,0,1,1,false],
+  'five_out|full_court_press':    [0,  0.5, 0.5, 0,  10,   5,  3, 0,1,2,1,true],
+  'pick_and_roll|man_to_man':     [-10,0,   0,   0.5, 0,   0,  0, 1,0,0,0,false],
+  'pick_and_roll|2_3_zone':       [-10,0,   0,   0.5, 5,   5,  5, 0,0,0,0,false],
+  'pick_and_roll|1_3_1_zone':     [-10,0,   0,   0,  -5,  -5,  3, 0,0,0,0,false],
+  'pick_and_roll|matchup_zone':   [-10,0,   0.5, 0,   0,   0,  5, 1,0,0,0,false],
+  'pick_and_roll|half_court_trap':[-20,0.5, 0.5, 0,   5,   0,  3, 1,0,1,1,false],
+  'pick_and_roll|full_court_press':[0, 0.5, 0.5, 0,  10,   5,  3, 0,1,2,1,true],
+  'pick_and_pop|man_to_man':      [5,  0,   0,   0.5, 0,   0,  0, 0,0,0,0,false],
+  'pick_and_pop|2_3_zone':        [5,  0,   0,   0.5, 0,   5,  5, 0,0,0,0,false],
+  'pick_and_pop|1_3_1_zone':      [-10,0,   0,   0,  -5,  -5,  3, 0,0,0,0,false],
+  'pick_and_pop|matchup_zone':    [-10,0,   0.5, 0,   0,   0,  5, 0,0,0,0,false],
+  'pick_and_pop|half_court_trap': [-20,0.5, 0.5, 0,   5,   0,  3, 0,0,1,1,false],
+  'pick_and_pop|full_court_press':[0,  0.5, 0.5, 0,  10,   5,  3, 0,1,2,1,true],
+  'motion|man_to_man':            [0,  0,   0,   0,   5,   0,  0, 0,0,0,0,false],
+  'motion|2_3_zone':              [5,  0,   0,   0,   0,   5,  5, 0,0,0,0,false],
+  'motion|1_3_1_zone':            [-10,0,   0.5, 0,  -5,  -5,  3, 0,0,0,0,false],
+  'motion|matchup_zone':          [-10,0,   0,   0,   0,   0,  5, 0,0,0,0,false],
+  'motion|half_court_trap':       [-20,0.5, 0.5, 0,   5,   0,  3, 1,0,1,1,false],
+  'motion|full_court_press':      [0,  0.5, 0.5, 0,  10,   5,  3, 0,1,2,1,true],
+  'high_post|man_to_man':         [5,  0,   0,   0.5, 0,   0,  0, 0,0,0,0,false],
+  'high_post|2_3_zone':           [5,  0,   0,   0.5, 5,   5,  5, 0,0,0,0,false],
+  'high_post|1_3_1_zone':         [-10,0,   0,   0,   0,  -5,  3, 0,0,0,0,false],
+  'high_post|matchup_zone':       [-10,0,   0.5, 0,   0,   0,  5, 0,0,0,0,false],
+  'high_post|half_court_trap':    [-20,0.5, 0.5, 0,   5,   0,  3, 0,0,1,1,false],
+  'high_post|full_court_press':   [0,  0.5, 0.5, 0,  10,   5,  3, 0,1,2,1,true],
+  'low_post|man_to_man':          [0,  1,   0,   0,   0,   0,  0, 0,0,0,0,false],
+  'low_post|2_3_zone':            [0,  0,   0,   0.5,-5,   5,  5, 0,0,0,0,false],
+  'low_post|1_3_1_zone':          [-10,0.5, 0,   0,  -5,  -5,  3, 0,0,0,0,false],
+  'low_post|matchup_zone':        [-10,0,   0.5, 0,   0,   0,  5, 0,0,0,0,false],
+  'low_post|half_court_trap':     [-20,0.5, 0.5, 0,   5,   0,  3, 0,0,1,1,false],
+  'low_post|full_court_press':    [0,  0.5, 0.5, 0,  10,   5,  3, 0,1,2,1,true],
+};
+function ge_setStrategyMods(offStrat,defStrat){
+  const m=STRATEGY_MODS[(offStrat||'motion')+'|'+(defStrat||'man_to_man')]||[];
+  GE_MODS.three_pa_rate_mod        =(m[0]||0)/100;
+  GE_MODS.center_weight_mod        =1+(m[1]||0);
+  GE_MODS.forward_weight_mod       =1+(m[2]||0);
+  GE_MODS.guard_weight_mod         =1+(m[3]||0);
+  GE_MODS.two_pt_pct_mod           =(m[4]||0)/100;
+  GE_MODS.three_pt_pct_mod         =(m[5]||0)/100;
+  GE_MODS.offensive_rebound_pct_mod=(m[6]||0)/100;
+  GE_MODS.extra_assist_checks      =m[7]||0;
+  GE_MODS.extra_steal_checks       =m[8]||0;
+  GE_MODS.extra_tov_checks         =m[9]||0;
+  GE_MODS.extra_foul_checks        =m[10]||0;
+  GE_MODS.offense_fastbreak        =m[11]||false;
+}
 
 function renderGameplanPane() {
   const team = G.p1Team;
@@ -772,7 +827,7 @@ function ge_fatigue(p){
 }
 
 const GE_THREE_PA_DEFAULTS = { G:0.35, F:0.25, C:0.10 };
-const GE_MODS = { three_pa_rate_mod:0, guard_weight_mod:1, forward_weight_mod:1, center_weight_mod:1, two_pt_pct_mod:0, three_pt_pct_mod:0, steal_chance_mod:1, turnover_chance_mod:1 };
+const GE_MODS = { three_pa_rate_mod:0, guard_weight_mod:1, forward_weight_mod:1, center_weight_mod:1, two_pt_pct_mod:0, three_pt_pct_mod:0, steal_chance_mod:1, turnover_chance_mod:1, offensive_rebound_pct_mod:0, extra_assist_checks:0, extra_steal_checks:0, extra_tov_checks:0, extra_foul_checks:0, offense_fastbreak:false };
 const ASSISTED_PCT_2=0.58, ASSISTED_PCT_3=0.41, REBOUND_FOUL_CHANCE=0.06;
 
 const GE_NARR={
@@ -1165,15 +1220,16 @@ function ge_rebound(offT,defT,is3){
   }
   const os=offT.lineup.reduce((s,p)=>s+ge_sd(p.offensive_rebounds_per_100,'offensive_rebounds_per_100'),0);
   const ds=defT.lineup.reduce((s,p)=>s+ge_sd(p.defensive_rebounds_per_100,'defensive_rebounds_per_100'),0);
-  const prob=clamp(offT.offensive_rebound_pct*(0.70+0.30*((os/10.0)/(ds/18.0))),0.05,0.60);
+  const prob=clamp((offT.offensive_rebound_pct+GE_MODS.offensive_rebound_pct_mod)*(0.70+0.30*((os/10.0)/(ds/18.0))),0.05,0.60);
   if(Math.random()<prob){ const r=ge_assignReb(offT.lineup,'offensive',is3); GAME.stats[r.name].reb++; logEv(narrate('reb_off',{player:r.name,team:offT.name}),'reb'); ge_momEvt(offT.isHome,1); return true; }
   else{ const r=ge_assignReb(defT.lineup,'defensive',is3); GAME.stats[r.name].reb++; GAME.fbChance=is3?0.10:0.05; GAME.lastStealer=null; logEv(narrate('reb_def',{player:r.name,team:defT.name}),'reb'); ge_flip(); return false; }
 }
 
 function ge_assistCandidates(lineup,strat){
   const Gp=p=>p.position==='G',Fp=p=>p.position==='F',Cp=p=>p.position==='C';
-  if(strat==='low_post') return[...lineup.filter(Cp),...lineup.filter(Fp),...lineup.filter(Gp)];
-  if(strat==='high_post')return[...lineup.filter(Fp),...lineup.filter(Cp),...lineup.filter(Gp)];
+  if(strat==='low_post')   return[...lineup.filter(Cp),...lineup.filter(Fp),...lineup.filter(Gp)];
+  if(strat==='high_post')  return[...lineup.filter(Fp),...lineup.filter(Cp),...lineup.filter(Gp)];
+  if(strat==='pick_and_pop')return[...lineup.filter(Fp),...lineup.filter(Gp),...lineup.filter(Cp)];
   return[...lineup.filter(Gp),...lineup.filter(Fp),...lineup.filter(Cp)];
 }
 
@@ -1242,6 +1298,7 @@ function ge_fastBreak(){
 function ge_poss(isOrb,depth){
   if(GAME.clock<=0)return false; depth=depth||0;
   const off=ge_off(),def=ge_def(),mods=GE_MODS; GAME.totalPossessions++;
+  ge_setStrategyMods(off.strategy_offense,def.strategy_defense);
   if(!isOrb&&depth===0){
     const fbC=GAME.fbChance||0; GAME.fbChance=0;
     if(fbC>0&&Math.random()<fbC){ return ge_fastBreak(); }
@@ -1269,6 +1326,12 @@ function ge_poss(isOrb,depth){
         return ge_intentionalFoul(ge_def(), ge_off());
       }
     }
+    // Extra strategy checks (press, trap, etc.)
+    const xPreFoul=(def.team_fouls_per_game/40)*0.15;
+    for(let i=0;i<mods.extra_steal_checks;i++){ for(const d of def.lineup){ const ch=perPossChance(ge_sd(d.steals_per_100,'steals_per_100'),def.possessions_per_game)*mods.steal_chance_mod*ge_fatigue(d).stl; if(Math.random()<ch){ const v=weightedRandom(off.lineup,off.lineup.map(p=>ge_sd(p.turnovers_per_100,'turnovers_per_100'))); GAME.stats[d.name].stl++; GAME.stats[v.name].tov++; v.halfTov=(v.halfTov||0)+1; GAME.fbChance=0.50; GAME.lastStealer=d.name; logEv(narrate('steal',{player:d.name,team:def.name,opponent:off.name,'opponent_player':v.name}),'steal'); ge_tick(10); ge_momEvt(def.isHome,1); ge_flip(); ge_firePendingMTO(); return false; } } }
+    for(let i=0;i<mods.extra_tov_checks;i++){ for(const p of off.lineup){ const ch=perPossChance(ge_sd(p.turnovers_per_100,'turnovers_per_100'),off.possessions_per_game)*0.55*mods.turnover_chance_mod*ge_fatigue(p).tov; if(Math.random()<ch){ GAME.stats[p.name].tov++; p.halfTov=(p.halfTov||0)+1; GAME.fbChance=0.20; GAME.lastStealer=null; logEv(narrate('tov',{player:p.name,team:off.name,opponent:def.name}),'tov'); ge_tick(10); ge_flip(); ge_firePendingMTO(); return false; } } }
+    for(let i=0;i<mods.extra_foul_checks;i++){ if(Math.random()<xPreFoul){ return ge_intentionalFoul(def,off); } }
+    if(mods.offense_fastbreak){ return ge_fastBreak(); }
   }
 
   const preFoul=(def.team_fouls_per_game/40)*0.15;
@@ -1287,7 +1350,7 @@ function ge_poss(isOrb,depth){
   for(const p of off.lineup){ const ch=perPossChance(ge_sd(p.turnovers_per_100,'turnovers_per_100'),off.possessions_per_game)*0.55*mods.turnover_chance_mod*ge_fatigue(p).tov; if(Math.random()<ch){ GAME.stats[p.name].tov++; p.halfTov=(p.halfTov||0)+1; GAME.fbChance=0.20; GAME.lastStealer=null; logEv(narrate('tov',{player:p.name,team:off.name,opponent:def.name}),'tov'); ge_tick(10); ge_flip(); ge_firePendingMTO(); return false; } }
 
   const cands=ge_assistCandidates(off.lineup,off.strategy_offense); let assister=null;
-  for(const p of cands){ if(Math.random()<perPossChance(ge_sd(p.assists_per_100,'assists_per_100'),off.possessions_per_game)*ge_fatigue(p).ast){assister=p;break;} }
+  for(let ai=0;ai<=mods.extra_assist_checks&&!assister;ai++){ for(const p of cands){ if(Math.random()<perPossChance(ge_sd(p.assists_per_100,'assists_per_100'),off.possessions_per_game)*ge_fatigue(p).ast){assister=p;break;} } }
 
   const pool=assister?off.lineup.filter(p=>p!==assister):off.lineup;
   const wts=pool.map(p=>{let w=ge_sd(p.fga_per_100,'fga_per_100');if(p.position==='G')w*=mods.guard_weight_mod;if(p.position==='F')w*=mods.forward_weight_mod;if(p.position==='C')w*=mods.center_weight_mod;return w;});
@@ -1362,8 +1425,8 @@ function startGame(){
     p1Team.lineup=remapped;
     p1Team.bench=fullRoster.filter(p=>!selectedNames.has(p.name));
   }
-  if(G.offStrategy) p1Team.strategy_offense=G.offStrategy.toLowerCase().replace(/\s+/g,'_');
-  if(G.defStrategy) p1Team.strategy_defense=G.defStrategy.toLowerCase().replace(/\s+/g,'_');
+  if(G.offStrategy) p1Team.strategy_offense=normalizeStrat(G.offStrategy);
+  if(G.defStrategy) p1Team.strategy_defense=normalizeStrat(G.defStrategy);
 
   GAME.home.allPlayers=[...GAME.home.lineup,...GAME.home.bench]; GAME.away.allPlayers=[...GAME.away.lineup,...GAME.away.bench];
   for(const p of[...GAME.home.lineup,...GAME.home.bench,...GAME.away.lineup,...GAME.away.bench]){
