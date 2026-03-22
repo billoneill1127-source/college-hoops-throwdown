@@ -1315,8 +1315,9 @@ function ge_poss(isOrb,depth){
       if(!p1OnOffense && p1Deficit>0 && p1Deficit<10){
         eventQueue.push({text:null, type:'p1_late_game_choice', snapshot:captureSnap()});
       }
-      // CPU auto-press: P1 has ball, CPU losing by 1-9
-      if(p1OnOffense && cpuDeficit>0 && cpuDeficit<10 && !GAME.cpuPressApplied){
+      // CPU auto-press: P1 has ball, CPU losing by 1-9, only if P1 is not already pressing
+      const p1T=p1IsHome?GAME.home:GAME.away;
+      if(p1OnOffense && cpuDeficit>0 && cpuDeficit<10 && !GAME.cpuPressApplied && p1T.strategy_defense!=='full_court_press' && p1T.strategy_defense!=='half_court_trap'){
         GAME.cpuPressApplied=true;
         const cpuT=ge_cpuTeam(); cpuT.strategy_defense='full_court_press';
         logEv(`\u26A1 ${cpuT.name} switches to FULL COURT PRESS`,'info');
@@ -1569,6 +1570,15 @@ function showLateGameDialog(snap){
   const mins=Math.floor(GAME.clock/60), secs=String(GAME.clock%60).padStart(2,'0');
   const cpuTeam=ge_cpuTeam();
   const resumePlay=()=>{ document.getElementById('lateGameOverlay').remove(); gamePaused=false; displayTimer=setInterval(showNext,SPEED_SETTINGS[displaySpeed]); };
+  const applyStrategy=(defType)=>{
+    document.getElementById('lateGameOverlay').remove();
+    restoreGameState(snap);
+    const p1T=p1IsHome?GAME.home:GAME.away;
+    p1T.strategy_defense=defType;
+    eventQueue.splice(displayIdx);
+    ge_continueGame(false);
+    startDisplay();
+  };
   const applyFoul=()=>{
     document.getElementById('lateGameOverlay').remove();
     restoreGameState(snap);
@@ -1584,14 +1594,16 @@ function showLateGameDialog(snap){
     <div style="font-size:1rem;color:#e6edf3;margin-bottom:6px">${esc(cpuTeam.name)} ball</div>
     <div style="font-size:.9rem;color:#f0883e;font-weight:700;margin-bottom:18px">You trail by ${deficit} — choose your defense:</div>
     <div style="display:flex;flex-direction:column;gap:10px">
-      <button onclick="(()=>{const p1IsHome=G.homeOp==='P1';const p1T=p1IsHome?GAME.home:GAME.away;p1T.strategy_defense='full_court_press';})()" class="lgd-btn" data-resume="1">&#9654; PRESS <span style="font-size:.75rem;font-weight:400">(Full Court Press)</span></button>
-      <button onclick="(()=>{const p1IsHome=G.homeOp==='P1';const p1T=p1IsHome?GAME.home:GAME.away;p1T.strategy_defense='half_court_trap';})()" class="lgd-btn" data-resume="1">&#9654; TRAP <span style="font-size:.75rem;font-weight:400">(Half Court Trap)</span></button>
+      <button class="lgd-btn lgd-press">&#9654; PRESS <span style="font-size:.75rem;font-weight:400">(Full Court Press)</span></button>
+      <button class="lgd-btn lgd-trap">&#9654; TRAP <span style="font-size:.75rem;font-weight:400">(Half Court Trap)</span></button>
       <button class="lgd-btn lgd-foul">&#9654; FOUL <span style="font-size:.75rem;font-weight:400">(Intentional foul)</span></button>
       <button class="lgd-btn lgd-plain" data-resume="1">&#9654; PLAY ON</button>
     </div>
   </div>`;
   document.body.appendChild(ov);
   ov.querySelectorAll('[data-resume]').forEach(b=>b.addEventListener('click',resumePlay));
+  ov.querySelector('.lgd-press').addEventListener('click',()=>applyStrategy('full_court_press'));
+  ov.querySelector('.lgd-trap').addEventListener('click',()=>applyStrategy('half_court_trap'));
   ov.querySelector('.lgd-foul').addEventListener('click',applyFoul);
 }
 
