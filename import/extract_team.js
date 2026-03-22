@@ -130,14 +130,25 @@
   for (const r of pgRows)   { const n=r.name_display||r.player; if(n&&!skip.includes(n)&&!pgMap[n])   pgMap[n]=r; }
   for (const r of p100Rows) { const n=r.name_display||r.player; if(n&&!skip.includes(n)&&!p100Map[n]) p100Map[n]=r; }
 
+  // Fuzzy lookup: exact match first, then check if any stat-table name starts
+  // with the roster name (handles suffixes like Jr., Sr., III, etc.)
+  function findInMap(map, rosterName) {
+    if (map[rosterName]) return map[rosterName];
+    const lower = rosterName.toLowerCase().trim();
+    for (const [k, v] of Object.entries(map)) {
+      if (k.toLowerCase().startsWith(lower + ' ') || k.toLowerCase().startsWith(lower + ',')) return v;
+    }
+    return null;
+  }
+
   // ── PLAYER DATA ──────────────────────────────────────────────────────────────
   const players = [];
   for (const r of rosterRows) {
     const name = r.player||r.name_display;
     if (!name || !name.trim()) continue;
     const cls  = (getFirst(r,['class_year','class','yr'])||'').replace(/\s/g,'').toUpperCase();
-    const pg   = pgMap[name]   || {};
-    const p100 = p100Map[name] || {};
+    const pg   = findInMap(pgMap,   name) || {};
+    const p100 = findInMap(p100Map, name) || {};
     const mp   = parseNum(getFirst(pg,['mp_per_g','mp']));
     const reps = repsFactor(mp), vet = vetFactor(cls);
     const s  = v => v == null ? null : Math.round(v * reps * vet * 10000) / 10000;

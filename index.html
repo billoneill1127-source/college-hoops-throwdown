@@ -169,24 +169,24 @@ header { background: var(--primary); color: #fff; padding: 0 28px; position: sti
 .sb-main { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; background: #0d1b2a; border-radius: 12px; padding: 18px; margin-bottom: 12px; }
 .sb-team { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .sb-team-info { display: flex; align-items: center; gap: 10px; overflow: visible; }
-.sb-team-name { font-size: .95rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #f0f6fc; text-align: center; }
+.sb-team-name { font-size: .95rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #f0f6fc; text-align: center; background: rgba(0,0,0,0.45); border-radius: 4px; padding: 2px 6px; display: inline-block; text-shadow: 0 1px 2px rgba(0,0,0,0.9); }
 .sb-fouls-box { display: flex; gap: 5px; }
 .sb-foul-badge { background: #1c2b3a; border: 1px solid #30363d; color: #e6edf3; font-size: 0.85rem; font-weight: 700; min-width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border-radius: 4px; padding: 0 4px; }
 .sb-foul-badge.warning { border-color: #d29922; color: #d29922; }
 .sb-foul-badge.danger  { border-color: #f85149; color: #f85149; }
 .bulb-score { display: flex; gap: 6px; overflow: visible; }
 .bulb-digit { display: grid; grid-template-columns: repeat(3, 9px); grid-template-rows: repeat(5, 9px); gap: 2px; }
-.bulb { width: 9px; height: 9px; border-radius: 50%; background: #162535; border: 1px solid #1d2f40; transition: background .15s, box-shadow .15s; }
+.bulb { width: 9px; height: 9px; border-radius: 50%; background: transparent; transition: background .15s, box-shadow .15s; }
 .bulb.on { background: #f5a623; box-shadow: 0 0 5px #f5a623, 0 0 2px #ffcc44; border-color: #f5a623; }
 .bulb.flash { animation: bulbFlash .3s ease; }
 @keyframes bulbFlash { 0%,100% { background:#f5a623; } 50% { background:#fff; box-shadow:0 0 12px #fff; } }
 .sb-center { text-align: center; min-width: 130px; }
 .sb-period { font-size: .72rem; font-weight: 700; letter-spacing: 1.5px; color: #8b949e; text-transform: uppercase; margin-bottom: 2px; }
 .sb-clock { font-size: 2rem; font-weight: 800; color: #f0f6fc; letter-spacing: 2px; font-family: 'Consolas', monospace; }
-.mom-wrap { margin-top: 10px; }
+.mom-wrap { margin-top: 8px; background: rgba(255,255,255,0.08); border-radius: 6px; padding: 4px 8px; display: inline-block; }
 .mom-label { font-size: .62rem; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
 .mom-arrows { display: flex; gap: 2px; justify-content: center; align-items: center; }
-.mom-arrow { font-size: 1.4rem; color: #1e2d3d; transition: color .3s; line-height: 1; }
+.mom-arrow { font-size: 1.4rem; color: rgba(255,255,255,0.15); transition: color .3s; line-height: 1; }
 .mom-arrow.lit { }
 .sb-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px; }
 .sb-stat-panel { background: #0d1b2a; border-radius: 10px; overflow: hidden; }
@@ -729,6 +729,14 @@ function ge_setStrategyMods(offStrat,defStrat){
 function renderGameplanPane() {
   const team = G.p1Team;
   const pane = document.getElementById('screenGameplan');
+  // Sync strategy display with what is actually running in the current game
+  if(G.gameInProgress && GAME){
+    const p1IsHome=G.homeOp==='P1'; const p1T=p1IsHome?GAME.home:GAME.away;
+    const od=OFFENSE.find(s=>normalizeStrat(s.name)===p1T.strategy_offense);
+    const dd=DEFENSE.find(s=>normalizeStrat(s.name)===p1T.strategy_defense);
+    if(od) G.offStrategy=od.name;
+    if(dd) G.defStrategy=dd.name;
+  }
 
   function cards(strategies, type) {
     return strategies.map(s =>
@@ -766,6 +774,7 @@ function renderGameplanPane() {
 
   const actionLabel = G.gameInProgress ? 'RESUME GAME &#9654;' : 'START GAME &#9654;';
   const actionDisabled = (!G.gameInProgress && !(G.offStrategy && G.defStrategy)) ? ' disabled' : '';
+  const watchChecked = G.watchMode ? ' checked' : '';
 
   pane.innerHTML =
     '<div class="gameplan-wrap">' +
@@ -775,6 +784,7 @@ function renderGameplanPane() {
       liveHtml +
       '<div class="gp-section"><div class="gp-section-title">&#9651; Offensive Strategy</div><div class="strategy-grid">' + cards(OFFENSE, 'off') + '</div></div>' +
       '<div class="gp-section"><div class="gp-section-title">&#9661; Defensive Strategy</div><div class="strategy-grid">' + cards(DEFENSE, 'def') + '</div></div>' +
+      (!G.gameInProgress ? '<div style="text-align:center;margin-bottom:10px"><label style="color:#8b949e;font-size:.85rem;cursor:pointer"><input type="checkbox" id="watchModeChk"' + watchChecked + ' style="margin-right:6px">Watch mode (CPU vs CPU)</label></div>' : '') +
       '<div class="action-bar">' +
         '<button class="action-btn" id="startGameBtn"' + actionDisabled + '>' + actionLabel + '</button>' +
       '</div>' +
@@ -794,6 +804,8 @@ function renderGameplanPane() {
     });
   });
 
+  const watchChk = document.getElementById('watchModeChk');
+  if(watchChk) watchChk.addEventListener('change', () => { G.watchMode = watchChk.checked; });
   document.getElementById('startGameBtn').addEventListener('click', () => {
     if (G.gameInProgress) resumeFromTimeout();
     else startGame();
@@ -1494,12 +1506,15 @@ function startGame(){
     p1Team.lineup=remapped;
     p1Team.bench=fullRoster.filter(p=>!selectedNames.has(p.name));
   }
-  if(G.offStrategy) p1Team.strategy_offense=normalizeStrat(G.offStrategy);
-  if(G.defStrategy) p1Team.strategy_defense=normalizeStrat(G.defStrategy);
+  if(!G.watchMode){
+    if(G.offStrategy) p1Team.strategy_offense=normalizeStrat(G.offStrategy);
+    if(G.defStrategy) p1Team.strategy_defense=normalizeStrat(G.defStrategy);
+  }
 
-  // Set CPU initial strategy
+  // Set CPU initial strategy (and P1 strategy in watch mode)
   const cpuTeam=p1IsHome?GAME.away:GAME.home;
   ge_cpuChooseStrategy(cpuTeam, false);
+  if(G.watchMode) ge_cpuChooseStrategy(p1Team, false);
 
   GAME.home.allPlayers=[...GAME.home.lineup,...GAME.home.bench]; GAME.away.allPlayers=[...GAME.away.lineup,...GAME.away.bench];
   for(const p of[...GAME.home.lineup,...GAME.home.bench,...GAME.away.lineup,...GAME.away.bench]){
@@ -1556,7 +1571,7 @@ function renderGameScreen(){
       <button class="speed-btn" data-speed="fast" onclick="setSpeed('fast')">&#9654;&#9654;&#9654;</button>
       <button class="speed-btn" data-speed="turbo" onclick="setSpeed('turbo')">&#9889;</button>
       <button class="pause-btn" id="pauseBtn" onclick="togglePause()">&#9208;</button>
-      <button class="timeout-btn" id="timeoutBtn" onclick="callTimeout()">TIMEOUT</button>
+      <button class="timeout-btn" id="timeoutBtn" onclick="callTimeout()"${G.watchMode?' style="display:none"':''}>TIMEOUT</button>
       <button class="box-score-btn" id="boxScoreBtn" style="display:none" onclick="showBoxScore()">Box Score</button>
     </div>
     <div class="sb-pbp" id="pbpDisplay"></div>
@@ -1603,16 +1618,18 @@ function setSpeed(speed){ displaySpeed=speed; document.querySelectorAll('.speed-
 function togglePause(){ gamePaused=!gamePaused; const btn=document.getElementById('pauseBtn'); if(gamePaused){clearInterval(displayTimer);displayTimer=null;if(btn)btn.textContent='\u25B6';}else{if(btn)btn.textContent='\u23F8';displayTimer=setInterval(showNext,SPEED_SETTINGS[displaySpeed]);} }
 
 function showNext(){
-  if(displayIdx>=eventQueue.length){clearInterval(displayTimer);displayTimer=null;const bb=document.getElementById('boxScoreBtn');if(bb)bb.style.display='inline-block';return;}
+  if(displayIdx>=eventQueue.length){clearInterval(displayTimer);displayTimer=null;G.gameInProgress=false;const bb=document.getElementById('boxScoreBtn');if(bb)bb.style.display='inline-block';return;}
   const ev=eventQueue[displayIdx++];
   if(ev.type==='halftime'){
     applySnap(ev.snapshot);
+    if(G.watchMode) return;
     gamePaused=true; clearInterval(displayTimer); displayTimer=null;
     showHalftimeModal();
     return;
   }
   if(ev.type==='media_timeout'){
     applySnap(ev.snapshot);
+    if(G.watchMode){ addPbpLine('[TV TIMEOUT]','timeout'); return; }
     gamePaused=true; clearInterval(displayTimer); displayTimer=null;
     addPbpLine('[TV TIMEOUT]','timeout');
     setTimeout(()=>{ renderLineupPane(); renderGameplanPane(); showScreen('lineup'); },2000);
@@ -1620,12 +1637,14 @@ function showNext(){
   }
   if(ev.type==='cpu_timeout'){
     applySnap(ev.snapshot);
+    if(G.watchMode) return;
     gamePaused=true; clearInterval(displayTimer); displayTimer=null;
     setTimeout(()=>{ renderLineupPane(); renderGameplanPane(); showScreen('lineup'); },1000);
     return;
   }
   if(ev.type==='p1_late_game_choice'){
     applySnap(ev.snapshot);
+    if(G.watchMode) return;
     gamePaused=true; clearInterval(displayTimer); displayTimer=null;
     showLateGameDialog(ev.snapshot);
     return;
@@ -1642,6 +1661,7 @@ function showLateGameDialog(snap){
   const mins=Math.floor(GAME.clock/60), secs=String(GAME.clock%60).padStart(2,'0');
   const cpuTeam=ge_cpuTeam();
   const resumePlay=()=>{ document.getElementById('lateGameOverlay').remove(); gamePaused=false; displayTimer=setInterval(showNext,SPEED_SETTINGS[displaySpeed]); };
+  const resumeSim=()=>{ gamePaused=false; if(displayTimer)clearInterval(displayTimer); displayTimer=setInterval(showNext,SPEED_SETTINGS[displaySpeed]); };
   const applyStrategy=(defType)=>{
     document.getElementById('lateGameOverlay').remove();
     restoreGameState(snap);
@@ -1649,7 +1669,7 @@ function showLateGameDialog(snap){
     p1T.strategy_defense=defType;
     eventQueue.splice(displayIdx);
     ge_continueGame(false);
-    startDisplay();
+    resumeSim();
   };
   const applyFoul=()=>{
     document.getElementById('lateGameOverlay').remove();
@@ -1657,7 +1677,7 @@ function showLateGameDialog(snap){
     eventQueue.splice(displayIdx);
     ge_intentionalFoul(ge_def(), ge_off());
     ge_continueGame(false);
-    startDisplay();
+    resumeSim();
   };
   const ov=document.createElement('div'); ov.id='lateGameOverlay';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:9999';
@@ -1748,7 +1768,7 @@ function showBoxScore(isHalftime){
   const h1H=htEv?htEv.snapshot.homeScore:0, h1A=htEv?htEv.snapshot.awayScore:0;
   let scoreHtml;
   if(isHalftime){
-    scoreHtml=`<div style="padding:10px 16px 6px;border-bottom:1px solid var(--border)"><table style="width:100%;border-collapse:collapse;font-size:1.3rem"><thead><tr style="color:#8b949e;font-size:1rem;text-transform:uppercase;letter-spacing:.5px"><th style="text-align:left;padding:4px 10px">Team</th><th style="text-align:center;padding:4px 10px;color:#e6edf3;font-weight:700">1H</th></tr></thead><tbody><tr style="border-top:1px solid var(--border)"><td style="padding:5px 10px;font-weight:700;font-size:1.6rem;color:${esc(GAME.away.primaryColor)}">${esc(GAME.away.name)}</td><td style="text-align:center;padding:5px 10px;font-weight:700;font-size:2rem;color:#fff">${h1A}</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:5px 10px;font-weight:700;font-size:1.6rem;color:${esc(GAME.home.primaryColor)}">${esc(GAME.home.name)}</td><td style="text-align:center;padding:5px 10px;font-weight:700;font-size:2rem;color:#fff">${h1H}</td></tr></tbody></table></div>`;
+    scoreHtml=`<div style="padding:10px 16px 6px;border-bottom:1px solid var(--border)"><table style="width:100%;border-collapse:collapse;font-size:1.3rem"><thead><tr style="color:#8b949e;font-size:1rem;text-transform:uppercase;letter-spacing:.5px"><th style="text-align:left;padding:4px 10px">Team</th><th style="text-align:center;padding:4px 10px">1H</th><th style="text-align:center;padding:4px 10px;color:#fff;font-weight:700">Total</th></tr></thead><tbody><tr style="border-top:1px solid var(--border)"><td style="padding:5px 10px;font-weight:700;font-size:1.6rem;color:${esc(GAME.away.primaryColor)}">${esc(GAME.away.name)}</td><td style="text-align:center;padding:5px 10px">${h1A}</td><td style="text-align:center;padding:5px 10px;font-weight:700;font-size:2rem;color:#fff">${h1A}</td></tr><tr style="border-top:1px solid var(--border)"><td style="padding:5px 10px;font-weight:700;font-size:1.6rem;color:${esc(GAME.home.primaryColor)}">${esc(GAME.home.name)}</td><td style="text-align:center;padding:5px 10px">${h1H}</td><td style="text-align:center;padding:5px 10px;font-weight:700;font-size:2rem;color:#fff">${h1H}</td></tr></tbody></table></div>`;
   } else {
     let regH=GAME.homeScore, regA=GAME.awayScore;
     for(let i=eventQueue.length-1;i>=0;i--){ const sn=eventQueue[i].snapshot; if(sn&&sn.half===2){regH=sn.homeScore;regA=sn.awayScore;break;} }
@@ -1798,9 +1818,12 @@ function resumeFromTimeout(){
   if(displayIdx>0&&G.lineup.length===5){
     const p1IsHome=G.homeOp==='P1'; const p1Team=p1IsHome?GAME.home:GAME.away;
     const lineupChanged=G.lineup.some(p=>!p1Team.lineup.find(lp=>lp.name===p.name))||p1Team.lineup.some(lp=>!G.lineup.find(p=>p.name===lp.name));
-    if(lineupChanged){
+    const newOff=normalizeStrat(G.offStrategy||'motion'), newDef=normalizeStrat(G.defStrategy||'man_to_man');
+    const stratChanged=newOff!==p1Team.strategy_offense||newDef!==p1Team.strategy_defense;
+    if(lineupChanged||stratChanged){
       const snap=eventQueue[displayIdx-1].snapshot;
-      restoreGameState(snap,G.lineup);
+      restoreGameState(snap,lineupChanged?G.lineup:undefined);
+      p1Team.strategy_offense=newOff; p1Team.strategy_defense=newDef;
       eventQueue.splice(displayIdx);
       ge_continueGame(snap.half===1&&snap.clock===0);
     }
