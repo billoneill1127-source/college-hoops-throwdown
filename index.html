@@ -1618,6 +1618,10 @@ function applySnap(snap){
   prevAS=snap.awayScore; prevHS=snap.homeScore;
   updateClock(snap.clock,snap.half); updateMomentum(snap.momentum);
   updateToPanel('away',snap.awayTimeouts,snap.awayTeamFouls,snap.homeTeamFouls); updateToPanel('home',snap.homeTimeouts,snap.homeTeamFouls,snap.awayTeamFouls);
+  const findH=name=>(GAME.home.allPlayers||[]).find(p=>p.name===name);
+  const findA=name=>(GAME.away.allPlayers||[]).find(p=>p.name===name);
+  if(snap.homeLineupNames) GAME.home.lineup=(snap.homeLineupNames).map(findH).filter(Boolean);
+  if(snap.awayLineupNames) GAME.away.lineup=(snap.awayLineupNames).map(findA).filter(Boolean);
   updateStatsTable('awayStatsTable',GAME.away.lineup,snap.stats);
   updateStatsTable('homeStatsTable',GAME.home.lineup,snap.stats);
   const p1Home=G.homeOp==='P1', tos=p1Home?snap.homeTimeouts:snap.awayTimeouts;
