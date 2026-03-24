@@ -1,0 +1,19 @@
+{
+  "conference": "SEC",
+  "teams": [
+    { "slug": "alabama",        "srSlug": "alabama",        "name": "Alabama",        "nickname": "Crimson Tide",  "primaryColor": "#9E1B32", "record": "", "logo": "", "city": "Tuscaloosa" },
+    { "slug": "arkansas",       "srSlug": "arkansas",       "name": "Arkansas",       "nickname": "Razorbacks",    "primaryColor": "#9D2235", "record": "", "logo": "", "city": "Fayetteville" },
+    { "slug": "auburn",         "srSlug": "auburn",         "name": "Auburn",         "nickname": "Tigers",        "primaryColor": "#0C2340", "record": "", "logo": "", "city": "Auburn" },
+    { "slug": "florida",        "srSlug": "florida",        "name": "Florida",        "nickname": "Gators",        "primaryColor": "#0021A5", "record": "", "logo": "", "city": "Gainesville" },
+    { "slug": "georgia",        "srSlug": "georgia",        "name": "Georgia",        "nickname": "Bulldogs",      "primaryColor": "#BA0C2F", "record": "", "logo": "", "city": "Athens" },
+    { "slug": "kentucky",       "srSlug": "kentucky",       "name": "Kentucky",       "nickname": "Wildcats",      "primaryColor": "#0033A0", "record": "", "logo": "", "city": "Lexington" },
+    { "slug": "lsu",            "srSlug": "lsu",            "name": "LSU",            "nickname": "Tigers",        "primaryColor": "#461D7C", "record": "", "logo": "", "city": "Baton Rouge" },
+    { "slug": "mississippi-state","srSlug":"mississippi-state","name":"Mississippi State","nickname":"Bulldogs",   "primaryColor": "#5D1725", "record": "", "logo": "", "city": "Starkville" },
+    { "slug": "mississippi",    "srSlug": "mississippi",    "name": "Ole Miss",       "nickname": "Rebels",        "primaryColor": "#14213D", "record": "", "logo": "", "city": "Oxford" },
+    { "slug": "missouri",       "srSlug": "missouri",       "name": "Missouri",       "nickname": "Tigers",        "primaryColor": "#F1B82D", "record": "", "logo": "", "city": "Columbia" },
+    { "slug": "south-carolina", "srSlug": "south-carolina", "name": "South Carolina", "nickname": "Gamecocks",     "primaryColor": "#73000A", "record": "", "logo": "", "city": "Columbia" },
+    { "slug": "tennessee",      "srSlug": "tennessee",      "name": "Tennessee",      "nickname": "Volunteers",    "primaryColor": "#FF8200", "record": "", "logo": "", "city": "Knoxville" },
+    { "slug": "texas-am",       "srSlug": "texas-am",       "name": "Texas A&M",      "nickname": "Aggies",        "primaryColor": "#500000", "record": "", "logo": "", "city": "College Station" },
+    { "slug": "vanderbilt",     "srSlug": "vanderbilt",     "name": "Vanderbilt",     "nickname": "Commodores",    "primaryColor": "#866D4B", "record": "", "logo": "", "city": "Nashville" }
+  ]
+}

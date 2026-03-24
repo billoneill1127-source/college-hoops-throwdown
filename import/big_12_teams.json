@@ -1,0 +1,21 @@
+{
+  "conference": "Big 12",
+  "teams": [
+    { "slug": "arizona",        "srSlug": "arizona",        "name": "Arizona",        "nickname": "Wildcats",      "primaryColor": "#CC0033", "record": "", "logo": "", "city": "Tucson" },
+    { "slug": "arizona-state",  "srSlug": "arizona-state",  "name": "Arizona State",  "nickname": "Sun Devils",    "primaryColor": "#8C1D40", "record": "", "logo": "", "city": "Tempe" },
+    { "slug": "baylor",         "srSlug": "baylor",         "name": "Baylor",         "nickname": "Bears",         "primaryColor": "#154734", "record": "", "logo": "", "city": "Waco" },
+    { "slug": "byu",            "srSlug": "byu",            "name": "BYU",            "nickname": "Cougars",       "primaryColor": "#002E5D", "record": "", "logo": "", "city": "Provo" },
+    { "slug": "cincinnati",     "srSlug": "cincinnati",     "name": "Cincinnati",     "nickname": "Bearcats",      "primaryColor": "#E00122", "record": "", "logo": "", "city": "Cincinnati" },
+    { "slug": "colorado",       "srSlug": "colorado",       "name": "Colorado",       "nickname": "Buffaloes",     "primaryColor": "#CFB87C", "record": "", "logo": "", "city": "Boulder" },
+    { "slug": "houston",        "srSlug": "houston",        "name": "Houston",        "nickname": "Cougars",       "primaryColor": "#C8102E", "record": "", "logo": "", "city": "Houston" },
+    { "slug": "iowa-state",     "srSlug": "iowa-state",     "name": "Iowa State",     "nickname": "Cyclones",      "primaryColor": "#C8102E", "record": "", "logo": "", "city": "Ames" },
+    { "slug": "kansas",         "srSlug": "kansas",         "name": "Kansas",         "nickname": "Jayhawks",      "primaryColor": "#0051A5", "record": "", "logo": "", "city": "Lawrence" },
+    { "slug": "kansas-state",   "srSlug": "kansas-state",   "name": "Kansas State",   "nickname": "Wildcats",      "primaryColor": "#512888", "record": "", "logo": "", "city": "Manhattan" },
+    { "slug": "oklahoma-state", "srSlug": "oklahoma-state", "name": "Oklahoma State", "nickname": "Cowboys",       "primaryColor": "#FF6600", "record": "", "logo": "", "city": "Stillwater" },
+    { "slug": "tcu",            "srSlug": "tcu",            "name": "TCU",            "nickname": "Horned Frogs",  "primaryColor": "#4D1979", "record": "", "logo": "", "city": "Fort Worth" },
+    { "slug": "texas-tech",     "srSlug": "texas-tech",     "name": "Texas Tech",     "nickname": "Red Raiders",   "primaryColor": "#CC0000", "record": "", "logo": "", "city": "Lubbock" },
+    { "slug": "ucf",            "srSlug": "ucf",            "name": "UCF",            "nickname": "Knights",       "primaryColor": "#BA9B37", "record": "", "logo": "", "city": "Orlando" },
+    { "slug": "utah",           "srSlug": "utah",           "name": "Utah",           "nickname": "Utes",          "primaryColor": "#CC0000", "record": "", "logo": "", "city": "Salt Lake City" },
+    { "slug": "west-virginia",  "srSlug": "west-virginia",  "name": "West Virginia",  "nickname": "Mountaineers",  "primaryColor": "#002776", "record": "", "logo": "", "city": "Morgantown" }
+  ]
+}
