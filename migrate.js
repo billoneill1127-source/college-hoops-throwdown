@@ -40,7 +40,7 @@ const CONF_META = {
 };
 
 // ── Stat fields ───────────────────────────────────────────────────────────────
-// Used for null-check (all-null exclusion) and prestige rating
+// Used for null-check (all-null exclusion) and stat validation
 const STAT_FIELDS = [
   'minutes_per_game', 'ppg', 'rpg', 'apg', 'bpg', 'spg',
   'fga_per_100', 'three_pa_per_100', 'three_point_pct', 'two_point_pct',
@@ -61,33 +61,18 @@ function isAllNull(p) {
   return STAT_FIELDS.every(f => p[f] == null);
 }
 
-// prestige (1–100): weighted-average efficiency of top-8 rostered players by MPG
-// eff = ppg + rpg*0.4 + apg*0.7 + spg*1.5 + bpg*1.5
-// Typical NCAA range ~3–22 mapped linearly to 25–95
-function computePrestige(players) {
-  const eligible = players.filter(
-    p => (p.minutes_per_game || 0) > 0 && p.ppg != null
-  );
-  if (eligible.length === 0) return 50;
-
-  const rated = eligible
-    .map(p => ({
-      eff: (p.ppg  || 0)
-         + (p.rpg  || 0) * 0.4
-         + (p.apg  || 0) * 0.7
-         + (p.spg  || 0) * 1.5
-         + (p.bpg  || 0) * 1.5,
-      mpg: p.minutes_per_game || 0,
-    }))
-    .sort((a, b) => b.eff - a.eff)
-    .slice(0, 8);
-
-  const totalW      = rated.reduce((s, p) => s + p.mpg, 0);
-  if (totalW === 0) return 50;
-  const weightedEff = rated.reduce((s, p) => s + p.eff * p.mpg, 0) / totalW;
-
-  // Map NCAA range ~3–22 to scale 25–95
-  return Math.round(clamp((weightedEff - 3) / 19 * 70 + 25, 25, 95));
+// ── Load persisted net_ratings (set via set_ratings.py) ───────────────────────
+// Ratings survive migrate.js re-runs; migrate never overwrites with null if a
+// value already exists in ratings.json.
+const RATINGS_FILE = path.join(DATA_OUT_DIR, 'ratings.json');
+let savedRatings = {};  // teamId → net_rating (float)
+if (fs.existsSync(RATINGS_FILE)) {
+  try {
+    savedRatings = JSON.parse(fs.readFileSync(RATINGS_FILE, 'utf8'));
+    console.log(`Loaded ratings.json — ${Object.keys(savedRatings).length} net_rating(s) on file.\n`);
+  } catch (e) {
+    console.warn(`[WARN] Could not parse ratings.json: ${e.message}`);
+  }
 }
 
 // ── Step 1: Load all team-data files ──────────────────────────────────────────
@@ -232,7 +217,7 @@ for (const [srSlug, td] of Object.entries(teamDataMap).sort()) {
     city:                  meta.city                  || '',
     primaryColor:          meta.primaryColor          || '',
     head_coach:            teamStats.head_coach        || '',
-    prestige:              computePrestige(rawPlayers),
+    net_rating:            savedRatings[srSlug] ?? null,
     possessions_per_game:  teamStats.possessions_per_game  || 70,
     offensive_rebound_pct: teamStats.offensive_rebound_pct || 0.28,
     defensive_rebound_pct: teamStats.defensive_rebound_pct || 0.72,
@@ -334,17 +319,26 @@ if (totalAllNull > 0) {
   }
 }
 
-// Prestige top/bottom 10
-const byPrestige = [...teamsOut].sort((a, b) => b.prestige - a.prestige);
-console.log('\nTOP 10 BY PRESTIGE');
+// net_rating coverage
+const rated   = teamsOut.filter(t => t.net_rating !== null);
+const unrated = teamsOut.filter(t => t.net_rating === null);
+console.log('\nNET RATING COVERAGE');
 console.log(hr2);
-for (const t of byPrestige.slice(0, 10)) {
-  console.log(`  ${String(t.prestige).padStart(3)}  ${t.name.padEnd(24)} ${t.conference}`);
+console.log(`  Set:   ${rated.length}`);
+console.log(`  Null:  ${unrated.length}`);
+if (rated.length > 0) {
+  console.log('\nTEAMS BY NET RATING (descending)');
+  console.log(hr2);
+  for (const t of rated.slice().sort((a, b) => b.net_rating - a.net_rating)) {
+    console.log(`  ${String(t.net_rating).padStart(6)}  ${t.name.padEnd(24)} ${t.conference}`);
+  }
 }
-console.log('\nBOTTOM 10 BY PRESTIGE');
-console.log(hr2);
-for (const t of byPrestige.slice(-10).reverse()) {
-  console.log(`  ${String(t.prestige).padStart(3)}  ${t.name.padEnd(24)} ${t.conference}`);
+if (unrated.length > 0) {
+  console.log('\nTEAMS WITHOUT NET RATING');
+  console.log(hr2);
+  for (const t of unrated.sort((a, b) => a.name.localeCompare(b.name))) {
+    console.log(`  ${t.name.padEnd(28)} ${t.conference}`);
+  }
 }
 
 // ID collisions
@@ -388,8 +382,7 @@ console.log(`  data/data.json       v2 combined file (meta + ${conferencesOut.le
 console.log(`  data/teams.json      ${teamsOut.length} teams with embedded players`);
 console.log(`  data/conferences.json  ${conferencesOut.length} conferences (lookup table)`);
 console.log(`  data/players.json    ${playersFlat.length} players (flat, diagnostics)`);
-console.log(`\n  prestige formula: eff = ppg + rpg*0.4 + apg*0.7 + spg*1.5 + bpg*1.5`);
-console.log(`  Weighted avg of top-8 players by MPG, mapped to scale 25–95.`);
+console.log(`\n  net_rating: set manually via set_ratings.py — stored in data/ratings.json`);
 
 console.log('\n' + hr);
 console.log('Migration complete.');

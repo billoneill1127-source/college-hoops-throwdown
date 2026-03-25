@@ -121,6 +121,29 @@ if orphan_teams:
 else:
     ok(f'All {len(teams)} teams reference a known conference')
 
+# ── NET RATING COVERAGE ───────────────────────────────────────────────────────
+print()
+print(HR)
+print('NET RATING COVERAGE')
+print(HR2)
+
+rated_teams   = [t for t in teams if t.get('net_rating') is not None]
+unrated_teams = [t for t in teams if t.get('net_rating') is None]
+
+print(f'  Set:  {len(rated_teams)} of {len(teams)} teams')
+print(f'  Null: {len(unrated_teams)} teams still need a net_rating')
+
+if unrated_teams:
+    print('  Teams without net_rating (run set_ratings.py to fill these in):')
+    for t in sorted(unrated_teams, key=lambda t: (t.get('conference', ''), t['name'])):
+        print(f'    {t["name"]:<28} {t.get("conference", ""):<12}')
+
+if rated_teams:
+    print()
+    print('  All teams with net_rating set (sorted descending):')
+    for t in sorted(rated_teams, key=lambda t: t['net_rating'], reverse=True):
+        print(f'    {t["net_rating"]:>6.1f}  {t["name"]:<28} {t.get("conference", "")}')
+
 # ── DATA INJECTION CHECK ──────────────────────────────────────────────────────
 print()
 print(HR)

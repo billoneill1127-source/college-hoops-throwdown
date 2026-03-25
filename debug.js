@@ -43,7 +43,7 @@ window.CHT_Debug = (() => {
     console.group(`%c${team.name}`, 'font-weight:bold;font-size:1.1em');
     console.log('Conference :', team.conference);
     console.log('Type       :', team.type);
-    console.log('Prestige   :', team.prestige);
+    console.log('Net Rating :', team.net_rating !== undefined ? team.net_rating : '(not set)');
     console.log('Coach      :', team.head_coach || '—');
     console.log('City       :', team.city       || '—');
     console.log(`Players    : ${players.length} total  |  ${eligible.length} eligible  |  ${ineligible.length} ineligible`);
@@ -98,7 +98,7 @@ window.CHT_Debug = (() => {
         const eligible = (t.players || []).filter(isEligible).length;
         return {
           team      : t.name,
-          prestige  : t.prestige,
+          net_rating : t.net_rating,
           eligible  : eligible,
           warning   : eligible < 7 ? '⚠ WARNING' : '',
         };
