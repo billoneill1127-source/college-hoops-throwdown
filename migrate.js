@@ -97,7 +97,7 @@ const teamDataMap = {};  // srSlug → raw object
 const tdFiles = fs.readdirSync(TEAM_DATA_DIR).filter(f => f.endsWith('.json')).sort();
 for (const file of tdFiles) {
   const raw    = JSON.parse(fs.readFileSync(path.join(TEAM_DATA_DIR, file), 'utf8'));
-  const srSlug = raw.srSlug || path.basename(file, '.json');
+  const srSlug = (raw.srSlug || path.basename(file, '.json')).toLowerCase();
   if (teamDataMap[srSlug]) {
     console.warn(`  [WARN] Duplicate srSlug "${srSlug}" in team-data — "${file}" overwrites previous`);
   }
