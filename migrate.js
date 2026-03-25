@@ -284,9 +284,15 @@ const v2Data = {
 fs.writeFileSync(path.join(DATA_OUT_DIR, 'data.json'),
   JSON.stringify(v2Data, null, 2), 'utf8');
 
+// teams.json — full teams array with embedded players (primary queryable file)
 fs.writeFileSync(path.join(DATA_OUT_DIR, 'teams.json'),
-  JSON.stringify(teamsFlat.filter(Boolean), null, 2), 'utf8');
+  JSON.stringify(teamsOut, null, 2), 'utf8');
 
+// conferences.json — lookup table only, no player/team data embedded
+fs.writeFileSync(path.join(DATA_OUT_DIR, 'conferences.json'),
+  JSON.stringify(conferencesOut, null, 2), 'utf8');
+
+// players.json — flat array of all retained players (diagnostics)
 fs.writeFileSync(path.join(DATA_OUT_DIR, 'players.json'),
   JSON.stringify(playersFlat, null, 2), 'utf8');
 
@@ -379,8 +385,9 @@ if (missingTD.length === 0) {
 console.log('\nOUTPUT FILES WRITTEN');
 console.log(hr2);
 console.log(`  data/data.json       v2 combined file (meta + ${conferencesOut.length} conferences + ${teamsOut.length} teams)`);
-console.log(`  data/teams.json      ${teamsOut.length} teams (no players, diagnostics)`);
-console.log(`  data/players.json    ${playersFlat.length} players (diagnostics)`);
+console.log(`  data/teams.json      ${teamsOut.length} teams with embedded players`);
+console.log(`  data/conferences.json  ${conferencesOut.length} conferences (lookup table)`);
+console.log(`  data/players.json    ${playersFlat.length} players (flat, diagnostics)`);
 console.log(`\n  prestige formula: eff = ppg + rpg*0.4 + apg*0.7 + spg*1.5 + bpg*1.5`);
 console.log(`  Weighted avg of top-8 players by MPG, mapped to scale 25–95.`);
 

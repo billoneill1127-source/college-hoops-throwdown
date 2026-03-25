@@ -1,0 +1,94 @@
+[
+  {
+    "id": "acc",
+    "name": "ACC",
+    "shortName": "ACC",
+    "memberIds": [
+      "clemson",
+      "duke",
+      "georgia-tech",
+      "louisville",
+      "miami-fl",
+      "nc-state",
+      "north-carolina",
+      "notre-dame",
+      "smu",
+      "syracuse",
+      "virginia",
+      "wake-forest"
+    ]
+  },
+  {
+    "id": "big_12",
+    "name": "Big 12",
+    "shortName": "Big 12",
+    "memberIds": [
+      "arizona",
+      "arizona-state",
+      "baylor",
+      "byu",
+      "houston",
+      "iowa-state",
+      "kansas",
+      "tcu",
+      "texas-tech"
+    ]
+  },
+  {
+    "id": "big_east",
+    "name": "Big East",
+    "shortName": "Big East",
+    "memberIds": [
+      "butler",
+      "connecticut",
+      "creighton",
+      "depaul",
+      "georgetown",
+      "marquette",
+      "providence",
+      "seton-hall",
+      "st-johns",
+      "villanova",
+      "xavier"
+    ]
+  },
+  {
+    "id": "big_ten",
+    "name": "Big Ten",
+    "shortName": "Big Ten",
+    "memberIds": [
+      "illinois",
+      "indiana",
+      "iowa",
+      "maryland",
+      "michigan",
+      "michigan-state",
+      "minnesota",
+      "nebraska",
+      "northwestern",
+      "ohio-state",
+      "oregon",
+      "penn-state",
+      "purdue",
+      "rutgers",
+      "ucla",
+      "usc",
+      "washington",
+      "wisconsin"
+    ]
+  },
+  {
+    "id": "sec",
+    "name": "SEC",
+    "shortName": "SEC",
+    "memberIds": [
+      "arkansas",
+      "florida",
+      "georgia",
+      "kentucky",
+      "missouri",
+      "tennessee",
+      "vanderbilt"
+    ]
+  }
+]
