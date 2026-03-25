@@ -210,23 +210,22 @@ window.CHT_Debug = (() => {
 
     for (const side of ['away', 'home']) {
       const teamName = side === 'away' ? game.awayTeam : game.homeTeam;
-      const players  = game.stats
-        ? Object.entries(game.stats)
-            .filter(([, s]) => (s.team === side || !s.team))  // team field optional
-            .sort(([, a], [, b]) => (b.pts || 0) - (a.pts || 0))
-            .slice(0, 3)
-        : [];
+      const sideData = game[side];
 
       console.group(`Top scorers — ${teamName}`);
-      if (players.length === 0) {
+      if (!sideData || !Array.isArray(sideData.players) || sideData.players.length === 0) {
         console.log('(no player stats recorded)');
       } else {
+        const top3 = sideData.players
+          .slice()
+          .sort((a, b) => (b.pts || 0) - (a.pts || 0))
+          .slice(0, 3);
         console.table(
-          players.map(([name, s]) => ({
-            name,
-            pts : s.pts  || 0,
-            reb : s.reb  || 0,
-            ast : s.ast  || 0,
+          top3.map(p => ({
+            name : p.name,
+            pts  : p.pts || 0,
+            reb  : p.reb || 0,
+            ast  : p.ast || 0,
           }))
         );
       }
