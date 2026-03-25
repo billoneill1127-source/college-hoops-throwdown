@@ -54,8 +54,8 @@ const headerRow = table.querySelector('thead tr:last-child');
 if (!headerRow) { alert('ERROR: Could not find table header row.'); return; }
 
 const headers   = Array.from(headerRow.querySelectorAll('th, td')).map(el => el.textContent.trim());
-const nrtgIdx   = headers.findIndex(h => /nrtg|net.?rtg|ntrg/i.test(h));
-const schoolIdx = headers.findIndex(h => /school/i.test(h));
+const nrtgIdx   = headers.findIndex(h => new RegExp('nrtg|net.rtg|ntrg', 'i').test(h));
+const schoolIdx = headers.findIndex(h => new RegExp('school', 'i').test(h));
 
 if (nrtgIdx === -1) {
   alert('ERROR: NRtg column not found.\nHeaders found: ' + headers.join(', '));
