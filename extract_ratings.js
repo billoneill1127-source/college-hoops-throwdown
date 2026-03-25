@@ -2,10 +2,11 @@
 // 1. Open https://www.sports-reference.com/cbb/seasons/men/2026-school-ratings.html
 // 2. Open DevTools console (F12)
 // 3. Paste this entire script and press Enter
-// 4. Copy the JSON block printed at the end
-// 5. Paste it into  data/ratings.json  in your project root
-//    (overwrite the entire file contents)
+// 4. JSON will be copied to your clipboard (or a text box appears if clipboard is blocked)
+// 5. Paste into: data/ratings.json  (overwrite the entire file)
 // 6. Run  node migrate.js  to regenerate data files with the new ratings
+
+(async function () {
 
 // ── Our 57 team slugs (underscores — matches SR slug generation) ──────────────
 const OUR_TEAMS = [
@@ -32,138 +33,101 @@ const FALLBACK_NAMES = {
   usc:       'Southern California',
 };
 
-// ── Slug generator (mirrors the logic used for SR school names) ───────────────
+// ── Slug generator ────────────────────────────────────────────────────────────
 function toSlug(name) {
   return name
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '')   // strip special chars (apostrophes, periods, parens…)
+    .replace(/[^a-z0-9\s]/g, '')
     .trim()
     .replace(/\s+/g, '_');
 }
 
-// ── Step 1: Locate the ratings table ─────────────────────────────────────────
+// ── Locate ratings table ──────────────────────────────────────────────────────
 const table = document.querySelector('table#ratings, div#div_ratings table');
 if (!table) {
-  console.error('[extract_ratings] Could not find ratings table. Make sure you are on the correct page.');
-  throw new Error('Ratings table not found');
+  alert('ERROR: Ratings table not found. Make sure you are on the correct page.');
+  return;
 }
 
-// ── Step 2: Find the NRtg column index from the header row ───────────────────
-// The column header may appear as "NRtg", "Nrtg", "NTrg", or "Net Rtg"
+// ── Find column indices ───────────────────────────────────────────────────────
 const headerRow = table.querySelector('thead tr:last-child');
-if (!headerRow) {
-  console.error('[extract_ratings] Could not find table header row.');
-  throw new Error('Table header not found');
-}
+if (!headerRow) { alert('ERROR: Could not find table header row.'); return; }
 
-const headers  = Array.from(headerRow.querySelectorAll('th, td')).map(el => el.textContent.trim());
-const nrtgIdx  = headers.findIndex(h => /nrtg|net.?rtg|ntrg/i.test(h));
+const headers   = Array.from(headerRow.querySelectorAll('th, td')).map(el => el.textContent.trim());
+const nrtgIdx   = headers.findIndex(h => /nrtg|net.?rtg|ntrg/i.test(h));
 const schoolIdx = headers.findIndex(h => /school/i.test(h));
 
 if (nrtgIdx === -1) {
-  console.warn('[extract_ratings] NRtg column not found. Headers found:', headers);
-  throw new Error('NRtg column not found — check header names above');
+  alert('ERROR: NRtg column not found.\nHeaders found: ' + headers.join(', '));
+  return;
 }
 
-console.log(`[extract_ratings] Column ${schoolIdx} = School, column ${nrtgIdx} = NRtg`);
-
-// ── Step 3: Parse all data rows ───────────────────────────────────────────────
-const allSchools = {};  // slug → { name, net_rating }
+// ── Parse all data rows ───────────────────────────────────────────────────────
+const allSchools = {};
 
 for (const row of table.querySelectorAll('tbody tr')) {
   if (row.classList.contains('thead')) continue;
-
   const cells = row.querySelectorAll('th, td');
   if (cells.length <= Math.max(schoolIdx, nrtgIdx)) continue;
-
   const link       = cells[schoolIdx].querySelector('a');
   const schoolName = (link || cells[schoolIdx]).textContent.trim();
   if (!schoolName) continue;
-
   const nrtg = parseFloat(cells[nrtgIdx].textContent.trim());
   if (isNaN(nrtg)) continue;
-
   allSchools[toSlug(schoolName)] = { name: schoolName, net_rating: nrtg };
 }
 
-console.log(`[extract_ratings] Parsed ${Object.keys(allSchools).length} schools from the page.`);
-
-// ── Step 4: Reverse lookup by display name (for fallback matching) ────────────
+// ── Reverse lookup by display name ───────────────────────────────────────────
 const allByName = {};
 for (const { name, net_rating } of Object.values(allSchools)) {
   allByName[name] = net_rating;
 }
 
-// ── Step 5: Match our teams ───────────────────────────────────────────────────
-const matchResults = [];
+// ── Match our teams ───────────────────────────────────────────────────────────
+const ratingsObj = {};
+const unmatched  = [];
 
 for (const ourSlug of OUR_TEAMS) {
-  let matched   = null;
-  let matchedBy = null;
+  let net_rating = null;
 
   if (allSchools[ourSlug]) {
-    matched   = allSchools[ourSlug];
-    matchedBy = 'slug';
+    net_rating = allSchools[ourSlug].net_rating;
+  } else if (FALLBACK_NAMES[ourSlug] && allByName[FALLBACK_NAMES[ourSlug]] !== undefined) {
+    net_rating = allByName[FALLBACK_NAMES[ourSlug]];
   }
 
-  if (!matched && FALLBACK_NAMES[ourSlug]) {
-    const fb = FALLBACK_NAMES[ourSlug];
-    if (allByName[fb] !== undefined) {
-      matched   = { name: fb, net_rating: allByName[fb] };
-      matchedBy = 'fallback';
-    }
-  }
-
-  // Our data IDs use hyphens; OUR_TEAMS uses underscores
+  // data IDs use hyphens; OUR_TEAMS uses underscores
   const dataId = ourSlug.replace(/_/g, '-');
 
-  matchResults.push({ our_slug: ourSlug, data_id: dataId,
-    sr_name: matched ? matched.name : 'NO MATCH',
-    net_rating: matched ? matched.net_rating : null,
-    match_by: matched ? matchedBy : '—' });
-}
-
-// ── Step 6A: Match report table ───────────────────────────────────────────────
-console.log('\n--- MATCH REPORT ---');
-console.table(matchResults.map(r => ({
-  our_slug:   r.our_slug,
-  sr_name:    r.sr_name,
-  net_rating: r.net_rating !== null ? r.net_rating : 'NO MATCH',
-  match_by:   r.match_by,
-})));
-
-const matched_   = matchResults.filter(r => r.net_rating !== null);
-const unmatched_ = matchResults.filter(r => r.net_rating === null);
-console.log(`Matched: ${matched_.length} / ${OUR_TEAMS.length}    Unmatched: ${unmatched_.length}`);
-
-if (unmatched_.length > 0) {
-  console.warn('Unmatched teams:', unmatched_.map(r => r.our_slug).join(', '));
-}
-
-// ── Step 6B: ratings.json block — paste into data/ratings.json ───────────────
-// Build an object keyed by hyphen data_id (matches keys used by migrate.js and set_ratings.py)
-const ratingsObj = {};
-for (const r of matchResults) {
-  if (r.net_rating !== null) {
-    ratingsObj[r.data_id] = r.net_rating;
+  if (net_rating !== null) {
+    ratingsObj[dataId] = net_rating;
+  } else {
+    unmatched.push(ourSlug);
   }
 }
 
-// Sort keys alphabetically for clean diffs
+// ── Build JSON output ─────────────────────────────────────────────────────────
 const sorted = Object.fromEntries(
   Object.entries(ratingsObj).sort(([a], [b]) => a.localeCompare(b))
 );
+const jsonStr = JSON.stringify(sorted, null, 2);
 
-const jsonBlock = JSON.stringify(sorted, null, 2);
+const matched = OUR_TEAMS.length - unmatched.length;
+const summary = `Done! ${matched} of ${OUR_TEAMS.length} teams matched.`
+  + (unmatched.length ? `\n\nNo match found for:\n  ${unmatched.join(', ')}\nAdd these manually to data/ratings.json.` : '')
+  + `\n\nPaste into: data/ratings.json`;
 
-console.log('\n--- PASTE THIS INTO data/ratings.json (overwrite entire file) ---');
-console.log(jsonBlock);
-console.log('--- END ratings.json ---');
-
-// Also log unmatched as a reminder
-if (unmatched_.length > 0) {
-  console.log('\n--- UNMATCHED — add these manually to data/ratings.json when known ---');
-  for (const r of unmatched_) {
-    console.log(`  // "${r.data_id}": <net_rating>`);
-  }
+// ── Copy to clipboard or show textarea (same pattern as extract_team.js) ──────
+try {
+  await navigator.clipboard.writeText(jsonStr);
+  alert(summary + '\n\nJSON copied to clipboard.');
+} catch (e) {
+  const ta = document.createElement('textarea');
+  ta.value = jsonStr;
+  ta.style.cssText = 'position:fixed;top:10px;left:10px;width:90vw;height:80vh;z-index:99999;font-size:11px;background:#fff;border:3px solid red;padding:8px';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  alert(summary + '\n\nClipboard was blocked.\nA text box has appeared on the page — select all and copy manually.');
 }
+
+})();
