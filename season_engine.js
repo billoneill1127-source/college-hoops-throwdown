@@ -533,7 +533,8 @@ window.SeasonEngine = (() => {
         const awayTeam = getTeams().find(t => t.id === game.awayTeamId);
         if (!homeTeam || !awayTeam) continue;
 
-        const result = CpuSim.simulateGame(homeTeam, awayTeam, { isUserTeamInvolved: false, saveForStats: true, seasonId: season.seasonId });
+        const isConfGame = game.roundIndex !== undefined;
+        const result = CpuSim.simulateGame(homeTeam, awayTeam, { isUserTeamInvolved: false, saveForStats: isConfGame, seasonId: season.seasonId });
         game.status = 'simulated';
         game.result = {
           homeScore: result.homeScore,
