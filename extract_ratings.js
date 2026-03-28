@@ -8,29 +8,41 @@
 
 (async function () {
 
-// ── Our 57 team slugs (underscores — matches SR slug generation) ──────────────
+// ── Our 77 team slugs (underscores — matches SR slug generation) ──────────────
 const OUR_TEAMS = [
-  'arizona', 'arizona_state', 'arkansas', 'baylor', 'byu', 'butler',
-  'clemson', 'connecticut', 'creighton', 'depaul', 'duke', 'florida',
-  'georgetown', 'georgia', 'georgia_tech', 'houston', 'illinois', 'indiana',
-  'iowa', 'iowa_state', 'kansas', 'kentucky', 'louisville', 'marquette',
-  'maryland', 'miami_fl', 'michigan', 'michigan_state', 'minnesota',
-  'missouri', 'nc_state', 'nebraska', 'north_carolina', 'northwestern', 'notre_dame',
-  'ohio_state', 'oregon', 'penn_state', 'providence', 'purdue', 'rutgers',
-  'seton_hall', 'smu', 'st_johns', 'syracuse', 'tcu', 'tennessee',
-  'texas_tech', 'ucla', 'usc', 'vanderbilt', 'villanova', 'virginia',
-  'wake_forest', 'washington', 'wisconsin', 'xavier',
+  // ACC
+  'boston_college', 'california', 'clemson', 'duke', 'florida_state',
+  'georgia_tech', 'louisville', 'miami_fl', 'nc_state', 'north_carolina',
+  'notre_dame', 'pittsburgh', 'smu', 'stanford', 'syracuse', 'virginia',
+  'virginia_tech', 'wake_forest',
+  // Big 12
+  'arizona', 'arizona_state', 'baylor', 'byu', 'cincinnati', 'colorado',
+  'houston', 'iowa_state', 'kansas', 'kansas_state', 'oklahoma_state',
+  'tcu', 'texas_tech', 'ucf', 'utah', 'west_virginia',
+  // Big East
+  'butler', 'connecticut', 'creighton', 'depaul', 'georgetown',
+  'marquette', 'providence', 'seton_hall', 'st_johns', 'villanova', 'xavier',
+  // Big Ten
+  'illinois', 'indiana', 'iowa', 'maryland', 'michigan', 'michigan_state',
+  'minnesota', 'nebraska', 'northwestern', 'ohio_state', 'oregon',
+  'penn_state', 'purdue', 'rutgers', 'ucla', 'usc', 'washington', 'wisconsin',
+  // SEC
+  'alabama', 'arkansas', 'auburn', 'florida', 'georgia', 'kentucky',
+  'lsu', 'mississippi', 'mississippi_state', 'missouri', 'south_carolina',
+  'tennessee', 'texas_am', 'vanderbilt',
 ];
 
 // Fallback: our slug → exact display name on SR when slug matching fails
 const FALLBACK_NAMES = {
-  miami_fl:  'Miami (FL)',
-  nc_state:  'NC State',
-  st_johns:  "St. John's (NY)",
-  smu:       'Southern Methodist',
-  byu:       'Brigham Young',
-  tcu:       'Texas Christian',
-  usc:       'Southern California',
+  miami_fl:    'Miami (FL)',
+  nc_state:    'NC State',
+  st_johns:    "St. John's (NY)",
+  smu:         'Southern Methodist',
+  byu:         'Brigham Young',
+  tcu:         'Texas Christian',
+  usc:         'Southern California',
+  lsu:         'Louisiana State',
+  texas_am:    'Texas A&M',
 };
 
 // ── Slug generator ────────────────────────────────────────────────────────────

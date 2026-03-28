@@ -476,11 +476,23 @@ window.SeasonEngine = (() => {
 
       const combined = [...nonConf, ...conf];
 
-      // Simulate pending non-user games within the first gameIndex slots.
-      // User games in the slice are already resolved — they count naturally
-      // so that teams who have played the user stay in sync with others.
+      // Count pending user games that fall within the first gameIndex slots.
+      // These can't be simulated but occupy slice positions — extend the slice
+      // to compensate so every team ends up with the same number of non-user
+      // conf games resolved (fixes confGP:1 for teams whose earliest conf
+      // game is a pending user matchup).
+      let pendingUserSlots = 0;
+      for (let i = 0; i < Math.min(gameIndex, combined.length); i++) {
+        const g = combined[i];
+        if (g.status === 'pending' &&
+            (g.homeTeamId === uid || g.awayTeamId === uid)) {
+          pendingUserSlots++;
+        }
+      }
+      const sliceEnd = Math.min(gameIndex + pendingUserSlots, combined.length);
+
       const toSimulate = combined
-        .slice(0, gameIndex)
+        .slice(0, sliceEnd)
         .filter(g => g.status === 'pending' &&
                      g.homeTeamId !== uid && g.awayTeamId !== uid);
 
@@ -623,6 +635,8 @@ window.SeasonEngine = (() => {
           confLosses: r.confLosses,
           confWinPct,
           diff,
+          ptsFor:     r.ptsFor,
+          ptsAgainst: r.ptsAgainst,
           winPct:     r.gp > 0 ? r.wins / r.gp : 0,
           ovr:        r.wins  + '-' + r.losses,
           conf:       r.confWins + '-' + r.confLosses,

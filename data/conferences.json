@@ -4,17 +4,23 @@
     "name": "ACC",
     "shortName": "ACC",
     "memberIds": [
+      "boston-college",
+      "california",
       "clemson",
       "duke",
+      "florida-state",
       "georgia-tech",
       "louisville",
       "miami-fl",
       "nc-state",
       "north-carolina",
       "notre-dame",
+      "pittsburgh",
       "smu",
+      "stanford",
       "syracuse",
       "virginia",
+      "virginia-tech",
       "wake-forest"
     ]
   },
@@ -27,11 +33,18 @@
       "arizona-state",
       "baylor",
       "byu",
+      "cincinnati",
+      "colorado",
       "houston",
       "iowa-state",
       "kansas",
+      "kansas-state",
+      "oklahoma-state",
       "tcu",
-      "texas-tech"
+      "texas-tech",
+      "ucf",
+      "utah",
+      "west-virginia"
     ]
   },
   {
@@ -82,13 +95,26 @@
     "name": "SEC",
     "shortName": "SEC",
     "memberIds": [
+      "alabama",
       "arkansas",
+      "auburn",
       "florida",
       "georgia",
       "kentucky",
+      "lsu",
+      "mississippi",
+      "mississippi-state",
       "missouri",
+      "south-carolina",
       "tennessee",
+      "texas-am",
       "vanderbilt"
     ]
+  },
+  {
+    "id": "other",
+    "name": "Other",
+    "shortName": "Other",
+    "memberIds": []
   }
 ]

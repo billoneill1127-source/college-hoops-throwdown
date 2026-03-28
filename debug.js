@@ -205,12 +205,19 @@ window.CHT_Debug = (() => {
       return;
     }
 
+    // Box score structure: game.home / game.away each have { teamName, score, players[] }
+    const awayName  = game.away ? game.away.teamName : '?';
+    const homeName  = game.home ? game.home.teamName : '?';
+    const awayScore = game.away ? game.away.score    : '?';
+    const homeScore = game.home ? game.home.score    : '?';
+
     console.group(`%cLast Game  [${lastKey}]`, 'font-weight:bold;font-size:1.1em');
-    console.log(`${game.awayTeam}  ${game.awayScore}  —  ${game.homeScore}  ${game.homeTeam}`);
+    console.log(`${awayName}  ${awayScore}  —  ${homeScore}  ${homeName}`);
+    console.log(`context: ${game.context || '—'}  |  pbp events: ${game.pbp ? game.pbp.length : 'null'}  |  strategyLog: ${game.strategyLog ? game.strategyLog.length + ' entries' : 'null'}`);
 
     for (const side of ['away', 'home']) {
-      const teamName = side === 'away' ? game.awayTeam : game.homeTeam;
       const sideData = game[side];
+      const teamName = sideData ? sideData.teamName : side;
 
       console.group(`Top scorers — ${teamName}`);
       if (!sideData || !Array.isArray(sideData.players) || sideData.players.length === 0) {
@@ -235,10 +242,62 @@ window.CHT_Debug = (() => {
     console.groupEnd();
   }
 
+  // ── CHT_Debug.gameHistory() ───────────────────────────────────────────────
+  // Lists all stored game records grouped by season, newest first.
+
+  function gameHistory() {
+    const keys = Object.keys(localStorage)
+      .filter(k => k.startsWith('game:'))
+      .sort()
+      .reverse(); // newest gameId (timestamp) first
+
+    if (keys.length === 0) {
+      console.log('[CHT_Debug] No games recorded yet');
+      return;
+    }
+
+    // Group by seasonId (key format: game:{seasonId}:{gameId})
+    const bySeasonOrdered = [];
+    const seasonMap = {};
+    for (const key of keys) {
+      const parts   = key.split(':');
+      const season  = parts[1] || 'unknown';
+      if (!seasonMap[season]) {
+        seasonMap[season] = [];
+        bySeasonOrdered.push(season);
+      }
+      let game;
+      try { game = JSON.parse(localStorage.getItem(key)); } catch { game = null; }
+      if (game) seasonMap[season].push({ key, game });
+    }
+
+    console.group(`%cCHT_Debug.gameHistory()  (${keys.length} game${keys.length !== 1 ? 's' : ''} total)`, 'font-weight:bold;font-size:1.1em');
+
+    for (const season of bySeasonOrdered) {
+      const entries = seasonMap[season];
+      console.group(`Season: ${season}  (${entries.length} game${entries.length !== 1 ? 's' : ''})`);
+      console.table(
+        entries.map(({ key, game }) => ({
+          key,
+          date:    game.date    || '—',
+          away:    game.away    ? `${game.away.teamName} ${game.away.score}`   : '—',
+          home:    game.home    ? `${game.home.teamName} ${game.home.score}`   : '—',
+          winner:  game.winner  || 'tie',
+          context: game.context || '—',
+          pbp:     game.pbp     ? `${game.pbp.length} events` : 'null',
+          stratLog: game.strategyLog ? `${game.strategyLog.length} entries` : 'null',
+        }))
+      );
+      console.groupEnd();
+    }
+
+    console.groupEnd();
+  }
+
   // ── Public API ────────────────────────────────────────────────────────────
 
-  console.log('[CHT_Debug] loaded — available methods: teamReport, conferenceReport, dataHealth, lastGame');
+  console.log('[CHT_Debug] loaded — available methods: teamReport, conferenceReport, dataHealth, lastGame, gameHistory');
 
-  return { teamReport, conferenceReport, dataHealth, lastGame };
+  return { teamReport, conferenceReport, dataHealth, lastGame, gameHistory };
 
 })();

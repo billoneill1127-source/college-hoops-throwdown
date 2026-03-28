@@ -16,6 +16,7 @@ window.BoxScore = (() => {
   let _seasonId        = null;
   let _strategyLog     = [];   // in-memory, flushed on save()
   let _initStrategies  = null; // starting strategies captured at init time
+  let _saved           = false; // guard: prevent double-save per game
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -98,10 +99,17 @@ window.BoxScore = (() => {
                     : LOG_LEVELS.OFF;
     _strategyLog    = [];
     _initStrategies = { homeOffense, homeDefense, awayOffense, awayDefense };
+    _saved          = false;
   }
 
   function save(eventQueue) {
     if (_logLevel === LOG_LEVELS.OFF) return;
+    if (_saved) return;
+    _saved = true;
+
+    // ── Resolve Store ────────────────────────────────────────────────────────
+    const _Store = (typeof Store !== 'undefined' ? Store : window.Store);
+    if (!_Store) { console.warn('[CHT] BoxScore.save: Store not available'); return; }
 
     // ── Find last snapshot ───────────────────────────────────────────────────
     let snap = null;
@@ -151,6 +159,8 @@ window.BoxScore = (() => {
         homeDefense:  _initStrategies.homeDefense,
         awayOffense:  _initStrategies.awayOffense,
         awayDefense:  _initStrategies.awayDefense,
+        homeScore:    0,
+        awayScore:    0,
       };
       boxScore.strategyLog = [firstEntry, ..._strategyLog];
 
@@ -169,7 +179,7 @@ window.BoxScore = (() => {
     // ── Persist ──────────────────────────────────────────────────────────────
     const key     = `game:${_seasonId || 'exhibition'}:${gameId}`;
     const jsonStr = JSON.stringify(boxScore);
-    Store.set(key, boxScore);
+    _Store.set(key, boxScore);
 
     const levelName = _logLevel === LOG_LEVELS.FULL ? 'FULL' : 'SUMMARY';
     console.log(
@@ -179,9 +189,11 @@ window.BoxScore = (() => {
 
     // Reset in-memory strategy log
     _strategyLog = [];
+
+    return gameId;
   }
 
-  function logStrategyChange(clock, half, homeOffense, homeDefense, awayOffense, awayDefense) {
+  function logStrategyChange(clock, half, homeOffense, homeDefense, awayOffense, awayDefense, homeScore, awayScore) {
     if (_logLevel !== LOG_LEVELS.FULL) return;
     _strategyLog.push({
       time:  formatClock(clock),
@@ -190,7 +202,85 @@ window.BoxScore = (() => {
       homeDefense,
       awayOffense,
       awayDefense,
+      homeScore: homeScore || 0,
+      awayScore: awayScore || 0,
     });
+  }
+
+  // ── BoxScore.saveFromSim ─────────────────────────────────────────────────────
+  //
+  // Saves a completed simulation result (from CpuSim) directly as a box score record.
+  // Does not use the in-memory _logLevel / _strategyLog pipeline — always persists.
+  //
+  // homePlayers / awayPlayers: arrays of player row objects in BoxScore format
+  //   (fields: name, min, pts, reb, ast, stl, blk, to, pf, fgm, fga, 3pm, 3pa, ftm, fta)
+  //
+  // Returns the generated gameId string.
+
+  function saveFromSim(homeTeam, awayTeam, homeScore, awayScore,
+                       homePlayers, awayPlayers, seasonId, context) {
+    const _Store = (typeof Store !== 'undefined' ? Store : window.Store);
+    if (!_Store) { console.warn('[CHT] BoxScore.saveFromSim: Store not available'); return null; }
+
+    function simTotals(players) {
+      const t = { fg:0, fga:0, '3p':0, '3pa':0, ft:0, fta:0,
+                  reb:0, ast:0, stl:0, blk:0, to:0, pf:0 };
+      for (const p of players) {
+        t.fg   += p.fgm  || 0;
+        t.fga  += p.fga  || 0;
+        t['3p']  += p['3pm'] || 0;
+        t['3pa'] += p['3pa'] || 0;
+        t.ft   += p.ftm  || 0;
+        t.fta  += p.fta  || 0;
+        t.reb  += p.reb  || 0;
+        t.ast  += p.ast  || 0;
+        t.stl  += p.stl  || 0;
+        t.blk  += p.blk  || 0;
+        t.to   += p.to   || 0;
+        t.pf   += p.pf   || 0;
+      }
+      return t;
+    }
+
+    const gameId = 'g_' + Date.now();
+    const ctx    = context  || 'exhibition';
+    const sid    = seasonId || null;
+
+    const boxScore = {
+      gameId,
+      date:      todayStr(),
+      context:   ctx,
+      seasonId:  sid,
+      home: {
+        teamId:   homeTeam.id   || homeTeam.name,
+        teamName: homeTeam.name,
+        score:    homeScore,
+        stats:    simTotals(homePlayers),
+        players:  homePlayers.slice().sort((a, b) => b.pts - a.pts),
+      },
+      away: {
+        teamId:   awayTeam.id   || awayTeam.name,
+        teamName: awayTeam.name,
+        score:    awayScore,
+        stats:    simTotals(awayPlayers),
+        players:  awayPlayers.slice().sort((a, b) => b.pts - a.pts),
+      },
+      winner: homeScore > awayScore ? (homeTeam.id || homeTeam.name)
+            : awayScore > homeScore ? (awayTeam.id || awayTeam.name)
+            : null,
+      strategyLog: null,
+      pbp:         null,
+    };
+
+    const key = `game:${sid || 'exhibition'}:${gameId}`;
+    _Store.set(key, boxScore);
+
+    console.log(
+      `[CHT] Box score saved (SUMMARY/SIM): ` +
+      `${awayTeam.name} ${awayScore} @ ${homeTeam.name} ${homeScore}`
+    );
+
+    return gameId;
   }
 
   // ── Purge methods ────────────────────────────────────────────────────────────
@@ -263,6 +353,6 @@ window.BoxScore = (() => {
   }
 
   // ── Expose LOG_LEVELS for callers ────────────────────────────────────────────
-  return { LOG_LEVELS, init, save, logStrategyChange, purgeDetail, purgeAll, storageReport };
+  return { LOG_LEVELS, init, save, saveFromSim, logStrategyChange, purgeDetail, purgeAll, storageReport };
 
 })();

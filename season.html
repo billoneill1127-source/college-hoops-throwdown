@@ -111,12 +111,7 @@ header { background: var(--primary); color: #fff; padding: 0 20px; position: sti
 .standings-empty { padding: 20px 16px; font-size: .82rem; color: var(--text-muted); font-style: italic; }
 
 /* Schedule */
-.sched-toggle-wrap { margin-bottom: 16px; }
-.sched-toggle-btn { width: 100%; background: var(--card-bg); color: var(--primary); border: 1.5px solid var(--border); border-radius: 10px; padding: 11px 16px; font-size: .86rem; font-weight: 700; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px; transition: border-color .15s; box-shadow: var(--shadow); }
-.sched-toggle-btn:hover { border-color: var(--accent); }
-.sched-toggle-chevron { font-size: .65rem; transition: transform .2s; margin-left: auto; }
-.sched-table-wrap { display: none; background: var(--card-bg); border-radius: 0 0 10px 10px; box-shadow: var(--shadow); overflow-x: auto; }
-.sched-table-wrap.open { display: block; }
+.sched-table-wrap { overflow-x: auto; }
 .sched-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
 .sched-table th { padding: 7px 10px; font-size: .64rem; font-weight: 600; text-transform: uppercase; letter-spacing: .3px; color: var(--text-muted); border-bottom: 1px solid var(--border); background: #eef2f8; text-align: left; white-space: nowrap; }
 .sched-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
@@ -132,6 +127,15 @@ header { background: var(--primary); color: #fff; padding: 0 20px; position: sti
 /* Simulate rest button */
 .sim-rest-btn { width: 100%; background: var(--primary); color: #e6edf3; border: none; border-radius: 10px; padding: 13px 20px; font-size: .9rem; font-weight: 700; cursor: pointer; text-align: left; transition: background .15s; display: flex; align-items: center; gap: 10px; }
 .sim-rest-btn:hover { background: #162f55; }
+
+/* Side-by-side standings + schedule */
+.season-row { display: flex; gap: 16px; align-items: flex-start; }
+.season-row-standings { flex: 0 0 300px; min-width: 0; }
+.season-row-schedule  { flex: 1; min-width: 0; }
+@media (max-width: 700px) {
+  .season-row { flex-direction: column; }
+  .season-row-standings { flex: none; width: 100%; }
+}
 .quit-season-btn { background: none; border: 1px solid rgba(255,255,255,.18); border-radius: 8px; color: var(--text-muted); font-size: .78rem; padding: 6px 14px; cursor: pointer; transition: border-color .15s, color .15s; }
 .quit-season-btn:hover { border-color: #e05d5d; color: #e05d5d; }
 
@@ -186,7 +190,7 @@ header { background: var(--primary); color: #fff; padding: 0 20px; position: sti
   <a href="index.html" class="back-btn" id="backBtn">← Main Menu</a>
   <div class="header-brand">
     <div class="header-logo">🏀 <span>SEASON</span> MODE</div>
-    <div class="header-sub">2025–26</div>
+    <div class="header-sub">2025–26 &nbsp;·&nbsp; v1.1</div>
   </div>
   <div class="header-info" id="headerInfo"></div>
 </header>
@@ -230,9 +234,11 @@ header { background: var(--primary); color: #fff; padding: 0 20px; position: sti
 <div id="screenDashboard" class="screen">
   <div class="dash-outer">
     <div id="nextGamePanel"></div>
-    <div id="standingsPanel"></div>
-    <div id="schedulePanel"></div>
     <div id="simRestPanel"></div>
+    <div class="season-row">
+      <div class="season-row-standings"><div id="standingsPanel"></div></div>
+      <div class="season-row-schedule"><div id="schedulePanel"></div></div>
+    </div>
     <div id="quitSeasonPanel"></div>
   </div>
 </div>
@@ -558,7 +564,44 @@ function newSeason() {
 
 // ── Conference Standings Panel ────────────────────────────────────────────────
 function renderStandings(season) {
-  const rows = SeasonEngine.getConferenceStandings(season.currentGame);
+  let rows = SeasonEngine.getConferenceStandings(season.currentGame);
+
+  // Build user row from getUserRecord() so the user always appears
+  // even if the engine's conf scan missed them.
+  const rec   = SeasonEngine.getUserRecord();
+  const confW = rec.conference.w;
+  const confL = rec.conference.l;
+  const ovW   = rec.overall.w;
+  const ovL   = rec.overall.l;
+
+  let ptsFor = 0, ptsAgainst = 0, gp = 0;
+  for (const slot of season.schedule) {
+    if (!slot.result) continue;
+    const isHome = slot.homeTeamId === season.userTeamId;
+    ptsFor     += isHome ? slot.result.homeScore : slot.result.awayScore;
+    ptsAgainst += isHome ? slot.result.awayScore : slot.result.homeScore;
+    gp++;
+  }
+
+  const userRow = {
+    teamId:     season.userTeamId,
+    teamName:   season.userTeamName,
+    confWins:   confW,
+    confLosses: confL,
+    confWinPct: (confW + confL) > 0 ? confW / (confW + confL) : 0,
+    ovWins:     ovW,
+    ovLosses:   ovL,
+    diff:       gp > 0 ? (ptsFor - ptsAgainst) / gp : 0,
+    conf:       confW + '-' + confL,
+    ovr:        ovW + '-' + ovL,
+  };
+
+  rows = rows.filter(r => r.teamId !== season.userTeamId);
+  rows.push(userRow);
+  rows.sort((a, b) =>
+    (b.confWins - a.confWins) || (b.confWinPct - a.confWinPct) || (b.diff - a.diff)
+  );
+
   renderStandingsFromRows(rows, season, '');
 }
 
@@ -641,25 +684,15 @@ function renderSchedule(season) {
   }).join('');
 
   panel.innerHTML =
-    `<div class="sched-toggle-wrap">` +
-      `<button class="sched-toggle-btn" onclick="toggleSchedule(this)">` +
-        `📅 Full Schedule` +
-        `<span class="sched-toggle-chevron" id="schedChevron">▼</span>` +
-      `</button>` +
-      `<div class="sched-table-wrap" id="schedTableWrap">` +
+    `<div class="panel">` +
+      `<div class="panel-hdr"><span class="panel-title">📅 Full Schedule</span></div>` +
+      `<div class="sched-table-wrap">` +
         `<table class="sched-table">` +
           `<thead><tr><th>Date</th><th>#</th><th>Away</th><th></th><th>Home</th><th></th><th>Result</th></tr></thead>` +
           `<tbody>${rows}</tbody>` +
         `</table>` +
       `</div>` +
     `</div>`;
-}
-
-function toggleSchedule(btn) {
-  const wrap = document.getElementById('schedTableWrap');
-  const chev = document.getElementById('schedChevron');
-  const open = wrap.classList.toggle('open');
-  if (chev) chev.textContent = open ? '▲' : '▼';
 }
 
 // ── Simulate Rest Button ──────────────────────────────────────────────────────
@@ -718,6 +751,8 @@ function playGame() {
     awayTeamName: awayTeam ? awayTeam.name : '',
     seasonId:     season.seasonId,
     userTeamId:   season.userTeamId,
+    date:         slot.date || '',
+    conference:   slot.conference || '',
   });
   console.log('[CHT] Pending game set: ' + (homeTeam ? homeTeam.name : slot.homeTeamId) + ' vs ' + (awayTeam ? awayTeam.name : slot.awayTeamId));
   window.location.href = 'index.html';
@@ -871,7 +906,6 @@ async function simulateRest() {
   }
 
   overlay.style.display = 'none';
-  SeasonEngine.simulateToIndex(30);
   renderDashboard();
 }
 </script>
