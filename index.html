@@ -1482,10 +1482,11 @@ function ge_poss(isOrb,depth){
       const p1Deficit=cpuScore-p1Score;  // positive = P1 losing
       const cpuDeficit=p1Score-cpuScore; // positive = CPU losing
       const p1OnOffense=p1IsHome?(GAME.possession==='home'):(GAME.possession==='away');
-      // P1 dialog: CPU has ball, P1 losing by 1-9
-      if(!p1OnOffense && p1Deficit>0 && p1Deficit<10){
+      // P1 dialog: CPU has ball, P1 losing by 1-9 (skip if user just made a choice this possession)
+      if(!GAME.lateGameChoiceDone && !p1OnOffense && p1Deficit>0 && p1Deficit<10){
         eventQueue.push({text:null, type:'p1_late_game_choice', snapshot:captureSnap()});
       }
+      GAME.lateGameChoiceDone = false;
       // CPU auto-press: P1 has ball, CPU losing by 1-9
       if(p1OnOffense && cpuDeficit>0 && cpuDeficit<10 && !GAME.cpuPressApplied){
         GAME.cpuPressApplied=true;
@@ -1758,10 +1759,10 @@ function showNext(){
 function showHalftimeModal(){ showBoxScore(true); }
 function showLateGameDialog(snap){
   const p1IsHome=G.homeOp==='P1';
-  const p1Score=p1IsHome?GAME.homeScore:GAME.awayScore;
-  const cpuScore=p1IsHome?GAME.awayScore:GAME.homeScore;
+  const p1Score=p1IsHome?snap.homeScore:snap.awayScore;
+  const cpuScore=p1IsHome?snap.awayScore:snap.homeScore;
   const deficit=cpuScore-p1Score;
-  const mins=Math.floor(GAME.clock/60), secs=String(GAME.clock%60).padStart(2,'0');
+  const mins=Math.floor(snap.clock/60), secs=String(snap.clock%60).padStart(2,'0');
   const cpuTeam=ge_cpuTeam();
   const resumePlay=()=>{ document.getElementById('lateGameOverlay').remove(); gamePaused=false; displayTimer=setInterval(showNext,SPEED_SETTINGS[displaySpeed]); };
   const resumeSim=()=>{ gamePaused=false; if(displayTimer)clearInterval(displayTimer); displayTimer=setInterval(showNext,SPEED_SETTINGS[displaySpeed]); };
@@ -1772,6 +1773,7 @@ function showLateGameDialog(snap){
     p1T.strategy_defense=defType;
     BoxScore.logStrategyChange(snap.clock, snap.half, GAME.home.strategy_offense, GAME.home.strategy_defense, GAME.away.strategy_offense, GAME.away.strategy_defense, snap.homeScore, snap.awayScore);
     eventQueue.splice(displayIdx);
+    GAME.lateGameChoiceDone = true;
     ge_continueGame(false);
     resumeSim();
   };
