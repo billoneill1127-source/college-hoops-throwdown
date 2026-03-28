@@ -437,7 +437,9 @@
       btn.classList.add('active');
       const pane = document.getElementById('tab-' + btn.dataset.tab);
       if (pane) pane.classList.add('active');
-      if (btn.dataset.tab === 'strategy') renderStrategyTab();
+      if (btn.dataset.tab === 'teamstats')   renderTeamStats();
+      else if (btn.dataset.tab === 'playerstats') renderPlayerStats();
+      else if (btn.dataset.tab === 'strategy')    renderStrategyTab();
     });
   });
 
