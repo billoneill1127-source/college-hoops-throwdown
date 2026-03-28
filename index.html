@@ -258,6 +258,7 @@ header { background: var(--primary); color: #fff; padding: 0 28px; position: sti
   .home-hero-title { font-size: 2rem; }
 }
 </style>
+<script src="data/teams-data.js"></script>
 </head>
 <body>
 
@@ -1952,9 +1953,10 @@ function initApp() {
       Store.del('season:pending_game');
       G.pendingSeasonGame = _pg;
       console.log('[CHT] Pending game found: ' + _pg.gameIndex + ' ' + _pg.homeTeamId + ' vs ' + _pg.awayTeamId);
+      const _normId = id => (id || '').toLowerCase().replace(/[\s-]/g, '_');
       const _allTeams = window.TEAMS || [];
-      const _ht = _allTeams.find(t => t.id === _pg.homeTeamId || t.name === _pg.homeTeamName);
-      const _at = _allTeams.find(t => t.id === _pg.awayTeamId || t.name === _pg.awayTeamName);
+      const _ht = _allTeams.find(t => _normId(t.id) === _normId(_pg.homeTeamId) || t.name === _pg.homeTeamName);
+      const _at = _allTeams.find(t => _normId(t.id) === _normId(_pg.awayTeamId) || t.name === _pg.awayTeamName);
       if (_ht && _at) {
         G.home      = _ht;
         G.visitor   = _at;
@@ -1978,8 +1980,8 @@ fetch('data/data.json')
   })
   .catch(err => {
     console.warn('Failed to load data.json:', err);
-    window.TEAMS       = [];
-    window.CONFERENCES = [];
+    window.TEAMS       = window.TEAMS || [];
+    window.CONFERENCES = window.CONFERENCES || [];
     initApp();
   });
 </script>
