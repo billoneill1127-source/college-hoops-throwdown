@@ -231,7 +231,7 @@
 <body>
 
 <header>
-  <a class="back-btn" href="index.html">&#8592; Back</a>
+  <a class="back-btn" href="season.html">&#8592; Back</a>
   <div class="header-brand">
     <div class="header-logo">College Hoops <span>Throwdown</span></div>
     <div class="header-sub">Stats Dashboard</div>
@@ -265,16 +265,17 @@
         <table class="player-table" id="standingsTable">
           <thead>
             <tr>
-              <th>Rank</th>
               <th>Team</th>
               <th class="num">Conf</th>
               <th class="num">Ovr</th>
+              <th class="num">PF</th>
+              <th class="num">PA</th>
               <th class="num">Diff</th>
               <th>Streak</th>
             </tr>
           </thead>
           <tbody id="standingsTbody">
-            <tr class="empty-row"><td colspan="6">Loading...</td></tr>
+            <tr class="empty-row"><td colspan="7">Loading...</td></tr>
           </tbody>
         </table>
       </div>
@@ -483,23 +484,73 @@
     }
 
     if (!confRows || confRows.length === 0) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No standings data for this season.</td></tr>';
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No standings data for this season.</td></tr>';
       return;
     }
 
-    confRows.forEach((row, idx) => {
-      // Streak from box score data (populated for user-played games only)
-      const rec    = StatsEngine.teamRecord(row.teamId, season);
-      const streak = rec.streak || '';
+    // Build streak map from both user schedule and conf schedule so every
+    // team gets a streak, not just teams with saved box scores.
+    const streakMap = (function () {
+      const seasonObj = (window.SeasonEngine && SeasonEngine.getActive())
+        || Store.get('season:' + season + ':meta');
+      const uid = seasonObj && seasonObj.userTeamId;
+
+      // Combine all played/simulated results into one chronologically sorted list
+      const allGames = [];
+
+      // User's personal schedule (includes non-conf and conf games)
+      for (const slot of (seasonObj && seasonObj.schedule || [])) {
+        if (!slot.result || !slot.result.winnerId) continue;
+        allGames.push({
+          sortKey:    slot.gameIndex,
+          homeTeamId: slot.homeTeamId,
+          awayTeamId: slot.awayTeamId,
+          homeWon:    slot.result.winnerId === slot.homeTeamId ||
+                      slot.result.winnerId === slot.homeName,
+        });
+      }
+
+      // Master conf schedule — CPU-vs-CPU games only (skip user matchups already covered above)
+      const confSchedData = Store.get('season:' + season + ':conf_schedule');
+      const confSched = (confSchedData && confSchedData.confSchedule) || [];
+      for (const g of confSched) {
+        if (!g.result || g.status === 'pending') continue;
+        if (uid && (g.homeTeamId === uid || g.awayTeamId === uid)) continue;
+        allGames.push({
+          sortKey:    g.roundIndex,
+          homeTeamId: g.homeTeamId,
+          awayTeamId: g.awayTeamId,
+          homeWon:    g.result.winnerId === g.homeTeamId,
+        });
+      }
+
+      allGames.sort((a, b) => a.sortKey - b.sortKey);
+
+      // Build per-team result lists in game order
+      const teamResults = {};
+      for (const g of allGames) {
+        (teamResults[g.homeTeamId] = teamResults[g.homeTeamId] || []).push(g.homeWon ? 'W' : 'L');
+        (teamResults[g.awayTeamId] = teamResults[g.awayTeamId] || []).push(g.homeWon ? 'L' : 'W');
+      }
+
+      // Compute streak (last consecutive same result)
+      const map = {};
+      for (const [teamId, results] of Object.entries(teamResults)) {
+        if (!results.length) continue;
+        const last = results[results.length - 1];
+        let n = 0;
+        for (let i = results.length - 1; i >= 0 && results[i] === last; i--) n++;
+        map[teamId] = last + n;
+      }
+      return map;
+    })();
+
+    confRows.forEach((row) => {
+      const streak = streakMap[row.teamId] || '';
 
       const normId = (id) => (id || '').toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_');
       const isUser = userTeamId &&
         (row.teamId === userTeamId || normId(row.teamId) === normId(userTeamId));
-
-      const rankNum  = idx + 1;
-      const rankHtml = rankNum <= 3
-        ? `<span class="rank-badge rank-${rankNum}">${rankNum}</span>`
-        : `<span class="rank-badge">${rankNum}</span>`;
 
       const color    = colorMap[row.teamName] || '#8a9bb0';
       const teamHtml = `<div class="team-cell"><span class="team-dot" style="background:${color}"></span>${escHtml(row.teamName)}</div>`;
@@ -513,13 +564,18 @@
       const diffNum = row.diff || 0;
       const diffStr = diffNum >= 0 ? '+' + fmtNum(diffNum) : fmtNum(diffNum);
 
+      const gp = row.gp || 0;
+      const pfStr = (row.ptsFor != null && gp > 0) ? fmtNum(row.ptsFor / gp) : '–';
+      const paStr = (row.ptsAgainst != null && gp > 0) ? fmtNum(row.ptsAgainst / gp) : '–';
+
       const tr = document.createElement('tr');
       if (isUser) tr.className = 'user-team-row';
       tr.innerHTML = `
-        <td>${rankHtml}</td>
         <td>${teamHtml}</td>
         <td class="num">${escHtml(row.conf || '—')}</td>
         <td class="num">${escHtml(row.ovr  || '—')}</td>
+        <td class="num">${pfStr}</td>
+        <td class="num">${paStr}</td>
         <td class="num">${diffStr}</td>
         <td>${streakHtml}</td>
       `;
@@ -807,6 +863,21 @@
     renderStrategyTable(season, defaultTeam);
   }
 
+  const STRAT_LABELS = {
+    'five_out':         'Five Out',
+    'pick_and_roll':    'Pick & Roll',
+    'pick_and_pop':     'Pick & Pop',
+    'motion':           'Motion',
+    'high_post':        'High Post',
+    'low_post':         'Low Post',
+    'man_to_man':       'Man to Man',
+    '2_3_zone':         '2-3 Zone',
+    '1_3_1_zone':       '1-3-1 Zone',
+    'matchup_zone':     'Matchup Zone',
+    'half_court_trap':  'Half Court Trap',
+    'full_court_press': 'Full Court Press',
+  };
+
   function renderStrategyTable(season, userTeamId) {
     const wrap = document.getElementById('strategyTableWrap');
     if (!wrap) return;
@@ -834,7 +905,7 @@
       const pts40    = isNull ? '—' : fmtNum(row.ptsScoredPer40);
       offBodyHtml += `
         <tr>
-          <td>${escHtml(row.offense || '')}</td>
+          <td>${escHtml(STRAT_LABELS[row.offense] || row.offense || '')}</td>
           <td class="num">${minsCell}</td>
           <td class="num">${pts40}</td>
         </tr>`;
@@ -849,7 +920,7 @@
       const opp40    = isNull ? '—' : fmtNum(row.ptsAllowedPer40);
       defBodyHtml += `
         <tr>
-          <td>${escHtml(row.defense || '')}</td>
+          <td>${escHtml(STRAT_LABELS[row.defense] || row.defense || '')}</td>
           <td class="num">${minsCell}</td>
           <td class="num">${opp40}</td>
         </tr>`;
