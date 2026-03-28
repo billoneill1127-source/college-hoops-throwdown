@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stats Dashboard — College Hoops Throwdown</title>
+  <style>
+    :root {
+      --primary: #0d2240;
+      --accent: #e8600a;
+      --grey: #8a9bb0;
+      --surface: #f0f4f8;
+      --card-bg: #fff;
+      --text: #0d2240;
+      --text-muted: #6b7a99;
+      --border: #dde3ee;
+      --shadow: 0 2px 8px rgba(13,34,64,.10);
+      --shadow-hover: 0 8px 24px rgba(13,34,64,.18);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--surface); color: var(--text); min-height: 100vh; }
+
+    /* ── Header ── */
+    header {
+      background: var(--primary); color: #fff; padding: 0 28px;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 14px rgba(0,0,0,.35);
+      display: flex; align-items: center; gap: 14px; height: 58px;
+    }
+    .back-btn {
+      background: none; border: 1px solid rgba(255,255,255,.28);
+      color: rgba(255,255,255,.8); padding: 6px 14px;
+      border-radius: 6px; cursor: pointer; font-size: .82rem;
+      font-weight: 600; transition: all .15s; text-decoration: none;
+      display: inline-flex; align-items: center; gap: 5px;
+    }
+    .back-btn:hover { background: rgba(255,255,255,.12); color: #fff; }
+    .header-brand { display: flex; flex-direction: column; }
+    .header-logo { font-size: 1.3rem; font-weight: 800; letter-spacing: -.5px; line-height: 1.1; }
+    .header-logo span { color: var(--accent); }
+    .header-sub { font-size: .62rem; color: rgba(255,255,255,.4); text-transform: uppercase; letter-spacing: .9px; margin-top: 1px; }
+
+    /* ── Top bar ── */
+    #topBar {
+      background: #fff; border-bottom: 1px solid var(--border);
+      padding: 10px 28px; display: flex; align-items: center;
+      gap: 16px; position: sticky; top: 58px; z-index: 90;
+      box-shadow: 0 1px 4px rgba(13,34,64,.06);
+    }
+    #topBar label { font-size: .82rem; font-weight: 600; color: var(--text-muted); }
+    .ctrl-select {
+      padding: 6px 10px; border: 1px solid var(--border);
+      border-radius: 6px; font-size: .85rem; color: var(--text);
+      background: var(--surface); cursor: pointer; outline: none;
+      transition: border-color .15s;
+    }
+    .ctrl-select:focus { border-color: var(--accent); }
+
+    /* ── No data ── */
+    #noData {
+      display: none; flex-direction: column; align-items: center;
+      justify-content: center; padding: 80px 20px; text-align: center;
+    }
+    #noData .nd-icon { font-size: 3rem; margin-bottom: 16px; opacity: .35; }
+    #noData h2 { font-size: 1.25rem; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    #noData p { font-size: .9rem; color: var(--text-muted); max-width: 360px; }
+
+    /* ── Tab bar ── */
+    #tabBar {
+      display: flex; gap: 6px; padding: 18px 28px 0;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .tab-btn {
+      padding: 9px 20px; border: none; background: none;
+      font-size: .82rem; font-weight: 700; letter-spacing: .4px;
+      text-transform: uppercase; cursor: pointer; color: var(--text-muted);
+      border-radius: 8px 8px 0 0; transition: all .15s;
+      border: 1px solid transparent; border-bottom: none;
+      position: relative; bottom: -1px;
+    }
+    .tab-btn:hover { color: var(--text); background: rgba(13,34,64,.04); }
+    .tab-btn.active {
+      color: var(--accent); background: #fff;
+      border-color: var(--border); border-bottom-color: #fff;
+    }
+
+    /* ── Tab content ── */
+    #tabContent { padding: 24px 28px 48px; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    /* ── Filter bar ── */
+    .filter-bar {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      background: #fff; border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 16px; margin-bottom: 18px;
+      box-shadow: var(--shadow);
+    }
+    .filter-bar label { font-size: .8rem; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+    .filter-divider { width: 1px; height: 22px; background: var(--border); margin: 0 4px; }
+
+    /* ── Stat category tabs ── */
+    .stat-cat-group {
+      display: flex; gap: 4px; margin-left: 4px;
+    }
+    .stat-cat-btn {
+      padding: 5px 12px; border: 1px solid var(--border);
+      background: var(--surface); border-radius: 20px;
+      font-size: .75rem; font-weight: 700; letter-spacing: .3px;
+      cursor: pointer; color: var(--text-muted); transition: all .15s;
+    }
+    .stat-cat-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .stat-cat-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    /* ── Tables ── */
+    .table-wrap {
+      background: var(--card-bg); border-radius: 12px;
+      border: 1px solid var(--border); box-shadow: var(--shadow);
+      overflow-x: auto;
+    }
+    .player-table {
+      width: 100%; border-collapse: collapse; font-size: .84rem;
+    }
+    .player-table thead tr {
+      background: var(--primary); color: #fff;
+    }
+    .player-table th {
+      padding: 11px 14px; text-align: left;
+      font-size: .72rem; font-weight: 700; letter-spacing: .5px;
+      text-transform: uppercase; white-space: nowrap;
+    }
+    .player-table th.sortable {
+      cursor: pointer; user-select: none;
+    }
+    .player-table th.sortable:hover { background: rgba(255,255,255,.12); }
+    .player-table th .sort-icon { margin-left: 4px; opacity: .6; font-style: normal; }
+    .player-table th.sort-active .sort-icon { opacity: 1; color: var(--accent); }
+    .player-table td {
+      padding: 10px 14px; border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .player-table tbody tr:last-child td { border-bottom: none; }
+    .player-table tbody tr:hover { background: rgba(13,34,64,.03); }
+    .player-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .player-table th.num { text-align: right; }
+
+    /* User team highlight */
+    .user-team-row td:first-child {
+      border-left: 3px solid var(--accent);
+    }
+    .user-team-row { background: rgba(232,96,10,.08) !important; }
+
+    /* Empty row */
+    .empty-row td {
+      text-align: center; padding: 28px 14px;
+      color: var(--text-muted); font-size: .85rem; font-style: italic;
+    }
+
+    /* Rank badge */
+    .rank-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 24px; height: 24px; border-radius: 50%;
+      font-size: .72rem; font-weight: 700; background: var(--surface);
+      color: var(--text-muted);
+    }
+    .rank-1 { background: #f5c518; color: #7a5000; }
+    .rank-2 { background: #c0c0c0; color: #444; }
+    .rank-3 { background: #cd7f32; color: #4a2800; }
+
+    /* Team name with color dot */
+    .team-cell { display: flex; align-items: center; gap: 8px; }
+    .team-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+    /* Streak badge */
+    .streak-badge {
+      display: inline-flex; align-items: center;
+      padding: 2px 8px; border-radius: 12px;
+      font-size: .73rem; font-weight: 700;
+    }
+    .streak-w { background: rgba(34,197,94,.12); color: #166534; }
+    .streak-l { background: rgba(239,68,68,.10); color: #991b1b; }
+
+    /* Strategy report */
+    .strategy-note {
+      font-size: .8rem; color: var(--text-muted); font-style: italic;
+      margin-top: 14px; padding: 10px 14px;
+      background: rgba(13,34,64,.03); border-radius: 8px;
+      border-left: 3px solid var(--border);
+    }
+    .strategy-note.footnote { margin-top: 10px; }
+    .strategy-section-hdr { font-size: .9rem; font-weight: 700; color: var(--primary); margin: 0 0 10px; }
+    .strategy-sub { font-size: .78rem; font-weight: 400; color: var(--text-muted); margin-left: 6px; }
+
+    /* No-strategy message */
+    .info-box {
+      background: #fff; border: 1px solid var(--border);
+      border-radius: 10px; padding: 28px 24px;
+      box-shadow: var(--shadow); text-align: center;
+      color: var(--text-muted); font-size: .9rem;
+    }
+    .info-box strong { color: var(--text); display: block; margin-bottom: 6px; font-size: 1rem; }
+
+    /* Loading */
+    .loading-text {
+      text-align: center; padding: 32px; color: var(--text-muted);
+      font-size: .85rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      header { padding: 0 14px; }
+      #topBar { padding: 10px 14px; }
+      #tabBar { padding: 14px 14px 0; gap: 4px; }
+      .tab-btn { padding: 8px 12px; font-size: .75rem; }
+      #tabContent { padding: 16px 14px 40px; }
+    }
+  </style>
+  <script>
+    const Store = {
+      get:  (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+      set:  (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) { console.warn('Store.set:', e); } },
+      del:  (k) => localStorage.removeItem(k),
+      keys: (p) => Object.keys(localStorage).filter(k => k.startsWith(p))
+    };
+    window.Store = Store;
+  </script>
+  <script src="season_engine.js"></script>
+  <script src="stats_engine.js"></script>
+</head>
+<body>
+
+<header>
+  <a class="back-btn" href="index.html">&#8592; Back</a>
+  <div class="header-brand">
+    <div class="header-logo">College Hoops <span>Throwdown</span></div>
+    <div class="header-sub">Stats Dashboard</div>
+  </div>
+</header>
+
+<div id="topBar">
+  <label for="seasonSelect">Season:</label>
+  <select id="seasonSelect" class="ctrl-select"></select>
+</div>
+
+<div id="noData" style="display:none;">
+  <div class="nd-icon">&#127944;</div>
+  <h2>No Games Recorded Yet</h2>
+  <p>No games recorded yet. Play some games to see stats here.</p>
+</div>
+
+<div id="mainContent">
+  <div id="tabBar">
+    <button class="tab-btn active" data-tab="standings">Standings</button>
+    <button class="tab-btn" data-tab="teamstats">Team Stats</button>
+    <button class="tab-btn" data-tab="playerstats">Player Stats</button>
+    <button class="tab-btn" data-tab="strategy">Strategy Report</button>
+  </div>
+
+  <div id="tabContent">
+
+    <!-- ── STANDINGS ── -->
+    <div class="tab-pane active" id="tab-standings">
+      <div class="table-wrap">
+        <table class="player-table" id="standingsTable">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Team</th>
+              <th class="num">Conf</th>
+              <th class="num">Ovr</th>
+              <th class="num">Diff</th>
+              <th>Streak</th>
+            </tr>
+          </thead>
+          <tbody id="standingsTbody">
+            <tr class="empty-row"><td colspan="6">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── TEAM STATS ── -->
+    <div class="tab-pane" id="tab-teamstats">
+      <div class="filter-bar">
+        <label for="teamstatsConfFilter">Conference:</label>
+        <select id="teamstatsConfFilter" class="ctrl-select"></select>
+      </div>
+      <div class="table-wrap">
+        <table class="player-table" id="teamstatsTable">
+          <thead>
+            <tr>
+              <th>Team</th>
+              <th class="num sortable" data-col="gp">GP <i class="sort-icon"></i></th>
+              <th class="num sortable" data-col="ppg">PPG <i class="sort-icon"></i></th>
+              <th class="num sortable" data-col="rpg">RPG <i class="sort-icon"></i></th>
+              <th class="num sortable" data-col="apg">APG <i class="sort-icon"></i></th>
+              <th class="num sortable" data-col="spg">SPG <i class="sort-icon"></i></th>
+              <th class="num sortable" data-col="bpg">BPG <i class="sort-icon"></i></th>
+              <th class="num sortable" data-col="topg">TOPG <i class="sort-icon"></i></th>
+              <th class="num sortable" data-col="fg_pct">FG% <i class="sort-icon"></i></th>
+              <th class="num sortable" data-col="three_pt_pct">3P% <i class="sort-icon"></i></th>
+              <th class="num sortable" data-col="ft_pct">FT% <i class="sort-icon"></i></th>
+            </tr>
+          </thead>
+          <tbody id="teamstatsTbody">
+            <tr class="empty-row"><td colspan="11">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── PLAYER STATS ── -->
+    <div class="tab-pane" id="tab-playerstats">
+      <div class="filter-bar">
+        <label for="playerConfFilter">Conference:</label>
+        <select id="playerConfFilter" class="ctrl-select"></select>
+        <div class="filter-divider"></div>
+        <label for="playerPosFilter">Position:</label>
+        <select id="playerPosFilter" class="ctrl-select">
+          <option value="">All</option>
+          <option value="G">G</option>
+          <option value="F">F</option>
+          <option value="C">C</option>
+        </select>
+        <div class="filter-divider"></div>
+        <label for="playerClassFilter">Class:</label>
+        <select id="playerClassFilter" class="ctrl-select">
+          <option value="">All</option>
+          <option value="FR">FR</option>
+          <option value="SO">SO</option>
+          <option value="JR">JR</option>
+          <option value="SR">SR</option>
+        </select>
+        <div class="filter-divider"></div>
+        <label>Stat:</label>
+        <div class="stat-cat-group">
+          <button class="stat-cat-btn active" data-stat="ppg">PTS</button>
+          <button class="stat-cat-btn" data-stat="rpg">REB</button>
+          <button class="stat-cat-btn" data-stat="apg">AST</button>
+          <button class="stat-cat-btn" data-stat="spg">STL</button>
+          <button class="stat-cat-btn" data-stat="bpg">BLK</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="player-table" id="playerstatsTable">
+          <thead>
+            <tr>
+              <th class="sortable" data-col="name">Player <i class="sort-icon"></i></th>
+              <th class="sortable" data-col="teamName">Team <i class="sort-icon"></i></th>
+              <th>Pos</th>
+              <th>Cl</th>
+              <th class="num sortable" data-col="gp">GP <i class="sort-icon"></i></th>
+              <th class="num sortable" data-col="ppg">PPG <i class="sort-icon"></i></th>
+              <th class="num sortable" data-col="rpg">RPG <i class="sort-icon"></i></th>
+              <th class="num sortable" data-col="apg">APG <i class="sort-icon"></i></th>
+              <th class="num sortable" data-col="spg">SPG <i class="sort-icon"></i></th>
+              <th class="num sortable" data-col="bpg">BPG <i class="sort-icon"></i></th>
+              <th class="num sortable" data-col="fg_pct">FG% <i class="sort-icon"></i></th>
+              <th class="num sortable" data-col="three_pt_pct">3P% <i class="sort-icon"></i></th>
+              <th class="num sortable" data-col="ft_pct">FT% <i class="sort-icon"></i></th>
+            </tr>
+          </thead>
+          <tbody id="playerstatsTbody">
+            <tr class="empty-row"><td colspan="13">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── STRATEGY REPORT ── -->
+    <div class="tab-pane" id="tab-strategy">
+      <div id="strategyContent">
+        <div class="loading-text">Loading strategy data...</div>
+      </div>
+    </div>
+
+  </div><!-- /tabContent -->
+</div><!-- /mainContent -->
+
+<script>
+(function () {
+  'use strict';
+
+  // ── Globals ──────────────────────────────────────────────────────────────────
+  let TEAMS       = [];
+  let CONFERENCES = [];
+  let currentSeason = null;
+
+  // Sort states
+  const teamStatsSort   = { col: 'ppg',  dir: -1 };
+  const playerStatsSort = { col: 'ppg',  dir: -1 };
+
+  // ── Formatting helpers ───────────────────────────────────────────────────────
+  function fmtPct(v) {
+    if (v == null) return '—';
+    const s = v.toFixed(3);
+    return s.startsWith('0.') ? s.slice(1) : s;
+  }
+  function fmtNum(v, d) {
+    d = (d === undefined) ? 1 : d;
+    return (v == null) ? '—' : v.toFixed(d);
+  }
+  function fmtWinPct(v) {
+    if (v == null) return '—';
+    const s = v.toFixed(3);
+    return s.startsWith('0.') ? s.slice(1) : s;
+  }
+
+  // ── Season helpers ───────────────────────────────────────────────────────────
+  function getSeasonIds() {
+    const keys = Object.keys(localStorage).filter(k => k.startsWith('game:'));
+    const ids = new Set();
+    for (const k of keys) {
+      const p = k.split(':');
+      if (p[1]) ids.add(p[1]);
+    }
+    return [...ids].sort().reverse();
+  }
+
+  // ── Conference helpers ───────────────────────────────────────────────────────
+  function teamNamesForConf(confName) {
+    if (!confName) return null;
+    const s = new Set(
+      (window.TEAMS || [])
+        .filter(t => t.conference === confName)
+        .map(t => t.name)
+    );
+    return s;
+  }
+
+  function teamColorMap() {
+    const map = {};
+    (window.TEAMS || []).forEach(t => { map[t.name] = t.primaryColor || null; });
+    return map;
+  }
+
+  // ── Populate conference dropdowns ────────────────────────────────────────────
+  function buildConfOptions(selectEl, selectedVal) {
+    const prev = selectedVal !== undefined ? selectedVal : selectEl.value;
+    selectEl.innerHTML = '<option value="">All Conferences</option>';
+    (window.CONFERENCES || []).forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.name;
+      opt.textContent = c.name;
+      if (c.name === prev) opt.selected = true;
+      selectEl.appendChild(opt);
+    });
+  }
+
+  // ── Tab switching ────────────────────────────────────────────────────────────
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      const pane = document.getElementById('tab-' + btn.dataset.tab);
+      if (pane) pane.classList.add('active');
+      if (btn.dataset.tab === 'strategy') renderStrategyTab();
+    });
+  });
+
+  // ── STANDINGS ────────────────────────────────────────────────────────────────
+  function renderStandings() {
+    const season = currentSeason;
+    if (!season) return;
+
+    const userTeamId = Store.get('settings:userTeamId');
+    const colorMap   = teamColorMap();
+    const tbody      = document.getElementById('standingsTbody');
+    tbody.innerHTML  = '';
+
+    // Load conference standings from SeasonEngine if available
+    let confRows = null;
+    const finalStandings = Store.get('season:' + season + ':final_standings');
+    if (finalStandings && finalStandings.length > 0) {
+      confRows = finalStandings;
+    } else if (window.SeasonEngine) {
+      const activeSeason = SeasonEngine.getActive();
+      if (activeSeason && activeSeason.seasonId === season) {
+        confRows = SeasonEngine.getConferenceStandings(activeSeason.currentGame);
+      }
+    }
+
+    if (!confRows || confRows.length === 0) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No standings data for this season.</td></tr>';
+      return;
+    }
+
+    confRows.forEach((row, idx) => {
+      // Streak from box score data (populated for user-played games only)
+      const rec    = StatsEngine.teamRecord(row.teamId, season);
+      const streak = rec.streak || '';
+
+      const normId = (id) => (id || '').toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_');
+      const isUser = userTeamId &&
+        (row.teamId === userTeamId || normId(row.teamId) === normId(userTeamId));
+
+      const rankNum  = idx + 1;
+      const rankHtml = rankNum <= 3
+        ? `<span class="rank-badge rank-${rankNum}">${rankNum}</span>`
+        : `<span class="rank-badge">${rankNum}</span>`;
+
+      const color    = colorMap[row.teamName] || '#8a9bb0';
+      const teamHtml = `<div class="team-cell"><span class="team-dot" style="background:${color}"></span>${escHtml(row.teamName)}</div>`;
+
+      let streakHtml = '';
+      if (streak) {
+        const cls = streak.startsWith('W') ? 'streak-w' : 'streak-l';
+        streakHtml = `<span class="streak-badge ${cls}">${escHtml(streak)}</span>`;
+      }
+
+      const diffNum = row.diff || 0;
+      const diffStr = diffNum >= 0 ? '+' + fmtNum(diffNum) : fmtNum(diffNum);
+
+      const tr = document.createElement('tr');
+      if (isUser) tr.className = 'user-team-row';
+      tr.innerHTML = `
+        <td>${rankHtml}</td>
+        <td>${teamHtml}</td>
+        <td class="num">${escHtml(row.conf || '—')}</td>
+        <td class="num">${escHtml(row.ovr  || '—')}</td>
+        <td class="num">${diffStr}</td>
+        <td>${streakHtml}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ── TEAM STATS ───────────────────────────────────────────────────────────────
+  function renderTeamStats() {
+    const season = currentSeason;
+    if (!season) return;
+
+    const confFilter = document.getElementById('teamstatsConfFilter').value;
+
+    // Get all teams that have played
+    let standingRows = StatsEngine.standings(season);
+
+    // Conference filter
+    if (confFilter) {
+      const nameSet = teamNamesForConf(confFilter);
+      standingRows = standingRows.filter(r => nameSet.has(r.teamName));
+    }
+
+    // For each team, get averages and merge gp
+    const colorMap = teamColorMap();
+    let merged = standingRows.map(sr => {
+      const avg = StatsEngine.teamAverages(sr.teamId, season);
+      const teamName = avg.teamName || sr.teamName;
+      return {
+        teamName,
+        primaryColor: colorMap[teamName] || '#8a9bb0',
+        gp:           sr.gp,
+        ppg:          sr.ppg,   // score-based from standings
+        rpg:          avg.reb,
+        apg:          avg.ast,
+        spg:          avg.stl,
+        bpg:          avg.blk,
+        topg:         avg.to,
+        fg_pct:       avg.fg_pct,
+        three_pt_pct: avg.three_pt_pct,
+        ft_pct:       avg.ft_pct,
+      };
+    });
+
+    // Sort
+    const { col, dir } = teamStatsSort;
+    merged.sort((a, b) => {
+      const av = a[col] != null ? a[col] : -Infinity;
+      const bv = b[col] != null ? b[col] : -Infinity;
+      return (av < bv ? -1 : av > bv ? 1 : 0) * dir;
+    });
+
+    // Update sort indicators
+    document.querySelectorAll('#teamstatsTable th.sortable').forEach(th => {
+      th.classList.remove('sort-active');
+      const icon = th.querySelector('.sort-icon');
+      if (icon) icon.textContent = '';
+      if (th.dataset.col === col) {
+        th.classList.add('sort-active');
+        if (icon) icon.textContent = dir === -1 ? ' ▼' : ' ▲';
+      }
+    });
+
+    const tbody = document.getElementById('teamstatsTbody');
+    tbody.innerHTML = '';
+
+    if (merged.length === 0) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="11">No data for this season.</td></tr>';
+      return;
+    }
+
+    merged.forEach(row => {
+      const teamHtml = `<div class="team-cell"><span class="team-dot" style="background:${row.primaryColor}"></span>${escHtml(row.teamName)}</div>`;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${teamHtml}</td>
+        <td class="num">${row.gp}</td>
+        <td class="num">${fmtNum(row.ppg)}</td>
+        <td class="num">${fmtNum(row.rpg)}</td>
+        <td class="num">${fmtNum(row.apg)}</td>
+        <td class="num">${fmtNum(row.spg)}</td>
+        <td class="num">${fmtNum(row.bpg)}</td>
+        <td class="num">${fmtNum(row.topg)}</td>
+        <td class="num">${fmtPct(row.fg_pct)}</td>
+        <td class="num">${fmtPct(row.three_pt_pct)}</td>
+        <td class="num">${fmtPct(row.ft_pct)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // Team stats sortable headers
+  document.querySelectorAll('#teamstatsTable th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (teamStatsSort.col === col) {
+        teamStatsSort.dir *= -1;
+      } else {
+        teamStatsSort.col = col;
+        teamStatsSort.dir = -1;
+      }
+      renderTeamStats();
+    });
+  });
+
+  document.getElementById('teamstatsConfFilter').addEventListener('change', renderTeamStats);
+
+  // ── PLAYER STATS ─────────────────────────────────────────────────────────────
+  // Player metadata cache
+  let playerMetaCache = null;
+  function getPlayerMeta() {
+    if (playerMetaCache) return playerMetaCache;
+    playerMetaCache = {};
+    (window.TEAMS || []).forEach(t => {
+      (t.players || []).forEach(p => {
+        if (!playerMetaCache[p.name]) {
+          playerMetaCache[p.name] = {
+            position:   p.position || '',
+            class:      p.class    || '',
+            conference: t.conference || '',
+          };
+        }
+      });
+    });
+    return playerMetaCache;
+  }
+
+  function renderPlayerStats() {
+    const season = currentSeason;
+    if (!season) return;
+
+    const confFilter  = document.getElementById('playerConfFilter').value;
+    const posFilter   = document.getElementById('playerPosFilter').value;
+    const classFilter = document.getElementById('playerClassFilter').value;
+
+    const filters = {};
+    if (confFilter)  filters.conference = confFilter;
+    if (posFilter)   filters.position   = posFilter;
+    if (classFilter) filters.class      = classFilter;
+
+    let rows = StatsEngine.playerAverages(season, filters);
+
+    // Minimum 3 GP
+    rows = rows.filter(r => r.gp >= 3);
+
+    // Sort
+    const { col, dir } = playerStatsSort;
+    rows.sort((a, b) => {
+      const av = a[col] != null ? a[col] : (typeof a[col] === 'string' ? '' : -Infinity);
+      const bv = b[col] != null ? b[col] : (typeof b[col] === 'string' ? '' : -Infinity);
+      if (typeof av === 'string') return av.localeCompare(bv) * dir;
+      return (av < bv ? -1 : av > bv ? 1 : 0) * dir;
+    });
+
+    // Update sort indicators
+    document.querySelectorAll('#playerstatsTable th.sortable').forEach(th => {
+      th.classList.remove('sort-active');
+      const icon = th.querySelector('.sort-icon');
+      if (icon) icon.textContent = '';
+      if (th.dataset.col === col) {
+        th.classList.add('sort-active');
+        if (icon) icon.textContent = dir === -1 ? ' ▼' : ' ▲';
+      }
+    });
+
+    const meta = getPlayerMeta();
+    const colorMap = teamColorMap();
+    const tbody = document.getElementById('playerstatsTbody');
+    tbody.innerHTML = '';
+
+    if (rows.length === 0) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="13">No data for this season.</td></tr>';
+      return;
+    }
+
+    rows.forEach(row => {
+      const m = meta[row.name] || {};
+      const color = colorMap[row.teamName] || '#8a9bb0';
+      const teamHtml = `<div class="team-cell"><span class="team-dot" style="background:${color}"></span>${escHtml(row.teamName || row.teamId || '')}</div>`;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${escHtml(row.name)}</td>
+        <td>${teamHtml}</td>
+        <td>${escHtml(m.position || '')}</td>
+        <td>${escHtml(m.class || '')}</td>
+        <td class="num">${row.gp}</td>
+        <td class="num">${fmtNum(row.ppg)}</td>
+        <td class="num">${fmtNum(row.rpg)}</td>
+        <td class="num">${fmtNum(row.apg)}</td>
+        <td class="num">${fmtNum(row.spg)}</td>
+        <td class="num">${fmtNum(row.bpg)}</td>
+        <td class="num">${fmtPct(row.fg_pct)}</td>
+        <td class="num">${fmtPct(row.three_pt_pct)}</td>
+        <td class="num">${fmtPct(row.ft_pct)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // Player stats sortable headers
+  document.querySelectorAll('#playerstatsTable th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (playerStatsSort.col === col) {
+        playerStatsSort.dir *= -1;
+      } else {
+        playerStatsSort.col = col;
+        playerStatsSort.dir = -1;
+      }
+      renderPlayerStats();
+    });
+  });
+
+  // Stat category buttons
+  const statCatMap = { ppg: 'ppg', rpg: 'rpg', apg: 'apg', spg: 'spg', bpg: 'bpg' };
+  document.querySelectorAll('.stat-cat-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.stat-cat-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const col = statCatMap[btn.dataset.stat] || 'ppg';
+      playerStatsSort.col = col;
+      playerStatsSort.dir = -1;
+      renderPlayerStats();
+    });
+  });
+
+  document.getElementById('playerConfFilter').addEventListener('change', renderPlayerStats);
+  document.getElementById('playerPosFilter').addEventListener('change', renderPlayerStats);
+  document.getElementById('playerClassFilter').addEventListener('change', renderPlayerStats);
+
+  // ── STRATEGY REPORT ──────────────────────────────────────────────────────────
+  let strategyUserTeamSel = null;
+
+  function renderStrategyTab() {
+    const season = currentSeason;
+    const container = document.getElementById('strategyContent');
+    if (!season) {
+      container.innerHTML = '<div class="info-box"><strong>No season selected.</strong></div>';
+      return;
+    }
+
+    const gamesWithStrategy = StatsEngine._getGames(season).filter(g => g.strategyLog !== null && g.strategyLog !== undefined);
+    if (gamesWithStrategy.length === 0) {
+      container.innerHTML = '<div class="info-box"><strong>No Strategy Data</strong>Play games (not simulate) to generate strategy data.</div>';
+      return;
+    }
+
+    // Collect unique teams from full box score games
+    const teamSet = new Map(); // teamId → teamName
+    gamesWithStrategy.forEach(g => {
+      if (g.home && g.home.teamId) teamSet.set(g.home.teamId, g.home.teamName || g.home.teamId);
+      if (g.away && g.away.teamId) teamSet.set(g.away.teamId, g.away.teamName || g.away.teamId);
+    });
+
+    // Prefer user's team as default
+    const userTeamId = Store.get('settings:userTeamId');
+    let defaultTeam = strategyUserTeamSel;
+    if (!defaultTeam && userTeamId && teamSet.has(userTeamId)) {
+      defaultTeam = userTeamId;
+    }
+    if (!defaultTeam) {
+      defaultTeam = [...teamSet.keys()][0] || '';
+    }
+
+    // Build HTML
+    let optionsHtml = '';
+    teamSet.forEach((name, id) => {
+      const sel = (id === defaultTeam) ? ' selected' : '';
+      optionsHtml += `<option value="${escAttr(id)}"${sel}>${escHtml(name)}</option>`;
+    });
+
+    container.innerHTML = `
+      <div class="filter-bar" style="margin-bottom:18px;">
+        <label for="strategyTeamSel">Team:</label>
+        <select id="strategyTeamSel" class="ctrl-select">${optionsHtml}</select>
+      </div>
+      <div id="strategyTableWrap"></div>
+    `;
+
+    document.getElementById('strategyTeamSel').addEventListener('change', function () {
+      strategyUserTeamSel = this.value;
+      renderStrategyTable(season, this.value);
+    });
+
+    renderStrategyTable(season, defaultTeam);
+  }
+
+  function renderStrategyTable(season, userTeamId) {
+    const wrap = document.getElementById('strategyTableWrap');
+    if (!wrap) return;
+
+    if (!userTeamId) {
+      wrap.innerHTML = '<div class="info-box"><strong>Select a team above.</strong></div>';
+      return;
+    }
+
+    const report = StatsEngine.strategyReport(season, userTeamId);
+
+    if (report.offense.length === 0 && report.defense.length === 0) {
+      wrap.innerHTML = '<div class="info-box"><strong>No strategy data for this team.</strong></div>';
+      return;
+    }
+
+    let hasNullRate = false;
+
+    // Offensive strategies table
+    let offBodyHtml = '';
+    report.offense.forEach(row => {
+      const isNull = row.ptsScoredPer40 === null;
+      if (isNull) hasNullRate = true;
+      const minsCell = escHtml(row.minutesDisplay || '') + (isNull ? '<sup>†</sup>' : '');
+      const pts40    = isNull ? '—' : fmtNum(row.ptsScoredPer40);
+      offBodyHtml += `
+        <tr>
+          <td>${escHtml(row.offense || '')}</td>
+          <td class="num">${minsCell}</td>
+          <td class="num">${pts40}</td>
+        </tr>`;
+    });
+
+    // Defensive strategies table
+    let defBodyHtml = '';
+    report.defense.forEach(row => {
+      const isNull = row.ptsAllowedPer40 === null;
+      if (isNull) hasNullRate = true;
+      const minsCell = escHtml(row.minutesDisplay || '') + (isNull ? '<sup>†</sup>' : '');
+      const opp40    = isNull ? '—' : fmtNum(row.ptsAllowedPer40);
+      defBodyHtml += `
+        <tr>
+          <td>${escHtml(row.defense || '')}</td>
+          <td class="num">${minsCell}</td>
+          <td class="num">${opp40}</td>
+        </tr>`;
+    });
+
+    wrap.innerHTML = `
+      <div class="table-wrap" style="margin-bottom:24px">
+        <h3 class="strategy-section-hdr">Offensive Strategy Performance</h3>
+        <table class="player-table">
+          <thead><tr>
+            <th>Offense</th>
+            <th class="num">Minutes</th>
+            <th class="num">Pts Scored/40</th>
+          </tr></thead>
+          <tbody>${offBodyHtml}</tbody>
+        </table>
+      </div>
+      <div class="table-wrap">
+        <h3 class="strategy-section-hdr">Defensive Strategy Performance
+          <span class="strategy-sub">(lower is better)</span>
+        </h3>
+        <table class="player-table">
+          <thead><tr>
+            <th>Defense</th>
+            <th class="num">Minutes</th>
+            <th class="num">Pts Allowed/40</th>
+          </tr></thead>
+          <tbody>${defBodyHtml}</tbody>
+        </table>
+      </div>
+      ${hasNullRate ? '<p class="strategy-note footnote">† Less than 1 minute of data — rate not calculated</p>' : ''}
+      <p class="strategy-note">Per-40 rates reflect scoring pace during active strategy spans, not full-game averages. Small sample spans will show higher variance.</p>
+    `;
+  }
+
+  // ── Utilities ────────────────────────────────────────────────────────────────
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+  function escAttr(s) { return escHtml(s); }
+
+  // ── Render current active tab ────────────────────────────────────────────────
+  function renderActiveTab() {
+    const activeBtn = document.querySelector('.tab-btn.active');
+    if (!activeBtn) return;
+    const tab = activeBtn.dataset.tab;
+    if (tab === 'standings')   renderStandings();
+    else if (tab === 'teamstats')   renderTeamStats();
+    else if (tab === 'playerstats') renderPlayerStats();
+    else if (tab === 'strategy')    renderStrategyTab();
+  }
+
+  // ── Season change ────────────────────────────────────────────────────────────
+  document.getElementById('seasonSelect').addEventListener('change', function () {
+    currentSeason = this.value;
+    playerMetaCache = null;
+    renderActiveTab();
+  });
+
+  // ── Init ─────────────────────────────────────────────────────────────────────
+  function init() {
+    const seasons = getSeasonIds();
+
+    if (seasons.length === 0) {
+      document.getElementById('topBar').style.display = 'none';
+      document.getElementById('mainContent').style.display = 'none';
+      document.getElementById('noData').style.display = 'flex';
+      return;
+    }
+
+    // Populate season dropdown
+    const selEl = document.getElementById('seasonSelect');
+    seasons.forEach((s, i) => {
+      const opt = document.createElement('option');
+      opt.value = s;
+      opt.textContent = s;
+      if (i === 0) opt.selected = true;
+      selEl.appendChild(opt);
+    });
+    currentSeason = seasons[0];
+
+    // Populate conference dropdowns
+    buildConfOptions(document.getElementById('teamstatsConfFilter'));
+    buildConfOptions(document.getElementById('playerConfFilter'));
+
+    renderStandings();
+  }
+
+  // Load data, then init
+  fetch('data/data.json')
+    .then(r => r.json())
+    .then(data => {
+      window.TEAMS       = data.teams       || [];
+      window.CONFERENCES = data.conferences || [];
+      playerMetaCache    = null;
+      init();
+    })
+    .catch(err => {
+      console.warn('Failed to load data.json:', err);
+      window.TEAMS       = [];
+      window.CONFERENCES = [];
+      init();
+    });
+
+})();
+</script>
+</body>
+</html>

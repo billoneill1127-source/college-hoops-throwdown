@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Season Mode — College Hoops Throwdown</title>
+  <style>
+:root {
+  --primary: #0d2240;
+  --accent: #e8600a;
+  --grey: #8a9bb0;
+  --surface: #f0f4f8;
+  --card-bg: #fff;
+  --text: #0d2240;
+  --text-muted: #6b7a99;
+  --border: #dde3ee;
+  --shadow: 0 2px 8px rgba(13,34,64,.10);
+  --shadow-hover: 0 8px 24px rgba(13,34,64,.18);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--surface); color: var(--text); min-height: 100vh; }
+
+/* ── Header ── */
+header { background: var(--primary); color: #fff; padding: 0 20px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 14px rgba(0,0,0,.35); display: flex; align-items: center; gap: 10px; height: 58px; flex-wrap: nowrap; overflow: hidden; }
+.back-btn { background: none; border: 1px solid rgba(255,255,255,.28); color: rgba(255,255,255,.8); padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: .8rem; font-weight: 600; transition: all .15s; white-space: nowrap; flex-shrink: 0; text-decoration: none; display: inline-block; }
+.back-btn:hover { background: rgba(255,255,255,.12); color: #fff; }
+.header-brand { flex-shrink: 0; }
+.header-logo { font-size: 1.2rem; font-weight: 800; letter-spacing: -.5px; white-space: nowrap; }
+.header-logo span { color: var(--accent); }
+.header-sub { font-size: .6rem; color: rgba(255,255,255,.4); text-transform: uppercase; letter-spacing: .9px; margin-top: 1px; }
+.header-info { flex: 1; display: flex; align-items: center; gap: 10px; overflow: hidden; justify-content: flex-end; }
+.hdr-team { font-size: .88rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hdr-record { font-size: .82rem; font-weight: 700; white-space: nowrap; }
+.hdr-conf { font-size: .72rem; color: rgba(255,255,255,.6); white-space: nowrap; }
+.streak-badge { font-size: .72rem; font-weight: 700; padding: 2px 9px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
+.streak-badge.win  { background: #1a7f37; }
+.streak-badge.loss { background: #b91c1c; }
+.hdr-progress { font-size: .72rem; color: rgba(255,255,255,.6); white-space: nowrap; flex-shrink: 0; }
+.hdr-link { color: rgba(255,255,255,.75); font-size: .78rem; font-weight: 600; text-decoration: none; white-space: nowrap; flex-shrink: 0; }
+.hdr-link:hover { color: #fff; }
+.hdr-sep { color: rgba(255,255,255,.25); font-size: .7rem; flex-shrink: 0; }
+
+/* ── Screens ── */
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* ── Loading ── */
+.loading-wrap { min-height: calc(100vh - 58px); display: flex; align-items: center; justify-content: center; }
+.loading-txt { color: var(--text-muted); font-size: .9rem; }
+
+/* ── Setup Screen ── */
+.setup-outer { min-height: calc(100vh - 58px); display: flex; align-items: flex-start; justify-content: center; padding: 36px 20px; }
+.setup-card { background: var(--card-bg); border-radius: 14px; box-shadow: var(--shadow); padding: 28px 30px; width: 100%; max-width: 500px; }
+.setup-title { font-size: 1.1rem; font-weight: 800; color: var(--primary); margin-bottom: 22px; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: .73rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); margin-bottom: 5px; }
+.form-select { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: .9rem; color: var(--text); background: var(--card-bg); cursor: pointer; appearance: auto; }
+.form-select:focus { outline: none; border-color: var(--accent); }
+.preview-card { background: #f6f9ff; border: 2px solid var(--accent); border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; }
+.preview-team { font-size: 1.15rem; font-weight: 800; color: var(--primary); }
+.preview-conf-name { font-size: .78rem; color: var(--text-muted); margin-bottom: 10px; }
+.preview-detail { font-size: .82rem; color: var(--text-muted); line-height: 2; }
+.action-btn { display: block; width: 100%; background: var(--accent); color: #fff; border: none; border-radius: 9px; padding: 12px 20px; font-size: .95rem; font-weight: 700; letter-spacing: .4px; cursor: pointer; transition: background .15s, opacity .15s; text-align: center; }
+.action-btn:hover:not(:disabled) { background: #c85008; }
+.action-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+/* ── Dashboard ── */
+.dash-outer { padding: 20px 16px 48px; max-width: 880px; margin: 0 auto; }
+
+/* Next game card */
+.next-game-card { background: var(--card-bg); border-radius: 12px; box-shadow: var(--shadow); border-left: 4px solid var(--accent); padding: 18px 20px; margin-bottom: 16px; }
+.ng-label { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--accent); margin-bottom: 6px; }
+.ng-game-num { font-size: .72rem; color: var(--text-muted); margin-bottom: 4px; }
+.ng-matchup { font-size: 1.1rem; font-weight: 800; color: var(--primary); margin-bottom: 5px; }
+.ng-opp-record { font-size: .78rem; color: var(--text-muted); margin-bottom: 10px; }
+.ng-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.ng-loc { font-size: .82rem; font-weight: 600; color: var(--text-muted); }
+.conf-badge { font-size: .62rem; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: rgba(13,34,64,.1); color: var(--primary); text-transform: uppercase; letter-spacing: .4px; }
+.game-btns { display: flex; gap: 10px; }
+.play-btn { flex: 1; background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 11px 10px; font-size: .88rem; font-weight: 700; cursor: pointer; transition: background .15s; }
+.play-btn:hover { background: #c85008; }
+.sim-btn { flex: 1; background: var(--primary); color: #e6edf3; border: 1px solid rgba(255,255,255,.15); border-radius: 8px; padding: 11px 10px; font-size: .88rem; font-weight: 700; cursor: pointer; transition: background .15s; }
+.sim-btn:hover { background: #162f55; }
+
+/* Season complete card */
+.complete-card { background: var(--card-bg); border-radius: 12px; box-shadow: var(--shadow); padding: 36px 24px; text-align: center; margin-bottom: 16px; border-top: 4px solid var(--accent); }
+.complete-title { font-size: 1.5rem; font-weight: 900; color: var(--primary); margin-bottom: 6px; }
+.complete-record { font-size: 2.4rem; font-weight: 900; color: var(--accent); letter-spacing: -1px; margin-bottom: 18px; }
+.complete-btns { display: flex; flex-direction: column; gap: 10px; max-width: 280px; margin: 0 auto; }
+.ghost-btn { background: none; color: var(--text-muted); border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 18px; font-size: .88rem; font-weight: 600; cursor: pointer; transition: all .15s; text-decoration: none; display: block; text-align: center; }
+.ghost-btn:hover { background: var(--surface); color: var(--text); border-color: var(--grey); }
+
+/* Generic panel */
+.panel { background: var(--card-bg); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; margin-bottom: 16px; }
+.panel-hdr { background: var(--primary); border-top: 3px solid var(--accent); padding: 10px 16px; display: flex; align-items: center; }
+.panel-title { color: #fff; font-size: .86rem; font-weight: 700; flex: 1; }
+.panel-link { color: rgba(255,255,255,.65); font-size: .73rem; text-decoration: none; flex-shrink: 0; }
+.panel-link:hover { color: #fff; }
+
+/* Standings */
+.standings-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.standings-table th { padding: 7px 14px; font-size: .65rem; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+.standings-table th:first-child { text-align: left; }
+.standings-table th:not(:first-child) { text-align: right; }
+.standings-table td { padding: 8px 14px; border-bottom: 1px solid var(--border); }
+.standings-table td:first-child { text-align: left; }
+.standings-table td:not(:first-child) { text-align: right; }
+.standings-table tr:last-child td { border-bottom: none; }
+.standings-table tr:hover td { background: #f5f8ff; }
+.standings-table tr.user-row td { background: rgba(232,96,10,.06); font-weight: 700; }
+.standings-empty { padding: 20px 16px; font-size: .82rem; color: var(--text-muted); font-style: italic; }
+
+/* Schedule */
+.sched-toggle-wrap { margin-bottom: 16px; }
+.sched-toggle-btn { width: 100%; background: var(--card-bg); color: var(--primary); border: 1.5px solid var(--border); border-radius: 10px; padding: 11px 16px; font-size: .86rem; font-weight: 700; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px; transition: border-color .15s; box-shadow: var(--shadow); }
+.sched-toggle-btn:hover { border-color: var(--accent); }
+.sched-toggle-chevron { font-size: .65rem; transition: transform .2s; margin-left: auto; }
+.sched-table-wrap { display: none; background: var(--card-bg); border-radius: 0 0 10px 10px; box-shadow: var(--shadow); overflow-x: auto; }
+.sched-table-wrap.open { display: block; }
+.sched-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+.sched-table th { padding: 7px 10px; font-size: .64rem; font-weight: 600; text-transform: uppercase; letter-spacing: .3px; color: var(--text-muted); border-bottom: 1px solid var(--border); background: #eef2f8; text-align: left; white-space: nowrap; }
+.sched-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.sched-table tr:last-child td { border-bottom: none; }
+.sched-table tr.next-row td { background: rgba(232,96,10,.07); }
+.sched-table tr:not(.next-row):hover td { background: #f5f8ff; }
+.sched-user-team { font-weight: 700; }
+.sched-result { font-weight: 700; }
+.sched-result.win  { color: #1a7f37; }
+.sched-result.loss { color: #b91c1c; }
+.sched-badge { font-size: .58rem; font-weight: 700; padding: 1px 5px; border-radius: 3px; background: rgba(13,34,64,.08); color: var(--text-muted); text-transform: uppercase; }
+
+/* Simulate rest button */
+.sim-rest-btn { width: 100%; background: var(--primary); color: #e6edf3; border: none; border-radius: 10px; padding: 13px 20px; font-size: .9rem; font-weight: 700; cursor: pointer; text-align: left; transition: background .15s; display: flex; align-items: center; gap: 10px; }
+.sim-rest-btn:hover { background: #162f55; }
+.quit-season-btn { background: none; border: 1px solid rgba(255,255,255,.18); border-radius: 8px; color: var(--text-muted); font-size: .78rem; padding: 6px 14px; cursor: pointer; transition: border-color .15s, color .15s; }
+.quit-season-btn:hover { border-color: #e05d5d; color: #e05d5d; }
+
+/* ── Simulate Result Modal ── */
+.sim-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.58); z-index: 600; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.sim-modal-card { background: var(--card-bg); border-radius: 14px; box-shadow: 0 16px 48px rgba(0,0,0,.35); max-width: 480px; width: 100%; overflow: hidden; }
+.sim-modal-hdr { background: var(--primary); border-top: 3px solid var(--accent); padding: 13px 18px; color: #fff; font-weight: 700; font-size: .88rem; }
+.sim-modal-body { padding: 20px; }
+.sim-score-display { text-align: center; padding: 12px 0 18px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.sim-score-row { display: flex; justify-content: center; align-items: center; gap: 18px; margin-bottom: 8px; }
+.sim-score-side { text-align: center; min-width: 110px; }
+.sim-score-name { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--text-muted); margin-bottom: 2px; }
+.sim-score-num { font-size: 2.6rem; font-weight: 900; font-family: 'Consolas', monospace; color: var(--primary); line-height: 1; }
+.sim-score-num.winner { color: var(--accent); }
+.sim-score-dash { font-size: 1.2rem; color: var(--grey); padding-bottom: 18px; }
+.sim-result-badge { display: inline-block; font-size: .9rem; font-weight: 800; padding: 4px 18px; border-radius: 20px; letter-spacing: 1.5px; margin-top: 4px; }
+.sim-result-badge.win  { background: #1a7f37; color: #fff; }
+.sim-result-badge.loss { background: #b91c1c; color: #fff; }
+.sim-result-badge.cpu  { background: #374151; color: #9ca3af; }
+.sim-scorers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+.sim-scorers-team h4 { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); margin-bottom: 7px; padding-bottom: 5px; border-bottom: 1px solid var(--border); }
+.sim-scorer-row { font-size: .8rem; padding: 3px 0; }
+.sim-scorer-name { font-weight: 600; }
+.sim-scorer-stat { color: var(--text-muted); font-size: .75rem; }
+.sim-continue-btn { width: 100%; background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 11px; font-size: .92rem; font-weight: 700; cursor: pointer; transition: background .15s; }
+.sim-continue-btn:hover { background: #c85008; }
+
+/* ── Progress overlay ── */
+.progress-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.65); z-index: 700; display: flex; align-items: center; justify-content: center; }
+.progress-card { background: var(--card-bg); border-radius: 12px; padding: 30px 40px; text-align: center; min-width: 240px; }
+.progress-title { font-size: .9rem; font-weight: 700; color: var(--primary); margin-bottom: 6px; }
+.progress-sub { font-size: .8rem; color: var(--text-muted); }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .sim-scorers-grid { grid-template-columns: 1fr; }
+  .game-btns { flex-direction: column; }
+  header { padding: 0 12px; gap: 8px; }
+}
+  </style>
+  <script src="store.js"></script>
+  <script src="data/teams-data.js"></script>
+  <script src="boxscore.js"></script>
+  <script src="game_engine_sim.js"></script>
+  <script src="cpu_sim.js"></script>
+  <script src="season_engine.js"></script>
+  <script src="stats_engine.js"></script>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="back-btn" id="backBtn">← Main Menu</a>
+  <div class="header-brand">
+    <div class="header-logo">🏀 <span>SEASON</span> MODE</div>
+    <div class="header-sub">2025–26</div>
+  </div>
+  <div class="header-info" id="headerInfo"></div>
+</header>
+
+<!-- ── Screen: Setup ── -->
+<div id="screenSetup" class="screen">
+  <div class="setup-outer">
+    <div class="setup-card">
+      <div class="setup-title">Choose Your Team</div>
+
+      <div class="form-group">
+        <label for="confSelect">Conference</label>
+        <select id="confSelect" class="form-select">
+          <option value="">— Select Conference —</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="teamSelectGroup" style="display:none">
+        <label for="teamSelect">Team</label>
+        <select id="teamSelect" class="form-select">
+          <option value="">— Select Team —</option>
+        </select>
+      </div>
+
+      <div id="teamPreview" style="display:none" class="preview-card">
+        <div id="previewTeamName" class="preview-team"></div>
+        <div id="previewConfName" class="preview-conf-name"></div>
+        <div class="preview-detail">
+          Conference games: 18 (9 home / 9 away)<br>
+          Non-conference games: 12 (6 home / 6 away)<br>
+          Total season: 30 games
+        </div>
+      </div>
+
+      <button id="startSeasonBtn" class="action-btn" disabled>▶ START SEASON</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Screen: Dashboard ── -->
+<div id="screenDashboard" class="screen">
+  <div class="dash-outer">
+    <div id="nextGamePanel"></div>
+    <div id="standingsPanel"></div>
+    <div id="schedulePanel"></div>
+    <div id="simRestPanel"></div>
+    <div id="quitSeasonPanel"></div>
+  </div>
+</div>
+
+<!-- ── Simulate Result Modal ── -->
+<div id="simModal" class="sim-modal-overlay" style="display:none">
+  <div class="sim-modal-card">
+    <div class="sim-modal-hdr" id="simModalHdr">Simulation Result</div>
+    <div class="sim-modal-body" id="simModalBody"></div>
+  </div>
+</div>
+
+<!-- ── Progress Overlay ── -->
+<div id="progressOverlay" class="progress-overlay" style="display:none">
+  <div class="progress-card">
+    <div class="progress-title" id="progressTitle">Simulating...</div>
+    <div class="progress-sub" id="progressSub"></div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────────
+let _pendingSimResult = null;  // holds result while modal is open
+let _pendingSimSlot   = null;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+// Normalize team id for window.TEAMS lookup (mirrors season_engine._normalizeId)
+function findTeam(id) {
+  const norm = (id || '').toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_');
+  return (window.TEAMS || []).find(t =>
+    (t.id || '').toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_') === norm
+  ) || null;
+}
+
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function fmt(n) { return n == null ? '–' : n; }
+function pct(w, gp) {
+  if (!gp) return '–';
+  return (w / gp).toFixed(3).replace(/^0/, '');
+}
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('screen' + id.charAt(0).toUpperCase() + id.slice(1));
+  if (el) el.classList.add('active');
+}
+
+// ── Data load ─────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function () {
+  if (!window.TEAMS || !window.CONFERENCES) {
+    document.body.innerHTML =
+      '<div style="padding:60px;text-align:center;color:#b91c1c">Failed to load data: teams-data.js not found</div>';
+    return;
+  }
+  init();
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+function init() {
+  const season = SeasonEngine.getActive();
+  if (season) {
+    showScreen('dashboard');
+    renderDashboard();
+  } else {
+    populateSetup();
+    showScreen('setup');
+  }
+}
+
+// ── Screen 1: Setup ───────────────────────────────────────────────────────────
+function populateSetup() {
+  const confSel = document.getElementById('confSelect');
+  window.CONFERENCES
+    .filter(c => c.name !== 'Other')
+    .forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.name;
+      opt.textContent = c.name;
+      confSel.appendChild(opt);
+    });
+
+  confSel.addEventListener('change', onConfChange);
+  document.getElementById('teamSelect').addEventListener('change', onTeamChange);
+  document.getElementById('startSeasonBtn').addEventListener('click', startSeason);
+}
+
+function onConfChange() {
+  const confName = document.getElementById('confSelect').value;
+  const teamSel  = document.getElementById('teamSelect');
+  const teamGrp  = document.getElementById('teamSelectGroup');
+  const preview  = document.getElementById('teamPreview');
+
+  // Reset team dropdown
+  teamSel.innerHTML = '<option value="">— Select Team —</option>';
+  preview.style.display = 'none';
+  document.getElementById('startSeasonBtn').disabled = true;
+
+  if (!confName) { teamGrp.style.display = 'none'; return; }
+
+  const teams = (window.TEAMS || []).filter(t => t.conference === confName);
+  teams.sort((a, b) => a.name.localeCompare(b.name));
+  teams.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = t.name + (t.nickname ? ' (' + t.nickname + ')' : '');
+    teamSel.appendChild(opt);
+  });
+
+  teamGrp.style.display = 'block';
+}
+
+function onTeamChange() {
+  const teamId   = document.getElementById('teamSelect').value;
+  const preview  = document.getElementById('teamPreview');
+  const startBtn = document.getElementById('startSeasonBtn');
+
+  if (!teamId) {
+    preview.style.display = 'none';
+    startBtn.disabled = true;
+    return;
+  }
+
+  const team = (window.TEAMS || []).find(t => t.id === teamId);
+  if (!team) return;
+
+  document.getElementById('previewTeamName').textContent = 'You will manage: ' + team.name;
+  document.getElementById('previewConfName').textContent = team.conference + ' Conference';
+  preview.style.display = 'block';
+  startBtn.disabled = false;
+}
+
+function startSeason() {
+  const teamId = document.getElementById('teamSelect').value;
+  if (!teamId) return;
+
+  const season = SeasonEngine.create(teamId);
+  if (!season) { alert('Could not create season. Check console.'); return; }
+
+  Store.set('settings:userTeamId', teamId);
+
+  showScreen('dashboard');
+  renderDashboard();
+}
+
+// ── Screen 2: Dashboard ───────────────────────────────────────────────────────
+function renderDashboard() {
+  const season = SeasonEngine.getActive();
+
+  if (season) {
+    renderHeader(season);
+    renderNextGame(season);
+    renderStandings(season);
+    renderSchedule(season);
+    renderSimRestBtn(season);
+    renderQuitBtn();
+  } else {
+    // Season may have just completed — find the most recent completed season
+    const allSeasonKeys = Store.keys('season:');
+    let lastSeason = null;
+    for (const k of allSeasonKeys) {
+      if (k.endsWith(':meta')) {
+        const s = Store.get(k);
+        if (s && s.status === 'complete') {
+          if (!lastSeason || s.seasonId > lastSeason.seasonId) lastSeason = s;
+        }
+      }
+    }
+    renderHeader(lastSeason);
+    renderSeasonComplete(lastSeason);
+    if (lastSeason) {
+      const finalRows = Store.get('season:' + lastSeason.seasonId + ':final_standings') || [];
+      renderStandingsFromRows(finalRows, lastSeason, 'Final ');
+      renderSchedule(lastSeason);
+    } else {
+      document.getElementById('standingsPanel').innerHTML = '';
+      document.getElementById('schedulePanel').innerHTML = '';
+    }
+    document.getElementById('simRestPanel').innerHTML = '';
+    document.getElementById('quitSeasonPanel').innerHTML = '';
+  }
+}
+
+// ── Header ────────────────────────────────────────────────────────────────────
+function renderHeader(season) {
+  const hi = document.getElementById('headerInfo');
+  if (!season) { hi.innerHTML = ''; return; }
+
+  let ow, ol, cw, cl, str;
+  if (SeasonEngine.getActive()) {
+    const rec = SeasonEngine.getUserRecord ? SeasonEngine.getUserRecord() : null;
+    ow  = rec ? rec.overall.w    : 0;
+    ol  = rec ? rec.overall.l    : 0;
+    cw  = rec ? rec.conference.w : 0;
+    cl  = rec ? rec.conference.l : 0;
+    str = rec ? rec.streak       : '';
+  } else {
+    // Completed season — compute record from stored schedule
+    const uid = season.userTeamId;
+    ow = ol = cw = cl = 0;
+    const results = [];
+    for (const slot of (season.schedule || [])) {
+      if (!slot.result) continue;
+      const won = slot.result.winnerId === uid;
+      results.push(won ? 'W' : 'L');
+      if (won) ow++; else ol++;
+      if (slot.conference === 'conference') { if (won) cw++; else cl++; }
+    }
+    str = '';
+    if (results.length > 0) {
+      const last = results[results.length - 1];
+      let n = 0;
+      for (let i = results.length - 1; i >= 0 && results[i] === last; i--) n++;
+      str = last + n;
+    }
+  }
+  const gNum = season.currentGame + 1;
+
+  const strClass = str && str.startsWith('W') ? 'win' : 'loss';
+  const streakBadge = str
+    ? `<span class="streak-badge ${strClass}">${esc(str)}</span>`
+    : '';
+
+  hi.innerHTML =
+    `<span class="hdr-team">${esc(season.userTeamName)}</span>` +
+    `<span class="hdr-record">${ow}–${ol}</span>` +
+    `<span class="hdr-conf">Conf: ${cw}–${cl}</span>` +
+    streakBadge +
+    `<span class="hdr-progress">Game ${Math.min(gNum, 30)} of 30</span>` +
+    `<span class="hdr-sep">|</span>` +
+    `<a href="stats.html" class="hdr-link">📊 Stats</a>`;
+}
+
+// ── Next Game Panel ───────────────────────────────────────────────────────────
+function renderNextGame(season) {
+  const panel = document.getElementById('nextGamePanel');
+  const slot  = SeasonEngine.getNextGame();
+
+  if (!slot) {
+    panel.innerHTML = '';  // handled by renderSeasonComplete
+    return;
+  }
+
+  const standings  = SeasonEngine.getStandings();
+  const allRows    = standings.overall || [];
+  const userIsHome = slot.homeTeamId === season.userTeamId;
+  const oppId      = userIsHome ? slot.awayTeamId : slot.homeTeamId;
+  const oppName    = userIsHome ? slot.awayName   : slot.homeName;
+
+  // Look up opponent's current record from standings
+  const oppRow = allRows.find(r => r.teamId === oppId);
+  const oppRec = oppRow ? `(${oppRow.wins}–${oppRow.losses})` : '';
+
+  const locIcon  = userIsHome ? '🏠' : '✈';
+  const locText  = userIsHome ? `Home vs ${oppName}` : `Away @ ${oppName}`;
+  const confBadge = slot.conference === 'conference'
+    ? '<span class="conf-badge">CONF</span>' : '';
+
+  const dateStr = slot.date || '';
+
+  panel.innerHTML =
+    `<div class="next-game-card">` +
+      `<div class="ng-label">NEXT GAME</div>` +
+      `<div class="ng-game-num">Game ${slot.gameIndex + 1} of 30</div>` +
+      (dateStr ? `<div class="ng-date">${dateStr}</div>` : '') +
+      `<div class="ng-matchup">${esc(season.userTeamName)} vs ${esc(oppName)}</div>` +
+      `<div class="ng-opp-record">${esc(oppName)} ${oppRec}</div>` +
+      `<div class="ng-meta">` +
+        `<span class="ng-loc">${locIcon} ${esc(locText)}</span>` +
+        confBadge +
+      `</div>` +
+      `<div class="game-btns">` +
+        `<button class="play-btn" onclick="playGame()">▶ PLAY GAME</button>` +
+        `<button class="sim-btn" onclick="simulateNextGame()">⚡ SIMULATE</button>` +
+      `</div>` +
+    `</div>`;
+}
+
+// ── Season Complete Panel ─────────────────────────────────────────────────────
+function renderSeasonComplete(season) {
+  const panel = document.getElementById('nextGamePanel');
+  if (!season) { panel.innerHTML = ''; return; }
+
+  // Count final record from schedule
+  const uid = season.userTeamId;
+  let w = 0, l = 0;
+  for (const slot of (season.schedule || [])) {
+    if (slot.result) {
+      if (slot.result.winnerId === uid) w++; else l++;
+    }
+  }
+
+  panel.innerHTML =
+    `<div class="complete-card">` +
+      `<div class="complete-title">🏆 Season Complete!</div>` +
+      `<div class="complete-record">${w}–${l}</div>` +
+      `<div style="color:var(--text-muted);font-size:.85rem;margin-bottom:20px">${esc(season.userTeamName)} finished the 2025–26 season</div>` +
+      `<div class="complete-btns">` +
+        `<a href="stats.html" class="action-btn" style="text-decoration:none">🏆 View Final Stats</a>` +
+        `<button class="ghost-btn" onclick="newSeason()">Start New Season</button>` +
+      `</div>` +
+    `</div>`;
+}
+
+function newSeason() {
+  populateSetup();
+  document.getElementById('confSelect').value = '';
+  document.getElementById('teamSelectGroup').style.display = 'none';
+  document.getElementById('teamPreview').style.display = 'none';
+  document.getElementById('startSeasonBtn').disabled = true;
+  // Re-wire listeners in case populateSetup was already called
+  const confSel = document.getElementById('confSelect');
+  // Clear and repopulate (idempotent)
+  confSel.innerHTML = '<option value="">— Select Conference —</option>';
+  window.CONFERENCES.filter(c => c.name !== 'Other').forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.name; opt.textContent = c.name;
+    confSel.appendChild(opt);
+  });
+  showScreen('setup');
+}
+
+// ── Conference Standings Panel ────────────────────────────────────────────────
+function renderStandings(season) {
+  const rows = SeasonEngine.getConferenceStandings(season.currentGame);
+  renderStandingsFromRows(rows, season, '');
+}
+
+function renderStandingsFromRows(rows, season, titlePrefix) {
+  const panel    = document.getElementById('standingsPanel');
+  const confName = season.userConference;
+
+  let tableHtml;
+  if (rows.length === 0) {
+    tableHtml = '<div class="standings-empty">No conference games played yet.</div>';
+  } else {
+    tableHtml =
+      `<table class="standings-table">` +
+      `<thead><tr><th>Team</th><th>Conf</th><th>Ovr</th></tr></thead>` +
+      `<tbody>` +
+      rows.map(r => {
+        const isUser = r.teamId === season.userTeamId;
+        return `<tr class="${isUser ? 'user-row' : ''}">` +
+          `<td>${esc(r.teamName)}${isUser ? ' ◀' : ''}</td>` +
+          `<td>${r.conf}</td>` +
+          `<td>${r.ovr}</td>` +
+          `</tr>`;
+      }).join('') +
+      `</tbody></table>`;
+  }
+
+  panel.innerHTML =
+    `<div class="panel">` +
+      `<div class="panel-hdr">` +
+        `<span class="panel-title">${esc((titlePrefix || '') + confName)} Standings</span>` +
+        `<a href="stats.html" class="panel-link">Full Standings →</a>` +
+      `</div>` +
+      tableHtml +
+    `</div>`;
+}
+
+// ── Schedule Panel ────────────────────────────────────────────────────────────
+function renderSchedule(season) {
+  const panel    = document.getElementById('schedulePanel');
+  const schedule = season.schedule || [];
+  const nextSlot = SeasonEngine.getNextGame();
+  const nextIdx  = nextSlot ? nextSlot.gameIndex : -1;
+
+  const rows = schedule.map((slot, i) => {
+    const isNext     = i === nextIdx;
+    const isConf     = slot.conference === 'conference';
+    const userIsHome = slot.homeTeamId === season.userTeamId;
+    const userTeam   = userIsHome ? slot.homeName : slot.awayName;
+    const oppTeam    = userIsHome ? slot.awayName : slot.homeName;
+
+    // Home/away display
+    const homeLabel = `<span class="${slot.homeTeamId === season.userTeamId ? 'sched-user-team' : ''}">${esc(slot.homeName)}</span>`;
+    const awayLabel = `<span class="${slot.awayTeamId === season.userTeamId ? 'sched-user-team' : ''}">${esc(slot.awayName)}</span>`;
+
+    // Result
+    let resultCell = '<span style="color:var(--text-muted)">—</span>';
+    if (slot.result) {
+      const hs = slot.result.homeScore, as = slot.result.awayScore;
+      const userWon = slot.result.winnerId === season.userTeamId;
+      const cls  = userWon ? 'win' : 'loss';
+      const wl   = userWon ? 'W' : 'L';
+      resultCell = `<span class="sched-result ${cls}">${wl} ${hs}–${as}</span>`;
+    }
+
+    const confCell = isConf
+      ? `<span class="sched-badge">${esc(season.userConference)}</span>`
+      : '';
+
+    const dateLabel = slot.date || '—';
+
+    return `<tr class="${isNext ? 'next-row' : ''}">` +
+      `<td style="color:var(--text-muted);font-size:.72rem">${dateLabel}</td>` +
+      `<td style="color:var(--text-muted);font-size:.72rem">${i + 1}</td>` +
+      `<td>${awayLabel}</td>` +
+      `<td style="color:var(--text-muted);font-size:.75rem">@</td>` +
+      `<td>${homeLabel}</td>` +
+      `<td>${confCell}</td>` +
+      `<td>${resultCell}</td>` +
+      `</tr>`;
+  }).join('');
+
+  panel.innerHTML =
+    `<div class="sched-toggle-wrap">` +
+      `<button class="sched-toggle-btn" onclick="toggleSchedule(this)">` +
+        `📅 Full Schedule` +
+        `<span class="sched-toggle-chevron" id="schedChevron">▼</span>` +
+      `</button>` +
+      `<div class="sched-table-wrap" id="schedTableWrap">` +
+        `<table class="sched-table">` +
+          `<thead><tr><th>Date</th><th>#</th><th>Away</th><th></th><th>Home</th><th></th><th>Result</th></tr></thead>` +
+          `<tbody>${rows}</tbody>` +
+        `</table>` +
+      `</div>` +
+    `</div>`;
+}
+
+function toggleSchedule(btn) {
+  const wrap = document.getElementById('schedTableWrap');
+  const chev = document.getElementById('schedChevron');
+  const open = wrap.classList.toggle('open');
+  if (chev) chev.textContent = open ? '▲' : '▼';
+}
+
+// ── Simulate Rest Button ──────────────────────────────────────────────────────
+function renderSimRestBtn(season) {
+  const panel   = document.getElementById('simRestPanel');
+  const pending = (season.schedule || []).filter(g => g.status === 'pending');
+  if (pending.length < 2) { panel.innerHTML = ''; return; }
+
+  panel.innerHTML =
+    `<button class="sim-rest-btn" onclick="simulateRest()">` +
+      `⚡ Simulate Rest of Season ` +
+      `<span style="font-size:.78rem;color:rgba(255,255,255,.6)">(${pending.length} games remaining)</span>` +
+    `</button>`;
+}
+
+// ── Quit Season Button ────────────────────────────────────────────────────────
+function renderQuitBtn() {
+  const panel = document.getElementById('quitSeasonPanel');
+  panel.innerHTML =
+    `<div style="text-align:center;margin-top:8px">` +
+      `<button class="quit-season-btn" onclick="quitSeason()">✕ Abandon Season</button>` +
+    `</div>`;
+}
+
+function quitSeason() {
+  if (!confirm('Are you sure you want to quit this season?\nAll progress will be lost.')) return;
+  const season = SeasonEngine.getActive();
+  if (season) {
+    const sid = season.seasonId;
+    // Compute W-L for audit log before data is gone
+    const rec = SeasonEngine.getUserRecord();
+    const wl  = rec.overall.w + '-' + rec.overall.l;
+    Store.del('season:active');
+    Store.del('season:' + sid + ':meta');
+    Store.del('season:' + sid + ':conf_schedule');
+    if (typeof BoxScore !== 'undefined') BoxScore.purgeAll(sid);
+    Store.del('settings:userTeamId');
+    console.log('[CHT] Season quit and purged — ' + season.userTeamName + ' ' + wl);
+  }
+  window.location.reload();
+}
+
+// ── Play Game (handoff to index.html) ─────────────────────────────────────────
+function playGame() {
+  const season = SeasonEngine.getActive();
+  const slot   = SeasonEngine.getNextGame();
+  if (!season || !slot) return;
+
+  const homeTeam = findTeam(slot.homeTeamId);
+  const awayTeam = findTeam(slot.awayTeamId);
+  Store.set('season:pending_game', {
+    gameIndex:    slot.gameIndex,
+    homeTeamId:   slot.homeTeamId,
+    awayTeamId:   slot.awayTeamId,
+    homeTeamName: homeTeam ? homeTeam.name : '',
+    awayTeamName: awayTeam ? awayTeam.name : '',
+    seasonId:     season.seasonId,
+    userTeamId:   season.userTeamId,
+  });
+  console.log('[CHT] Pending game set: ' + (homeTeam ? homeTeam.name : slot.homeTeamId) + ' vs ' + (awayTeam ? awayTeam.name : slot.awayTeamId));
+  window.location.href = 'index.html';
+}
+
+// ── Simulate Next Game ────────────────────────────────────────────────────────
+function simulateNextGame() {
+  const season = SeasonEngine.getActive();
+  const slot   = SeasonEngine.getNextGame();
+  if (!season || !slot) return;
+
+  const homeTeam = findTeam(slot.homeTeamId);
+  const awayTeam = findTeam(slot.awayTeamId);
+  if (!homeTeam || !awayTeam) {
+    console.error('[CHT] simulateNextGame: team not found', slot);
+    return;
+  }
+
+  const isUserInvolved = slot.homeTeamId === season.userTeamId ||
+                         slot.awayTeamId === season.userTeamId;
+
+  const result = CpuSim.simulateGame(homeTeam, awayTeam, {
+    isUserTeamInvolved: isUserInvolved,
+    userTeamId:         season.userTeamId,
+    seasonId:           season.seasonId,
+  });
+
+  // Store pending so Continue handler can call recordResult
+  _pendingSimResult = result;
+  _pendingSimSlot   = slot;
+
+  showSimModal(result, slot, season);
+}
+
+// ── Simulate Result Modal ─────────────────────────────────────────────────────
+function showSimModal(result, slot, season) {
+  const homeWon = result.homeScore > result.awayScore;
+  const isUserInvolved = slot.homeTeamId === season.userTeamId ||
+                         slot.awayTeamId === season.userTeamId;
+
+  let userWon = false, resultBadgeHtml = '';
+  if (isUserInvolved) {
+    userWon = result.winnerId === season.userTeamId;
+    const badgeClass = userWon ? 'win' : 'loss';
+    const badgeText  = userWon ? 'WIN' : 'LOSS';
+    resultBadgeHtml  = `<div style="margin-top:10px"><span class="sim-result-badge ${badgeClass}">${badgeText}</span></div>`;
+  } else {
+    resultBadgeHtml = `<div style="margin-top:10px"><span class="sim-result-badge cpu">CPU GAME</span></div>`;
+  }
+
+  const { home: hs, away: as } = result.summary;
+
+  const homeNumClass = homeWon ? 'winner' : '';
+  const awayNumClass = !homeWon ? 'winner' : '';
+
+  function scorersHtml(side) {
+    return (side.topScorers || []).map(p =>
+      `<div class="sim-scorer-row">` +
+        `<span class="sim-scorer-name">${esc(p.name)}</span> ` +
+        `<span class="sim-scorer-stat">${p.pts} pts, ${p.reb} reb, ${p.ast} ast</span>` +
+      `</div>`
+    ).join('');
+  }
+
+  document.getElementById('simModalHdr').textContent = 'Simulation Result';
+  document.getElementById('simModalBody').innerHTML =
+    `<div class="sim-score-display">` +
+      `<div class="sim-score-row">` +
+        `<div class="sim-score-side">` +
+          `<div class="sim-score-name">${esc(as.teamName)}</div>` +
+          `<div class="sim-score-num ${awayNumClass}">${result.awayScore}</div>` +
+        `</div>` +
+        `<div class="sim-score-dash">—</div>` +
+        `<div class="sim-score-side">` +
+          `<div class="sim-score-name">${esc(hs.teamName)}</div>` +
+          `<div class="sim-score-num ${homeNumClass}">${result.homeScore}</div>` +
+        `</div>` +
+      `</div>` +
+      resultBadgeHtml +
+    `</div>` +
+    `<div class="sim-scorers-grid">` +
+      `<div class="sim-scorers-team"><h4>${esc(as.teamName)}</h4>${scorersHtml(as)}</div>` +
+      `<div class="sim-scorers-team"><h4>${esc(hs.teamName)}</h4>${scorersHtml(hs)}</div>` +
+    `</div>` +
+    `<button class="sim-continue-btn" onclick="onSimContinue()">CONTINUE</button>`;
+
+  document.getElementById('simModal').style.display = 'flex';
+}
+
+function onSimContinue() {
+  document.getElementById('simModal').style.display = 'none';
+
+  if (_pendingSimResult && _pendingSimSlot) {
+    SeasonEngine.recordResult(_pendingSimSlot.gameIndex, {
+      homeScore: _pendingSimResult.homeScore,
+      awayScore: _pendingSimResult.awayScore,
+      winnerId:  _pendingSimResult.winnerId,
+      method:    'simulated',
+      gameId:    _pendingSimResult.gameId,
+    });
+  }
+
+  _pendingSimResult = null;
+  _pendingSimSlot   = null;
+
+  renderDashboard();
+}
+
+// ── Simulate Rest of Season ───────────────────────────────────────────────────
+async function simulateRest() {
+  const season = SeasonEngine.getActive();
+  if (!season) return;
+
+  const pending = season.schedule.filter(g => g.status === 'pending');
+  if (!confirm(`Simulate all ${pending.length} remaining games? This cannot be undone.`)) return;
+
+  const overlay   = document.getElementById('progressOverlay');
+  const progTitle = document.getElementById('progressTitle');
+  const progSub   = document.getElementById('progressSub');
+  overlay.style.display = 'flex';
+
+  for (let i = 0; i < pending.length; i++) {
+    progTitle.textContent = `Simulating... game ${i + 1} of ${pending.length}`;
+    progSub.textContent   = `${pending[i].awayName} @ ${pending[i].homeName}`;
+    await new Promise(r => setTimeout(r, 0));  // yield to browser for paint
+
+    const slot     = pending[i];
+    const homeTeam = findTeam(slot.homeTeamId);
+    const awayTeam = findTeam(slot.awayTeamId);
+    if (!homeTeam || !awayTeam) continue;
+
+    const isUserInvolved = slot.homeTeamId === season.userTeamId ||
+                           slot.awayTeamId === season.userTeamId;
+
+    const result = CpuSim.simulateGame(homeTeam, awayTeam, {
+      isUserTeamInvolved: isUserInvolved,
+      userTeamId:         season.userTeamId,
+      seasonId:           season.seasonId,
+    });
+
+    // Check if season still active before recording (may have completed mid-loop)
+    if (SeasonEngine.getActive()) {
+      SeasonEngine.recordResult(slot.gameIndex, {
+        homeScore: result.homeScore,
+        awayScore: result.awayScore,
+        winnerId:  result.winnerId,
+        method:    'simulated',
+        gameId:    result.gameId,
+      });
+    }
+  }
+
+  overlay.style.display = 'none';
+  SeasonEngine.simulateToIndex(30);
+  renderDashboard();
+}
+</script>
+</body>
+</html>
