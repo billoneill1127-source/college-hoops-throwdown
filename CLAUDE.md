@@ -1,5 +1,13 @@
 # College Hoops Throwdown — Project Reference
 
+## Local Development
+Always run the game via the local server, not by opening files directly.
+Start the server: npm start  (uses npx serve . -p 8080)
+Then open: http://localhost:8080/index.html
+fetch() calls (data/data.json, etc.) are blocked on file:// protocol.
+
+---
+
 ## What this is
 A browser-based college basketball simulation game. No build pipeline —
 plain HTML/JS/CSS, designed to run on GitHub Pages. All game logic runs
