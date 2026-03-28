@@ -35,7 +35,11 @@ window.SeasonEngine = (() => {
   }
 
   function _normalizeId(id) {
-    return (id || '').toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_');
+    return (id || '').toLowerCase().replace(/\s+/g, '-');
+  }
+
+  function _toHyphen(id) {
+    return (id || '').replace(/_/g, '-');
   }
 
   // ── Master conference schedule builder ───────────────────────────────────────
@@ -359,7 +363,35 @@ window.SeasonEngine = (() => {
   // ── SeasonEngine.getActive ────────────────────────────────────────────────────
 
   function getActive() {
-    return Store.get('season:active') || null;
+    const season = Store.get('season:active') || null;
+    if (!season) return null;
+
+    // One-time migration: underscore ids → hyphen ids
+    if (!season._idsMigrated) {
+      season.userTeamId = _toHyphen(season.userTeamId);
+      for (const slot of (season.schedule || [])) {
+        slot.homeTeamId = _toHyphen(slot.homeTeamId);
+        slot.awayTeamId = _toHyphen(slot.awayTeamId);
+      }
+      const confKey = 'season:' + season.seasonId + ':conf_schedule';
+      const masterData = Store.get(confKey);
+      if (masterData) {
+        for (const g of (masterData.confSchedule || [])) {
+          g.homeTeamId = _toHyphen(g.homeTeamId);
+          g.awayTeamId = _toHyphen(g.awayTeamId);
+        }
+        for (const g of (masterData.nonConfGames || [])) {
+          g.homeTeamId = _toHyphen(g.homeTeamId);
+          g.awayTeamId = _toHyphen(g.awayTeamId);
+          if (g.teamId) g.teamId = _toHyphen(g.teamId);
+        }
+        Store.set(confKey, masterData);
+      }
+      season._idsMigrated = true;
+      Store.set('season:active', season);
+    }
+
+    return season;
   }
 
   // ── SeasonEngine.getSchedule ──────────────────────────────────────────────────
