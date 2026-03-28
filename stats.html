@@ -283,10 +283,6 @@
 
     <!-- ── TEAM STATS ── -->
     <div class="tab-pane" id="tab-teamstats">
-      <div class="filter-bar">
-        <label for="teamstatsConfFilter">Conference:</label>
-        <select id="teamstatsConfFilter" class="ctrl-select"></select>
-      </div>
       <div class="table-wrap">
         <table class="player-table" id="teamstatsTable">
           <thead>
@@ -314,9 +310,6 @@
     <!-- ── PLAYER STATS ── -->
     <div class="tab-pane" id="tab-playerstats">
       <div class="filter-bar">
-        <label for="playerConfFilter">Conference:</label>
-        <select id="playerConfFilter" class="ctrl-select"></select>
-        <div class="filter-divider"></div>
         <label for="playerPosFilter">Position:</label>
         <select id="playerPosFilter" class="ctrl-select">
           <option value="">All</option>
@@ -434,19 +427,6 @@
     const map = {};
     (window.TEAMS || []).forEach(t => { map[t.name] = t.primaryColor || null; });
     return map;
-  }
-
-  // ── Populate conference dropdowns ────────────────────────────────────────────
-  function buildConfOptions(selectEl, selectedVal) {
-    const prev = selectedVal !== undefined ? selectedVal : selectEl.value;
-    selectEl.innerHTML = '<option value="">All Conferences</option>';
-    (window.CONFERENCES || []).forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c.name;
-      opt.textContent = c.name;
-      if (c.name === prev) opt.selected = true;
-      selectEl.appendChild(opt);
-    });
   }
 
   // ── Tab switching ────────────────────────────────────────────────────────────
@@ -588,16 +568,8 @@
     const season = currentSeason;
     if (!season) return;
 
-    const confFilter = document.getElementById('teamstatsConfFilter').value;
-
     // Get all teams that have played
     let standingRows = StatsEngine.standings(season);
-
-    // Conference filter
-    if (confFilter) {
-      const nameSet = teamNamesForConf(confFilter);
-      standingRows = standingRows.filter(r => nameSet.has(r.teamName));
-    }
 
     // For each team, get averages and merge gp
     const colorMap = teamColorMap();
@@ -681,8 +653,6 @@
     });
   });
 
-  document.getElementById('teamstatsConfFilter').addEventListener('change', renderTeamStats);
-
   // ── PLAYER STATS ─────────────────────────────────────────────────────────────
   // Player metadata cache
   let playerMetaCache = null;
@@ -707,14 +677,12 @@
     const season = currentSeason;
     if (!season) return;
 
-    const confFilter  = document.getElementById('playerConfFilter').value;
     const posFilter   = document.getElementById('playerPosFilter').value;
     const classFilter = document.getElementById('playerClassFilter').value;
 
     const filters = {};
-    if (confFilter)  filters.conference = confFilter;
-    if (posFilter)   filters.position   = posFilter;
-    if (classFilter) filters.class      = classFilter;
+    if (posFilter)   filters.position = posFilter;
+    if (classFilter) filters.class    = classFilter;
 
     let rows = StatsEngine.playerAverages(season, filters);
 
@@ -802,7 +770,6 @@
     });
   });
 
-  document.getElementById('playerConfFilter').addEventListener('change', renderPlayerStats);
   document.getElementById('playerPosFilter').addEventListener('change', renderPlayerStats);
   document.getElementById('playerClassFilter').addEventListener('change', renderPlayerStats);
 
@@ -1021,10 +988,6 @@
     if (statsBackBtn) {
       statsBackBtn.href = Store.get('season:active') ? 'season.html' : 'index.html';
     }
-
-    // Populate conference dropdowns
-    buildConfOptions(document.getElementById('teamstatsConfFilter'));
-    buildConfOptions(document.getElementById('playerConfFilter'));
 
     renderStandings();
   }
