@@ -995,16 +995,26 @@
       return;
     }
 
-    // Populate season dropdown
+    // Populate season dropdown with human-readable labels
     const selEl = document.getElementById('seasonSelect');
-    seasons.forEach((s, i) => {
+    // Prefer the first non-exhibition season as default; fall back to seasons[0]
+    const defaultId = seasons.find(s => s !== 'exhibition') || seasons[0];
+    seasons.forEach(s => {
+      const meta  = Store.get('season:' + s + ':meta');
+      let label;
+      if (meta) {
+        label = (meta.userTeamName || s) + ' \u2014 ' + (meta.season || s) +
+                (meta.status === 'complete' ? ' \u2713' : '');
+      } else {
+        label = s === 'exhibition' ? 'Exhibition Games' : s;
+      }
       const opt = document.createElement('option');
       opt.value = s;
-      opt.textContent = s;
-      if (i === 0) opt.selected = true;
+      opt.textContent = label;
+      if (s === defaultId) opt.selected = true;
       selEl.appendChild(opt);
     });
-    currentSeason = seasons[0];
+    currentSeason = defaultId;
 
     // Populate conference dropdowns
     buildConfOptions(document.getElementById('teamstatsConfFilter'));
