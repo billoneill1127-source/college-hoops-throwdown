@@ -423,6 +423,11 @@
     return s;
   }
 
+  function getUserConference() {
+    const meta = Store.get('season:' + currentSeason + ':meta');
+    return (meta && meta.userConference) || null;
+  }
+
   function teamColorMap() {
     const map = {};
     (window.TEAMS || []).forEach(t => { map[t.name] = t.primaryColor || null; });
@@ -570,8 +575,13 @@
     const season = currentSeason;
     if (!season) return;
 
-    // Get all teams that have played
+    // Get all teams that have played, filtered to user's conference
     let standingRows = StatsEngine.standings(season);
+    const userConf = getUserConference();
+    if (userConf) {
+      const nameSet = teamNamesForConf(userConf);
+      standingRows = standingRows.filter(r => nameSet.has(r.teamName));
+    }
 
     // For each team, get averages and merge gp
     const colorMap = teamColorMap();
@@ -683,8 +693,10 @@
     const classFilter = document.getElementById('playerClassFilter').value;
 
     const filters = {};
-    if (posFilter)   filters.position = posFilter;
-    if (classFilter) filters.class    = classFilter;
+    const userConf = getUserConference();
+    if (userConf)    filters.conference = userConf;
+    if (posFilter)   filters.position   = posFilter;
+    if (classFilter) filters.class      = classFilter;
 
     let rows = StatsEngine.playerAverages(season, filters);
 
