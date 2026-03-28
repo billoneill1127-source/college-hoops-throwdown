@@ -90,7 +90,7 @@ window.CpuSim = (() => {
 
     // ── 4. Save box score if user team is involved ────────────────────────────
     let gameId = null;
-    if (options.isUserTeamInvolved) {
+    if (options.isUserTeamInvolved || options.saveForStats) {
       gameId = BoxScore.saveFromSim(
         homeTeam, awayTeam,
         homeScore, awayScore,
