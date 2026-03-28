@@ -520,7 +520,7 @@
           sortKey:    g.roundIndex,
           homeTeamId: g.homeTeamId,
           awayTeamId: g.awayTeamId,
-          homeWon:    g.result.winnerId === g.homeTeamId,
+          homeWon:    g.result.winnerId === g.homeTeamId || g.result.winnerId === g.homeName,
         });
       }
 
