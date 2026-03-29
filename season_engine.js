@@ -462,8 +462,6 @@ window.SeasonEngine = (() => {
 
     const uid = season.userTeamId;
     let simCount = 0;
-    const simulatedThisRun = new Set();
-
     // Collect all non-user conference team IDs
     const confTeamIds = new Set();
     for (const g of masterData.confSchedule) {
@@ -510,8 +508,6 @@ window.SeasonEngine = (() => {
         const awayTeam = getTeams().find(t => t.id === game.awayTeamId);
         if (!homeTeam || !awayTeam) continue;
 
-        if (simulatedThisRun.has(game.gameId)) continue;
-        simulatedThisRun.add(game.gameId);
         const result = CpuSim.simulateGame(homeTeam, awayTeam, { isUserTeamInvolved: false, saveForStats: true, seasonId: season.seasonId });
         game.status = 'simulated';
         game.result = {
