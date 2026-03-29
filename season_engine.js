@@ -149,18 +149,23 @@ window.SeasonEngine = (() => {
     for (const team of conferenceTeams) {
       if (team.id === userTeamId) continue; // user's schedule handled separately
 
-      // Pick 12 non-conf opponents
-      let ncPicked;
-      if (ncPool.length >= 12) {
-        ncPicked = shuffle(ncPool).slice(0, 12);
-      } else {
-        ncPicked = shuffle(ncPool);
-        while (ncPicked.length < 12) ncPicked = [...ncPicked, ...shuffle(ncPool)];
-        ncPicked = ncPicked.slice(0, 12);
+      // Pick 12 non-conf opponents: 6 from P5 conferences (3H/3A) + 6 from Independents (3H/3A)
+      function pickFromPool(pool, n) {
+        if (pool.length === 0) return [];
+        let picked = shuffle(pool.slice());
+        while (picked.length < n) picked = [...picked, ...shuffle(pool.slice())];
+        return picked.slice(0, n);
       }
 
-      const ncHome = ncPicked.slice(0, 6);
-      const ncAway = ncPicked.slice(6);
+      const p5Pool  = ncPool.filter(t => t.type !== 'independent');
+      const indPool = ncPool.filter(t => t.type === 'independent');
+      let p5Picked  = pickFromPool(p5Pool, 6);
+      let indPicked = pickFromPool(indPool, 6);
+      if (p5Picked.length === 0)  p5Picked  = pickFromPool(indPool, 6);
+      if (indPicked.length === 0) indPicked = pickFromPool(p5Pool,  6);
+
+      const ncHome = [...p5Picked.slice(0, 3), ...indPicked.slice(0, 3)];
+      const ncAway = [...p5Picked.slice(3),    ...indPicked.slice(3)];
       const tid    = _normalizeId(team.id);
 
       ncHome.forEach((opp, idx) => {
@@ -236,17 +241,23 @@ window.SeasonEngine = (() => {
       t.id !== userTeam.id && !confOppIds.has(t.id)
     );
 
-    let ncPicked;
-    if (ncPool.length >= 12) {
-      ncPicked = shuffle(ncPool).slice(0, 12);
-    } else {
-      ncPicked = shuffle(ncPool);
-      while (ncPicked.length < 12) ncPicked = [...ncPicked, ...shuffle(ncPool)];
-      ncPicked = ncPicked.slice(0, 12);
+    // 6 from P5 conferences (3H/3A) + 6 from Independents (3H/3A)
+    function pickFromPool(pool, n) {
+      if (pool.length === 0) return [];
+      let picked = shuffle(pool.slice());
+      while (picked.length < n) picked = [...picked, ...shuffle(pool.slice())];
+      return picked.slice(0, n);
     }
 
-    const ncHome = ncPicked.slice(0, 6);
-    const ncAway = ncPicked.slice(6);
+    const p5Pool  = ncPool.filter(t => t.type !== 'independent');
+    const indPool = ncPool.filter(t => t.type === 'independent');
+    let p5Picked  = pickFromPool(p5Pool, 6);
+    let indPicked = pickFromPool(indPool, 6);
+    if (p5Picked.length === 0)  p5Picked  = pickFromPool(indPool, 6);
+    if (indPicked.length === 0) indPicked = pickFromPool(p5Pool,  6);
+
+    const ncHome = [...p5Picked.slice(0, 3), ...indPicked.slice(0, 3)];
+    const ncAway = [...p5Picked.slice(3),    ...indPicked.slice(3)];
 
     // ── Sequence non-conf block: no more than 2 consecutive home or away ──────
 
