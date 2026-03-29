@@ -95,7 +95,30 @@
     "name": "Independent",
     "shortName": "Ind",
     "memberIds": [
-      "gonzaga"
+      "akron",
+      "austin-peay",
+      "dayton",
+      "fordham",
+      "gonzaga",
+      "hawaii",
+      "high-point",
+      "illinois-chicago",
+      "illinois-state",
+      "loyola-il",
+      "loyola-marymount",
+      "miami-oh",
+      "mississippi-val",
+      "pennsylvania",
+      "richmond",
+      "saint-louis",
+      "saint-marys-ca",
+      "santa-clara",
+      "temple",
+      "tulane",
+      "unlv",
+      "virginia-commonwealth",
+      "wichita-state",
+      "yale"
     ]
   },
   {

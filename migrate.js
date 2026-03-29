@@ -22,14 +22,25 @@ const TEAM_DATA_DIR = path.join(ROOT, 'import', 'team-data');
 const IMPORT_DIR    = path.join(ROOT, 'import');
 const DATA_OUT_DIR  = path.join(ROOT, 'data');
 
-const CONF_FILES = [
-  { file: 'acc_teams.json',      conference: 'ACC'      },
-  { file: 'big_12_teams.json',   conference: 'Big 12'   },
-  { file: 'big_east_teams.json', conference: 'Big East' },
-  { file: 'big_ten_teams.json',  conference: 'Big Ten'  },  // raw array — normalized below
-  { file: 'sec_teams.json',         conference: 'SEC'         },
-  { file: 'independent_teams.json', conference: 'Independent' },
-];
+// Auto-discover all *_teams.json config files in the import directory.
+// Adding a new conference config (e.g. independent_teams.json) is automatically
+// picked up without any changes to this file.
+// Auto-discover all *_teams.json config files in the import directory.
+// Adding a new conference config is automatically picked up without changing this file.
+function deriveConfName(file) {
+  const slug = path.basename(file, '_teams.json').replace(/_/g, ' ');
+  return slug.replace(/\b\w/g, c => c.toUpperCase());
+}
+const CONF_FILES = fs.readdirSync(IMPORT_DIR)
+  .filter(f => f.endsWith('_teams.json'))
+  .sort()
+  .map(file => {
+    const raw = JSON.parse(fs.readFileSync(path.join(IMPORT_DIR, file), 'utf8'));
+    const conference = Array.isArray(raw)
+      ? deriveConfName(file)
+      : (raw.conference || deriveConfName(file));
+    return { file, conference };
+  });
 
 // Conference metadata: id slug, display names
 const CONF_META = {
