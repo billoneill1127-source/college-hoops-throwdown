@@ -141,77 +141,117 @@ window.SeasonEngine = (() => {
   // games (6 home, 6 away) from teams outside the user's conference.
   // gameIndex (0-11) maps to GAME_DATES[gameIndex].
 
-  function _buildAllNonConfSchedules(conferenceTeams, userTeamId) {
+  // ── _buildAllNonConfCoordinated ───────────────────────────────────────────────
+  //
+  // Assigns all non-conf opponents for every conference team (including the user)
+  // in a single coordinated pass. A reservation table (one Set per date slot)
+  // prevents the same opponent from appearing in two games on the same date,
+  // which would produce duplicate box scores and uneven GP counts.
+  //
+  // Slot layout (gameIndex 0-11):
+  //   P5 home:  0,1,2   P5 away:  3,4,5
+  //   Ind home: 6,7,8   Ind away: 9,10,11
+  //
+  // Returns { nonConfGames, userNcSlots }
+  //   nonConfGames — flat array of game objects for all non-user conf teams
+  //   userNcSlots  — 12 pre-built slot objects for the user's schedule
+
+  function _buildAllNonConfCoordinated(conferenceTeams, userTeam) {
     const confIds = new Set(conferenceTeams.map(t => t.id));
-    const ncPool  = getTeams().filter(t => !confIds.has(t.id));
-    const allGames = [];
 
-    for (const team of conferenceTeams) {
-      if (team.id === userTeamId) continue; // user's schedule handled separately
+    const p5Pool  = getTeams().filter(t =>
+      !confIds.has(t.id) && t.type !== 'independent'
+    );
+    const indPool = getTeams().filter(t =>
+      t.type === 'independent'
+    );
 
-      // Pick 12 non-conf opponents: 6 from P5 conferences (3H/3A) + 6 from Independents (3H/3A)
-      function pickFromPool(pool, n) {
-        if (pool.length === 0) return [];
-        let picked = shuffle(pool.slice());
-        while (picked.length < n) picked = [...picked, ...shuffle(pool.slice())];
-        return picked.slice(0, n);
+    // One reserved-opponent Set per date slot (indices 0-11)
+    const reserved = Array.from({ length: 12 }, () => new Set());
+
+    // Pick n opponents from pool into the given slots, respecting the reservation
+    // table so no opponent appears twice on the same date.
+    function pickWithReservation(pool, slots) {
+      const picked      = [];
+      const usedByTeam  = new Set();
+      for (const slot of slots) {
+        let candidates = pool.filter(t =>
+          !reserved[slot].has(t.id) && !usedByTeam.has(t.id)
+        );
+        if (candidates.length === 0)
+          candidates = pool.filter(t => !usedByTeam.has(t.id));
+        if (candidates.length === 0)
+          candidates = pool.slice();
+        const opp = candidates[Math.floor(Math.random() * candidates.length)];
+        picked.push({ slot, opp });
+        reserved[slot].add(opp.id);
+        usedByTeam.add(opp.id);
       }
-
-      const p5Pool  = ncPool.filter(t => t.type !== 'independent');
-      const indPool = ncPool.filter(t => t.type === 'independent');
-      let p5Picked  = pickFromPool(p5Pool, 6);
-      let indPicked = pickFromPool(indPool, 6);
-      if (p5Picked.length === 0)  p5Picked  = pickFromPool(indPool, 6);
-      if (indPicked.length === 0) indPicked = pickFromPool(p5Pool,  6);
-
-      const ncHome = [...p5Picked.slice(0, 3), ...indPicked.slice(0, 3)];
-      const ncAway = [...p5Picked.slice(3),    ...indPicked.slice(3)];
-      const tid    = _normalizeId(team.id);
-
-      ncHome.forEach((opp, idx) => {
-        allGames.push({
-          gameId:     'ng_' + tid + '_' + idx,
-          date:       GAME_DATES[idx],
-          gameIndex:  idx,
-          homeTeamId: tid,
-          homeName:   team.name,
-          awayTeamId: _normalizeId(opp.id),
-          awayName:   opp.name,
-          teamId:     tid,
-          status:     'pending',
-          result:     null,
-        });
-      });
-
-      ncAway.forEach((opp, idx) => {
-        allGames.push({
-          gameId:     'ng_' + tid + '_' + (idx + 6),
-          date:       GAME_DATES[idx + 6],
-          gameIndex:  idx + 6,
-          homeTeamId: _normalizeId(opp.id),
-          homeName:   opp.name,
-          awayTeamId: tid,
-          awayName:   team.name,
-          teamId:     tid,
-          status:     'pending',
-          result:     null,
-        });
-      });
+      return picked;
     }
 
-    return allGames;
+    const nonConfGames = [];
+    let   userNcSlots  = null;
+
+    for (const team of shuffle(conferenceTeams)) {
+      const tid = _normalizeId(team.id);
+
+      const p5Home  = pickWithReservation(p5Pool,  [0, 1, 2]);
+      const p5Away  = pickWithReservation(p5Pool,  [3, 4, 5]);
+      const indHome = pickWithReservation(indPool, [6, 7, 8]);
+      const indAway = pickWithReservation(indPool, [9, 10, 11]);
+
+      const allPicks = [...p5Home, ...p5Away, ...indHome, ...indAway];
+      // p5Home/indHome → team is home; p5Away/indAway → team is away
+      const homeSet = new Set([...p5Home, ...indHome].map(x => x.slot));
+
+      if (team.id === userTeam.id) {
+        // Build slot objects for the user's personal schedule
+        userNcSlots = allPicks.map(({ slot, opp }) => {
+          const userIsHome = homeSet.has(slot);
+          return {
+            gameIndex:  slot,
+            date:       GAME_DATES[slot],
+            homeTeamId: userIsHome ? tid              : _normalizeId(opp.id),
+            homeName:   userIsHome ? team.name        : opp.name,
+            awayTeamId: userIsHome ? _normalizeId(opp.id) : tid,
+            awayName:   userIsHome ? opp.name         : team.name,
+            conference: 'nonconf',
+            status:     'pending',
+            result:     null,
+          };
+        }).sort((a, b) => a.gameIndex - b.gameIndex);
+      } else {
+        // Build game objects for the master non-conf schedule
+        allPicks.forEach(({ slot, opp }) => {
+          const userIsHome = homeSet.has(slot);
+          nonConfGames.push({
+            gameId:     'ng_' + tid + '_' + slot,
+            date:       GAME_DATES[slot],
+            gameIndex:  slot,
+            homeTeamId: userIsHome ? tid              : _normalizeId(opp.id),
+            homeName:   userIsHome ? team.name        : opp.name,
+            awayTeamId: userIsHome ? _normalizeId(opp.id) : tid,
+            awayName:   userIsHome ? opp.name         : team.name,
+            teamId:     tid,
+            status:     'pending',
+            result:     null,
+          });
+        });
+      }
+    }
+
+    return { nonConfGames, userNcSlots };
   }
 
   // ── SeasonEngine._buildSchedule ───────────────────────────────────────────────
   //
-  // Derives the user's personal 30-game schedule. Conference games come from
-  // the master confSchedule (filtered to user's team, sorted by roundIndex),
-  // then force-balanced to 9H/9A and interleaved H-A-H-A. Non-conf games are
-  // sequenced with no more than 2 consecutive home or away.
-  //
-  // All dates are set by ordinal lookup: slot at gameIndex i → GAME_DATES[i].
+  // Derives the user's personal 30-game schedule. Non-conf slots are supplied
+  // by the caller (pre-built by _buildAllNonConfCoordinated). Conference games
+  // come from the master confSchedule (filtered to user's team, sorted by
+  // roundIndex). All dates are set by ordinal lookup: GAME_DATES[gameIndex].
 
-  function _buildSchedule(userTeam, confSchedule) {
+  function _buildSchedule(userTeam, confSchedule, userNcSlots) {
 
     // ── Conference games: pull from master schedule, sort by roundIndex ───────
 
@@ -219,9 +259,6 @@ window.SeasonEngine = (() => {
       .filter(g => g.homeTeamId === userTeam.id || g.awayTeamId === userTeam.id)
       .sort((a, b) => a.roundIndex - b.roundIndex);
 
-    // Keep games in master round order so user opponents stay in sync with the
-    // master conf schedule. H/A is assigned by position parity (even → home,
-    // odd → away) for a balanced alternating pattern without reordering.
     const confGames = userConfSlots.map((g, i) => {
       const masterOpp = g.homeTeamId === userTeam.id
         ? { id: g.awayTeamId, name: g.awayName }
@@ -232,84 +269,9 @@ window.SeasonEngine = (() => {
     console.log('[CHT] Conf sequence:',
       confGames.map(g => g.userIsHome ? 'H' : 'A').join('-'));
 
-    // ── Non-conference games ──────────────────────────────────────────────────
+    // ── Build final slot list — non-conf first, then conference ───────────────
 
-    const confOppIds = new Set(userConfSlots.map(g =>
-      g.homeTeamId === userTeam.id ? g.awayTeamId : g.homeTeamId
-    ));
-    const ncPool = getTeams().filter(t =>
-      t.id !== userTeam.id && !confOppIds.has(t.id)
-    );
-
-    // 6 from P5 conferences (3H/3A) + 6 from Independents (3H/3A)
-    function pickFromPool(pool, n) {
-      if (pool.length === 0) return [];
-      let picked = shuffle(pool.slice());
-      while (picked.length < n) picked = [...picked, ...shuffle(pool.slice())];
-      return picked.slice(0, n);
-    }
-
-    const p5Pool  = ncPool.filter(t => t.type !== 'independent');
-    const indPool = ncPool.filter(t => t.type === 'independent');
-    let p5Picked  = pickFromPool(p5Pool, 6);
-    let indPicked = pickFromPool(indPool, 6);
-    if (p5Picked.length === 0)  p5Picked  = pickFromPool(indPool, 6);
-    if (indPicked.length === 0) indPicked = pickFromPool(p5Pool,  6);
-
-    const ncHome = [...p5Picked.slice(0, 3), ...indPicked.slice(0, 3)];
-    const ncAway = [...p5Picked.slice(3),    ...indPicked.slice(3)];
-
-    // ── Sequence non-conf block: no more than 2 consecutive home or away ──────
-
-    function sequenceBlock(homeList, awayList, startHome) {
-      const homes  = shuffle(homeList.slice());
-      const aways  = shuffle(awayList.slice());
-      const result = [];
-      let consecHome = 0, consecAway = 0;
-      let preferHome = startHome;
-
-      while (homes.length > 0 || aways.length > 0) {
-        let useHome;
-        if      (homes.length === 0) useHome = false;
-        else if (aways.length === 0) useHome = true;
-        else if (consecHome >= 2)    useHome = false;
-        else if (consecAway >= 2)    useHome = true;
-        else                         useHome = preferHome;
-
-        if (useHome) {
-          result.push({ opp: homes.shift(), userIsHome: true });
-          consecHome++;
-          consecAway = 0;
-          preferHome = false;
-        } else {
-          result.push({ opp: aways.shift(), userIsHome: false });
-          consecAway++;
-          consecHome = 0;
-          preferHome = true;
-        }
-      }
-      return result;
-    }
-
-    const ncSequenced = sequenceBlock(ncHome, ncAway, true);
-
-    // ── Build final slot list — dates from GAME_DATES[gameIndex] ─────────────
-
-    const slots = [];
-
-    ncSequenced.forEach((g, i) => {
-      slots.push({
-        gameIndex:  i,
-        date:       GAME_DATES[i],
-        homeTeamId: g.userIsHome ? userTeam.id   : g.opp.id,
-        homeName:   g.userIsHome ? userTeam.name : g.opp.name,
-        awayTeamId: g.userIsHome ? g.opp.id      : userTeam.id,
-        awayName:   g.userIsHome ? g.opp.name    : userTeam.name,
-        conference: 'nonconf',
-        status:     'pending',
-        result:     null,
-      });
-    });
+    const slots = (userNcSlots || []).slice();
 
     confGames.forEach((g, i) => {
       slots.push({
@@ -351,13 +313,16 @@ window.SeasonEngine = (() => {
       schedule:       [],
     };
 
-    // ── Build master conference schedule FIRST so dates can be passed to _buildSchedule
-    const conferenceTeams  = getTeams().filter(t => t.conference === userTeam.conference);
-    const confSchedule     = _buildConferenceSchedule(conferenceTeams);
-    const nonConfGames     = _buildAllNonConfSchedules(conferenceTeams, userTeam.id);
-    const masterData       = { confSchedule, nonConfGames, lastSimIndex: null };
+    // ── Build schedules ───────────────────────────────────────────────────────
+    const conferenceTeams = getTeams().filter(t => t.conference === userTeam.conference);
+    const confSchedule    = _buildConferenceSchedule(conferenceTeams);
 
-    season.schedule = _buildSchedule(userTeam, confSchedule);
+    // Single coordinated non-conf pass — prevents the same opponent appearing
+    // in two games on the same date across all conference teams.
+    const { nonConfGames, userNcSlots } = _buildAllNonConfCoordinated(conferenceTeams, userTeam);
+    const masterData = { confSchedule, nonConfGames, lastSimIndex: null };
+
+    season.schedule = _buildSchedule(userTeam, confSchedule, userNcSlots);
 
     Store.set('season:active', season);
     Store.set('season:' + seasonId + ':meta', season);
