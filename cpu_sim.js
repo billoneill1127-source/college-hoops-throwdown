@@ -90,7 +90,12 @@ window.CpuSim = (() => {
 
     // ── 4. Save box score if user team is involved ────────────────────────────
     let gameId = null;
+    console.log('[CpuSim] game:', homeTeam.name, 'vs', awayTeam.name,
+      '| isUserTeamInvolved:', options.isUserTeamInvolved,
+      '| saveForStats:', options.saveForStats,
+      '| seasonId:', options.seasonId);
     if (options.isUserTeamInvolved || options.saveForStats) {
+      console.log('[CpuSim] SAVING box score for:', homeTeam.name, 'vs', awayTeam.name);
       gameId = BoxScore.saveFromSim(
         homeTeam, awayTeam,
         homeScore, awayScore,
@@ -98,6 +103,8 @@ window.CpuSim = (() => {
         options.seasonId || null,
         'season'
       );
+    } else {
+      console.log('[CpuSim] SKIPPING box score for:', homeTeam.name, 'vs', awayTeam.name);
     }
 
     // ── 5. Return result ──────────────────────────────────────────────────────
