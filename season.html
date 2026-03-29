@@ -554,7 +554,7 @@ function newSeason() {
   const confSel = document.getElementById('confSelect');
   // Clear and repopulate (idempotent)
   confSel.innerHTML = '<option value="">— Select Conference —</option>';
-  window.CONFERENCES.filter(c => c.name !== 'Other').forEach(c => {
+  window.CONFERENCES.filter(c => c.name !== 'Other' && c.name !== 'Independent').forEach(c => {
     const opt = document.createElement('option');
     opt.value = c.name; opt.textContent = c.name;
     confSel.appendChild(opt);
