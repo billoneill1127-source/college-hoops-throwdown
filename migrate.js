@@ -297,6 +297,12 @@ fs.writeFileSync(path.join(DATA_OUT_DIR, 'conferences.json'),
 fs.writeFileSync(path.join(DATA_OUT_DIR, 'players.json'),
   JSON.stringify(playersFlat, null, 2), 'utf8');
 
+// teams-data.js — synchronous script tag load for index.html / season.html
+// Sets window.TEAMS and window.CONFERENCES so both pages work without fetch()
+const teamsDataJs = 'window.TEAMS = ' + JSON.stringify(teamsOut) + ';\n'
+                  + 'window.CONFERENCES = ' + JSON.stringify(conferencesOut) + ';\n';
+fs.writeFileSync(path.join(DATA_OUT_DIR, 'teams-data.js'), teamsDataJs, 'utf8');
+
 // ── Step 6: Validation report ─────────────────────────────────────────────────
 const hr  = '═'.repeat(60);
 const hr2 = '─'.repeat(60);
@@ -398,6 +404,7 @@ console.log(`  data/data.json       v2 combined file (meta + ${conferencesOut.le
 console.log(`  data/teams.json      ${teamsOut.length} teams with embedded players`);
 console.log(`  data/conferences.json  ${conferencesOut.length} conferences (lookup table)`);
 console.log(`  data/players.json    ${playersFlat.length} players (flat, diagnostics)`);
+console.log(`  data/teams-data.js   sync script: window.TEAMS (${teamsOut.length}) + window.CONFERENCES (${conferencesOut.length})`);
 console.log(`\n  net_rating: set manually via set_ratings.py — stored in data/ratings.json`);
 
 console.log('\n' + hr);
