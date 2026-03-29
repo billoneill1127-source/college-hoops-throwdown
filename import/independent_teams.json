@@ -6,6 +6,167 @@
       "nickname": "Bulldogs",
       "primaryColor": "#002469",
       "city": "Spokane"
+    },
+    {
+      "srSlug": "saint-louis",
+      "name": "Saint Louis",
+      "nickname": "Billikens",
+      "primaryColor": "#003594",
+      "city": "St. Louis"
+    },
+    {
+      "srSlug": "high-point",
+      "name": "High Point",
+      "nickname": "Panthers",
+      "primaryColor": "#6A2682",
+      "city": "High Point"
+    },
+    {
+      "srSlug": "miami-oh",
+      "name": "Miami (OH)",
+      "nickname": "RedHawks",
+      "primaryColor": "#B61E2E",
+      "city": "Oxford"
+    },
+    {
+      "srSlug": "saint-marys-ca",
+      "name": "Saint Mary's (CA)",
+      "nickname": "Gaels",
+      "primaryColor": "#002366",
+      "city": "Moraga"
+    },
+    {
+      "srSlug": "santa-clara",
+      "name": "Santa Clara",
+      "nickname": "Broncos",
+      "primaryColor": "#862633",
+      "city": "Santa Clara"
+    },
+    {
+      "srSlug": "virginia-commonwealth",
+      "name": "VCU",
+      "nickname": "Rams",
+      "primaryColor": "#000000",
+      "city": "Richmond"
+    },
+    {
+      "srSlug": "wichita-state",
+      "name": "Wichita State",
+      "nickname": "Shockers",
+      "primaryColor": "#000000",
+      "city": "Wichita"
+    },
+    {
+      "srSlug": "dayton",
+      "name": "Dayton",
+      "nickname": "Flyers",
+      "primaryColor": "#CC0000",
+      "city": "Dayton"
+    },
+    {
+      "srSlug": "akron",
+      "name": "Akron",
+      "nickname": "Zips",
+      "primaryColor": "#041E42",
+      "city": "Akron"
+    },
+    {
+      "srSlug": "illinois-state",
+      "name": "Illinois State",
+      "nickname": "Redbirds",
+      "primaryColor": "#CE1126",
+      "city": "Normal"
+    },
+    {
+      "srSlug": "yale",
+      "name": "Yale",
+      "nickname": "Bulldogs",
+      "primaryColor": "#00356B",
+      "city": "New Haven"
+    },
+    {
+      "srSlug": "pennsylvania",
+      "name": "Pennsylvania",
+      "nickname": "Quakers",
+      "primaryColor": "#990000",
+      "city": "Philadelphia"
+    },
+    {
+      "srSlug": "unlv",
+      "name": "UNLV",
+      "nickname": "Runnin' Rebels",
+      "primaryColor": "#CF0A2C",
+      "city": "Las Vegas"
+    },
+    {
+      "srSlug": "hawaii",
+      "name": "Hawaii",
+      "nickname": "Warriors",
+      "primaryColor": "#024731",
+      "city": "Honolulu"
+    },
+    {
+      "srSlug": "illinois-chicago",
+      "name": "Illinois-Chicago",
+      "nickname": "Flames",
+      "primaryColor": "#D50032",
+      "city": "Chicago"
+    },
+    {
+      "srSlug": "richmond",
+      "name": "Richmond",
+      "nickname": "Spiders",
+      "primaryColor": "#990000",
+      "city": "Richmond"
+    },
+    {
+      "srSlug": "temple",
+      "name": "Temple",
+      "nickname": "Owls",
+      "primaryColor": "#9D2235",
+      "city": "Philadelphia"
+    },
+    {
+      "srSlug": "loyola-marymount",
+      "name": "Loyola Marymount",
+      "nickname": "Lions",
+      "primaryColor": "#00205B",
+      "city": "Los Angeles"
+    },
+    {
+      "srSlug": "fordham",
+      "name": "Fordham",
+      "nickname": "Rams",
+      "primaryColor": "#8B0000",
+      "city": "Bronx"
+    },
+    {
+      "srSlug": "austin-peay",
+      "name": "Austin Peay",
+      "nickname": "Governors",
+      "primaryColor": "#C8102E",
+      "city": "Clarksville"
+    },
+    {
+      "srSlug": "tulane",
+      "name": "Tulane",
+      "nickname": "Green Wave",
+      "primaryColor": "#006747",
+      "city": "New Orleans"
+    },
+    {
+      "srSlug": "loyola-il",
+      "name": "Loyola Chicago",
+      "nickname": "Ramblers",
+      "primaryColor": "#8C1D40",
+      "city": "Chicago"
+    },
+    {
+      "srSlug": "mississippi-val",
+      "name": "Mississippi Valley State",
+      "nickname": "Delta Devils",
+      "primaryColor": "#2D6A3F",
+      "city": "Itta Bena"
     }
   ]
 }
