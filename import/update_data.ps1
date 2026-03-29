@@ -72,7 +72,7 @@ if (Test-Path $simPath) {
     Write-Host "simulate.html DATA updated successfully" -ForegroundColor Green
 }
 
-# ── Independent teams status ───────────────────────────────────────────────────
+# ── Independent teams status -----------------------------------------──────────
 $indepPath = Join-Path $PSScriptRoot "independent_teams.json"
 if (Test-Path $indepPath) {
     $indepData = Get-Content $indepPath -Raw | ConvertFrom-Json
@@ -81,7 +81,7 @@ if (Test-Path $indepPath) {
     $pending   = @($allTeams | Where-Object { -not (Test-Path (Join-Path $PSScriptRoot "team-data\$($_.srSlug).json")) })
 
     Write-Host ""
-    Write-Host "─────────────────────────────────────────" -ForegroundColor DarkGray
+    Write-Host "-----------------------------------------" -ForegroundColor DarkGray
     Write-Host "Independent teams: $($loaded.Count) of $($allTeams.Count) loaded" -ForegroundColor Cyan
     foreach ($t in $loaded)  { Write-Host "  [loaded]  $($t.name)" -ForegroundColor Green }
     if ($pending.Count -gt 0) {
@@ -97,7 +97,7 @@ if (Test-Path $indepPath) {
 $migratePath = Join-Path $root "migrate.js"
 if (Test-Path $migratePath) {
     Write-Host ""
-    Write-Host "─────────────────────────────────────────" -ForegroundColor DarkGray
+    Write-Host "-----------------------------------------" -ForegroundColor DarkGray
     Write-Host "Running migrate.js to update data/data.json..." -ForegroundColor Cyan
     node $migratePath 2>&1 | Select-String -Pattern "Joined|Independent|UNMATCHED|complete" | ForEach-Object { Write-Host "  $_" }
     Write-Host "migrate.js complete" -ForegroundColor Green
