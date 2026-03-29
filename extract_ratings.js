@@ -36,6 +36,9 @@ const OUR_TEAMS = [
   'loyola_marymount', 'miami_oh', 'mississippi_val', 'pennsylvania',
   'richmond', 'saint_louis', 'saint_marys_ca', 'santa_clara', 'temple',
   'tulane', 'unlv', 'virginia_commonwealth', 'wichita_state', 'yale',
+  'army', 'bradley', 'california_baptist', 'detroit_mercy', 'howard',
+  'liberty', 'oregon_state', 'pepperdine', 'princeton', 'rice',
+  'st_thomas_mn', 'wyoming',
 ];
 
 // Fallback: our slug → exact display name on SR when slug matching fails
@@ -57,6 +60,8 @@ const FALLBACK_NAMES = {
   mississippi_val:   'Mississippi Valley State',
   saint_marys_ca:    "Saint Mary's",
   unlv:              'Nevada-Las Vegas',
+  army:              'Army West Point',
+  st_thomas_mn:      'St. Thomas (MN)',
 };
 
 // ── Slug generator ────────────────────────────────────────────────────────────

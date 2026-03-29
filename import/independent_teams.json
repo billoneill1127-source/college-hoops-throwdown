@@ -168,6 +168,90 @@
       "nickname": "Delta Devils",
       "primaryColor": "#2D6A3F",
       "city": "Itta Bena"
+    },
+    {
+      "srSlug": "bradley",
+      "name": "Bradley",
+      "nickname": "Braves",
+      "primaryColor": "#CC0000",
+      "city": "Peoria"
+    },
+    {
+      "srSlug": "wyoming",
+      "name": "Wyoming",
+      "nickname": "Cowboys",
+      "primaryColor": "#492F24",
+      "city": "Laramie"
+    },
+    {
+      "srSlug": "california-baptist",
+      "name": "California Baptist",
+      "nickname": "Lancers",
+      "primaryColor": "#002868",
+      "city": "Riverside"
+    },
+    {
+      "srSlug": "liberty",
+      "name": "Liberty",
+      "nickname": "Flames",
+      "primaryColor": "#990000",
+      "city": "Lynchburg"
+    },
+    {
+      "srSlug": "st-thomas-mn",
+      "name": "St. Thomas (MN)",
+      "nickname": "Tommies",
+      "primaryColor": "#4E2683",
+      "city": "St. Paul"
+    },
+    {
+      "srSlug": "rice",
+      "name": "Rice",
+      "nickname": "Owls",
+      "primaryColor": "#002469",
+      "city": "Houston"
+    },
+    {
+      "srSlug": "princeton",
+      "name": "Princeton",
+      "nickname": "Tigers",
+      "primaryColor": "#FF8F00",
+      "city": "Princeton"
+    },
+    {
+      "srSlug": "pepperdine",
+      "name": "Pepperdine",
+      "nickname": "Waves",
+      "primaryColor": "#0021A5",
+      "city": "Malibu"
+    },
+    {
+      "srSlug": "army",
+      "name": "Army West Point",
+      "nickname": "Black Knights",
+      "primaryColor": "#000000",
+      "city": "West Point"
+    },
+    {
+      "srSlug": "howard",
+      "name": "Howard",
+      "nickname": "Bison",
+      "primaryColor": "#003A63",
+      "city": "Washington"
+    },
+    {
+      "srSlug": "oregon-state",
+      "name": "Oregon State",
+      "nickname": "Beavers",
+      "primaryColor": "#DC4405",
+      "city": "Corvallis"
+    },
+    {
+      "srSlug": "detroit-mercy",
+      "name": "Detroit Mercy",
+      "nickname": "Titans",
+      "primaryColor": "#002D62",
+      "city": "Detroit"
     }
   ]
 }
