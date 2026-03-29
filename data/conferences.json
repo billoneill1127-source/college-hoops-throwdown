@@ -91,6 +91,14 @@
     ]
   },
   {
+    "id": "independent",
+    "name": "Independent",
+    "shortName": "Ind",
+    "memberIds": [
+      "gonzaga"
+    ]
+  },
+  {
     "id": "sec",
     "name": "SEC",
     "shortName": "SEC",
@@ -110,17 +118,5 @@
       "texas-am",
       "vanderbilt"
     ]
-  },
-  {
-    "id": "other",
-    "name": "Other",
-    "shortName": "Other",
-    "memberIds": []
-  },
-  {
-    "id": "independent",
-    "name": "Independent",
-    "shortName": "Ind",
-    "memberIds": []
   }
 ]

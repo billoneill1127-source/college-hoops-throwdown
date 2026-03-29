@@ -1,0 +1,11 @@
+{
+  "teams": [
+    {
+      "srSlug": "gonzaga",
+      "name": "Gonzaga",
+      "nickname": "Bulldogs",
+      "primaryColor": "#002469",
+      "city": "Spokane"
+    }
+  ]
+}
