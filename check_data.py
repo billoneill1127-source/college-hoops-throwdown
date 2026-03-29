@@ -69,6 +69,12 @@ print('  By conference:')
 for k, n in sorted(conf_counts.items()):
     print(f'    {k:<16} {n}')
 
+indep_teams = [t for t in teams if t.get('type') == 'independent']
+if indep_teams:
+    print(f'  Independent teams (non-conf opponents only): {len(indep_teams)}')
+    for t in sorted(indep_teams, key=lambda t: t['name']):
+        print(f'    {t["name"]}')
+
 # ── PLAYER SUMMARY ────────────────────────────────────────────────────────────
 print()
 print(HR)

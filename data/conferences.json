@@ -116,5 +116,11 @@
     "name": "Other",
     "shortName": "Other",
     "memberIds": []
+  },
+  {
+    "id": "independent",
+    "name": "Independent",
+    "shortName": "Ind",
+    "memberIds": []
   }
 ]

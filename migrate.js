@@ -27,17 +27,22 @@ const CONF_FILES = [
   { file: 'big_12_teams.json',   conference: 'Big 12'   },
   { file: 'big_east_teams.json', conference: 'Big East' },
   { file: 'big_ten_teams.json',  conference: 'Big Ten'  },  // raw array — normalized below
-  { file: 'sec_teams.json',      conference: 'SEC'      },
+  { file: 'sec_teams.json',         conference: 'SEC'         },
+  { file: 'independent_teams.json', conference: 'Independent' },
 ];
 
 // Conference metadata: id slug, display names
 const CONF_META = {
-  'ACC':      { id: 'acc',       shortName: 'ACC'      },
-  'Big 12':   { id: 'big_12',    shortName: 'Big 12'   },
-  'Big East': { id: 'big_east',  shortName: 'Big East' },
-  'Big Ten':  { id: 'big_ten',   shortName: 'Big Ten'  },
-  'SEC':      { id: 'sec',       shortName: 'SEC'      },
+  'ACC':         { id: 'acc',         shortName: 'ACC'      },
+  'Big 12':      { id: 'big_12',      shortName: 'Big 12'   },
+  'Big East':    { id: 'big_east',    shortName: 'Big East' },
+  'Big Ten':     { id: 'big_ten',     shortName: 'Big Ten'  },
+  'SEC':         { id: 'sec',         shortName: 'SEC'      },
+  'Independent': { id: 'independent', shortName: 'Ind'      },
 };
+
+// The five primary tracked conferences — teams not in this set become 'independent'
+const TRACKED_CONFERENCES = new Set(['ACC', 'Big 12', 'Big East', 'Big Ten', 'SEC']);
 
 // ── Stat fields ───────────────────────────────────────────────────────────────
 // Used for null-check (all-null exclusion) and stat validation
@@ -212,8 +217,8 @@ for (const [srSlug, td] of Object.entries(teamDataMap).sort()) {
     id:                    srSlug,
     name:                  meta.name,
     nickname:              meta.nickname              || '',
-    conference:            meta.conference,
-    type:                  'real',
+    conference:            TRACKED_CONFERENCES.has(meta.conference) ? meta.conference : 'Independent',
+    type:                  TRACKED_CONFERENCES.has(meta.conference) ? 'real' : 'independent',
     city:                  meta.city                  || '',
     primaryColor:          meta.primaryColor          || '',
     head_coach:            teamStats.head_coach        || '',
