@@ -72,7 +72,7 @@ if (Test-Path $simPath) {
     Write-Host "simulate.html DATA updated successfully" -ForegroundColor Green
 }
 
-# ── Independent teams status -----------------------------------------──────────
+# -- Independent teams status ---------------------------------------------------
 $indepPath = Join-Path $PSScriptRoot "independent_teams.json"
 if (Test-Path $indepPath) {
     $indepData = Get-Content $indepPath -Raw | ConvertFrom-Json
@@ -90,10 +90,10 @@ if (Test-Path $indepPath) {
     }
 } else {
     Write-Host ""
-    Write-Warning "independent_teams.json not found — skipping independent team check"
+    Write-Warning "independent_teams.json not found - skipping independent team check"
 }
 
-# ── Regenerate data/data.json via migrate.js ──────────────────────────────────
+# -- Regenerate data/data.json via migrate.js ----------------------------------
 $migratePath = Join-Path $root "migrate.js"
 if (Test-Path $migratePath) {
     Write-Host ""
