@@ -8,7 +8,7 @@
 
 (async function () {
 
-// ── Our 77 team slugs (underscores — matches SR slug generation) ──────────────
+// ── Our team slugs (underscores — matches SR slug generation) ────────────────
 const OUR_TEAMS = [
   // ACC
   'boston_college', 'california', 'clemson', 'duke', 'florida_state',
@@ -30,19 +30,33 @@ const OUR_TEAMS = [
   'alabama', 'arkansas', 'auburn', 'florida', 'georgia', 'kentucky',
   'lsu', 'mississippi', 'mississippi_state', 'missouri', 'south_carolina',
   'tennessee', 'texas_am', 'vanderbilt',
+  // Independent (non-conference opponents)
+  'akron', 'austin_peay', 'dayton', 'fordham', 'gonzaga', 'hawaii',
+  'high_point', 'illinois_chicago', 'illinois_state', 'loyola_il',
+  'loyola_marymount', 'miami_oh', 'mississippi_val', 'pennsylvania',
+  'richmond', 'saint_louis', 'saint_marys_ca', 'santa_clara', 'temple',
+  'tulane', 'unlv', 'virginia_commonwealth', 'wichita_state', 'yale',
 ];
 
 // Fallback: our slug → exact display name on SR when slug matching fails
 const FALLBACK_NAMES = {
-  miami_fl:    'Miami (FL)',
-  nc_state:    'NC State',
-  st_johns:    "St. John's (NY)",
-  smu:         'Southern Methodist',
-  byu:         'Brigham Young',
-  tcu:         'Texas Christian',
-  usc:         'Southern California',
-  lsu:         'Louisiana State',
-  texas_am:    'Texas A&M',
+  // Conference teams
+  miami_fl:          'Miami (FL)',
+  nc_state:          'NC State',
+  st_johns:          "St. John's (NY)",
+  smu:               'Southern Methodist',
+  byu:               'Brigham Young',
+  tcu:               'Texas Christian',
+  usc:               'Southern California',
+  lsu:               'Louisiana State',
+  texas_am:          'Texas A&M',
+  // Independent teams
+  illinois_chicago:  'Illinois-Chicago',
+  loyola_il:         'Loyola (IL)',
+  miami_oh:          'Miami (OH)',
+  mississippi_val:   'Mississippi Valley State',
+  saint_marys_ca:    "Saint Mary's",
+  unlv:              'Nevada-Las Vegas',
 };
 
 // ── Slug generator ────────────────────────────────────────────────────────────
