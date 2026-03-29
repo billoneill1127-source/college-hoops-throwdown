@@ -169,11 +169,12 @@ window.SeasonEngine = (() => {
     // One reserved-opponent Set per date slot (indices 0-11)
     const reserved = Array.from({ length: 12 }, () => new Set());
 
-    // Pick n opponents from pool into the given slots, respecting the reservation
-    // table so no opponent appears twice on the same date.
-    function pickWithReservation(pool, slots) {
-      const picked      = [];
-      const usedByTeam  = new Set();
+    // Pick opponents from pool into the given slots, respecting both the
+    // date-reservation table (no opponent twice on the same date across all
+    // teams) and the per-team usedByTeam Set (no opponent twice for the same
+    // team across all four pick calls).
+    function pickWithReservation(pool, slots, usedByTeam) {
+      const picked = [];
       for (const slot of slots) {
         let candidates = pool.filter(t =>
           !reserved[slot].has(t.id) && !usedByTeam.has(t.id)
@@ -194,12 +195,15 @@ window.SeasonEngine = (() => {
     let   userNcSlots  = null;
 
     for (const team of shuffle(conferenceTeams)) {
-      const tid = _normalizeId(team.id);
+      const tid        = _normalizeId(team.id);
+      // Shared across all four picks so the same opponent is never assigned
+      // to both a home slot and an away slot for the same team.
+      const usedByTeam = new Set();
 
-      const p5Home  = pickWithReservation(p5Pool,  [0, 1, 2]);
-      const p5Away  = pickWithReservation(p5Pool,  [3, 4, 5]);
-      const indHome = pickWithReservation(indPool, [6, 7, 8]);
-      const indAway = pickWithReservation(indPool, [9, 10, 11]);
+      const p5Home  = pickWithReservation(p5Pool,  [0, 1, 2],    usedByTeam);
+      const p5Away  = pickWithReservation(p5Pool,  [3, 4, 5],    usedByTeam);
+      const indHome = pickWithReservation(indPool, [6, 7, 8],    usedByTeam);
+      const indAway = pickWithReservation(indPool, [9, 10, 11],  usedByTeam);
 
       const allPicks = [...p5Home, ...p5Away, ...indHome, ...indAway];
       // p5Home/indHome → team is home; p5Away/indAway → team is away
