@@ -74,20 +74,17 @@ function toSlug(name) {
 // Scans every table so this works regardless of SR's internal table id.
 // The Adv Opponent table has ORB% like the Advanced table, so we also require
 // "Pace" to be ABSENT — that distinguishes opponent from school advanced stats.
-function findTableWithCols(requiredCols, excludeCols) {
+function findTableWithCols(requiredCols) {
   for (const tbl of document.querySelectorAll('table')) {
     const hr = tbl.querySelector('thead tr:last-child');
     if (!hr) continue;
     const hdrs = Array.from(hr.querySelectorAll('th, td')).map(el => el.textContent.trim());
-    if (!requiredCols.every(c => hdrs.includes(c))) continue;
-    if (excludeCols && excludeCols.some(c => hdrs.includes(c))) continue;
-    return { tbl, hdrs };
+    if (requiredCols.every(c => hdrs.includes(c))) return { tbl, hdrs };
   }
   return null;
 }
 
-// Opponent advanced table has ORB% but NOT Pace (which is on the school advanced table)
-const found = findTableWithCols(['ORB%'], ['Pace']);
+const found = findTableWithCols(['ORB%']);
 if (!found) {
   alert('ERROR: Advanced Opponent Stats table not found.\n'
     + 'Make sure you are on the "Advanced Opponent Stats" tab.');
