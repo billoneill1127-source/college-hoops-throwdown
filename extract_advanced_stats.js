@@ -70,31 +70,32 @@ function toSlug(name) {
   return name.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim().replace(/\s+/g, '_');
 }
 
-// ── Locate the Advanced School Stats table ───────────────────────────────────
-const table = document.querySelector('table#advanced, div#div_advanced table');
-if (!table) {
-  alert('ERROR: Advanced stats table not found.\nMake sure you are on the "Advanced School Stats" tab.');
-  return;
+// ── Find a table that has all required columns ────────────────────────────────
+// Scans every table on the page so this works regardless of SR's table id.
+function findTableWithCols(requiredCols) {
+  for (const tbl of document.querySelectorAll('table')) {
+    const hr = tbl.querySelector('thead tr:last-child');
+    if (!hr) continue;
+    const hdrs = Array.from(hr.querySelectorAll('th, td')).map(el => el.textContent.trim());
+    if (requiredCols.every(c => hdrs.includes(c))) return { tbl, hdrs };
+  }
+  return null;
 }
 
-// ── Find column indices ───────────────────────────────────────────────────────
-const headerRow = table.querySelector('thead tr:last-child');
-if (!headerRow) { alert('ERROR: Could not find table header row.'); return; }
+const found = findTableWithCols(['Pace', 'AST%', 'ORB%']);
+if (!found) {
+  alert('ERROR: No table with Pace, AST%, and ORB% columns found on this page.\n'
+    + 'Make sure you are on the "Advanced School Stats" tab.');
+  return;
+}
+const table  = found.tbl;
+const headers = found.hdrs;
 
-const headers    = Array.from(headerRow.querySelectorAll('th, td')).map(el => el.textContent.trim());
+// ── Find column indices ───────────────────────────────────────────────────────
 const schoolIdx  = headers.findIndex(h => /school/i.test(h));
 const paceIdx    = headers.findIndex(h => h === 'Pace');
 const astPctIdx  = headers.findIndex(h => h === 'AST%');
 const orbPctIdx  = headers.findIndex(h => h === 'ORB%');
-
-const missing = [];
-if (paceIdx   === -1) missing.push('Pace');
-if (astPctIdx === -1) missing.push('AST%');
-if (orbPctIdx === -1) missing.push('ORB%');
-if (missing.length) {
-  alert('ERROR: Missing columns: ' + missing.join(', ') + '\nHeaders found: ' + headers.join(', '));
-  return;
-}
 
 // ── Parse all data rows ───────────────────────────────────────────────────────
 const allSchools = {};

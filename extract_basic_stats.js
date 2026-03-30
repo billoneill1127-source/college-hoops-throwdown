@@ -69,26 +69,30 @@ function toSlug(name) {
   return name.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim().replace(/\s+/g, '_');
 }
 
-// ── Locate the Basic School Stats table ──────────────────────────────────────
-const table = document.querySelector('table#basic, div#div_basic table');
-if (!table) {
-  alert('ERROR: Basic stats table not found.\nMake sure you are on the "Basic School Stats" tab.');
-  return;
+// ── Find a table that has all required columns ────────────────────────────────
+function findTableWithCols(requiredCols) {
+  for (const tbl of document.querySelectorAll('table')) {
+    const hr = tbl.querySelector('thead tr:last-child');
+    if (!hr) continue;
+    const hdrs = Array.from(hr.querySelectorAll('th, td')).map(el => el.textContent.trim());
+    if (requiredCols.every(c => hdrs.includes(c))) return { tbl, hdrs };
+  }
+  return null;
 }
 
-// ── Find column indices ───────────────────────────────────────────────────────
-const headerRow = table.querySelector('thead tr:last-child');
-if (!headerRow) { alert('ERROR: Could not find table header row.'); return; }
+const found = findTableWithCols(['G', 'PF']);
+if (!found) {
+  alert('ERROR: No table with G and PF columns found on this page.\n'
+    + 'Make sure you are on the "Basic School Stats" tab (default).');
+  return;
+}
+const table   = found.tbl;
+const headers = found.hdrs;
 
-const headers   = Array.from(headerRow.querySelectorAll('th, td')).map(el => el.textContent.trim());
+// ── Find column indices ───────────────────────────────────────────────────────
 const schoolIdx = headers.findIndex(h => /school/i.test(h));
 const gIdx      = headers.findIndex(h => h === 'G');
 const pfIdx     = headers.findIndex(h => h === 'PF');
-
-if (gIdx === -1 || pfIdx === -1) {
-  alert('ERROR: Could not find G or PF columns.\nHeaders found: ' + headers.join(', '));
-  return;
-}
 
 // ── Parse all data rows ───────────────────────────────────────────────────────
 const allSchools = {};

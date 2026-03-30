@@ -70,31 +70,35 @@ function toSlug(name) {
   return name.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim().replace(/\s+/g, '_');
 }
 
-// ── Locate the Advanced Opponent Stats table ──────────────────────────────────
-// SR uses different table IDs depending on the page variant; try all known IDs.
-const table = document.querySelector(
-  'table#adv_opp, div#div_adv_opp table, table#advanced_opp, div#div_advanced_opp table'
-);
-if (!table) {
+// ── Find a table that has all required columns ────────────────────────────────
+// Scans every table so this works regardless of SR's internal table id.
+// The Adv Opponent table has ORB% like the Advanced table, so we also require
+// "Pace" to be ABSENT — that distinguishes opponent from school advanced stats.
+function findTableWithCols(requiredCols, excludeCols) {
+  for (const tbl of document.querySelectorAll('table')) {
+    const hr = tbl.querySelector('thead tr:last-child');
+    if (!hr) continue;
+    const hdrs = Array.from(hr.querySelectorAll('th, td')).map(el => el.textContent.trim());
+    if (!requiredCols.every(c => hdrs.includes(c))) continue;
+    if (excludeCols && excludeCols.some(c => hdrs.includes(c))) continue;
+    return { tbl, hdrs };
+  }
+  return null;
+}
+
+// Opponent advanced table has ORB% but NOT Pace (which is on the school advanced table)
+const found = findTableWithCols(['ORB%'], ['Pace']);
+if (!found) {
   alert('ERROR: Advanced Opponent Stats table not found.\n'
-    + 'Make sure you are on the "Advanced Opponent Stats" tab.\n\n'
-    + 'If the table still cannot be found, check the page source for the table id\n'
-    + 'and update the querySelector in this script.');
+    + 'Make sure you are on the "Advanced Opponent Stats" tab.');
   return;
 }
+const table   = found.tbl;
+const headers = found.hdrs;
 
 // ── Find column indices ───────────────────────────────────────────────────────
-const headerRow = table.querySelector('thead tr:last-child');
-if (!headerRow) { alert('ERROR: Could not find table header row.'); return; }
-
-const headers   = Array.from(headerRow.querySelectorAll('th, td')).map(el => el.textContent.trim());
 const schoolIdx = headers.findIndex(h => /school/i.test(h));
 const orbPctIdx = headers.findIndex(h => h === 'ORB%');
-
-if (orbPctIdx === -1) {
-  alert('ERROR: ORB% column not found.\nHeaders found: ' + headers.join(', '));
-  return;
-}
 
 // ── Parse all data rows ───────────────────────────────────────────────────────
 const allSchools = {};
