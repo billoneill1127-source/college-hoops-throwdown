@@ -5,6 +5,10 @@
 
 window.BoxScore = (() => {
 
+  // ── Unique save counter — prevents id collisions when two games are
+  // simulated within the same millisecond (Date.now() alone is not enough)
+  let _saveCounter = 0;
+
   // ── Log levels ──────────────────────────────────────────────────────────────
   const LOG_LEVELS = { OFF: 0, SUMMARY: 1, FULL: 2 };
 
@@ -134,7 +138,7 @@ window.BoxScore = (() => {
       };
     }
 
-    const gameId = 'g_' + Date.now();
+    const gameId = 'g_' + Date.now() + '_' + (++_saveCounter);
 
     const boxScore = {
       gameId,
@@ -242,7 +246,7 @@ window.BoxScore = (() => {
       return t;
     }
 
-    const gameId = 'g_' + Date.now();
+    const gameId = 'g_' + Date.now() + '_' + (++_saveCounter);
     const ctx    = context  || 'exhibition';
     const sid    = seasonId || null;
 
