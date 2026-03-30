@@ -91,6 +91,19 @@ if (fs.existsSync(RATINGS_FILE)) {
   }
 }
 
+// ── Load persisted team stats (set via apply_team_stats.js) ───────────────────
+// Survives migrate.js re-runs; values here override per-team defaults.
+const TEAM_STATS_FILE = path.join(DATA_OUT_DIR, 'team_stats.json');
+let savedTeamStats = {};  // teamId → { possessions_per_game, offensive_rebound_pct, … }
+if (fs.existsSync(TEAM_STATS_FILE)) {
+  try {
+    savedTeamStats = JSON.parse(fs.readFileSync(TEAM_STATS_FILE, 'utf8'));
+    console.log(`Loaded team_stats.json — ${Object.keys(savedTeamStats).length} team(s) on file.\n`);
+  } catch (e) {
+    console.warn(`[WARN] Could not parse team_stats.json: ${e.message}`);
+  }
+}
+
 // ── Step 1: Load all team-data files ──────────────────────────────────────────
 console.log('Loading team-data files...');
 const teamDataMap = {};  // srSlug → raw object
@@ -234,11 +247,11 @@ for (const [srSlug, td] of Object.entries(teamDataMap).sort()) {
     primaryColor:          meta.primaryColor          || '',
     head_coach:            teamStats.head_coach        || '',
     net_rating:            savedRatings[srSlug] ?? null,
-    possessions_per_game:  teamStats.possessions_per_game  || 70,
-    offensive_rebound_pct: teamStats.offensive_rebound_pct || 0.28,
-    defensive_rebound_pct: teamStats.defensive_rebound_pct || 0.72,
-    assist_rate:           teamStats.assist_rate           || 0.54,
-    team_fouls_per_game:   teamStats.team_fouls_per_game   || 18,
+    possessions_per_game:  savedTeamStats[srSlug]?.possessions_per_game  ?? teamStats.possessions_per_game  ?? 70,
+    offensive_rebound_pct: savedTeamStats[srSlug]?.offensive_rebound_pct ?? teamStats.offensive_rebound_pct ?? 0.28,
+    defensive_rebound_pct: savedTeamStats[srSlug]?.defensive_rebound_pct ?? teamStats.defensive_rebound_pct ?? 0.72,
+    assist_rate:           savedTeamStats[srSlug]?.assist_rate           ?? teamStats.assist_rate           ?? 0.54,
+    team_fouls_per_game:   savedTeamStats[srSlug]?.team_fouls_per_game   ?? teamStats.team_fouls_per_game   ?? 18,
     home_fg_bonus:         teamStats.home_fg_bonus         || 0.02,
     players:               teamPlayers,
   };
