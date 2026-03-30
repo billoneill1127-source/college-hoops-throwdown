@@ -61,7 +61,7 @@ const FALLBACK_NAMES = {
   saint_marys_ca:    "Saint Mary's",
   unlv:              'Nevada-Las Vegas',
   army:              'Army West Point',
-  st_thomas_mn:      'St. Thomas (MN)',
+  st_thomas_mn:      'St. Thomas',
 };
 
 // ── Slug generator ────────────────────────────────────────────────────────────
