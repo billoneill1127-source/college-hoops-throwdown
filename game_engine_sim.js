@@ -389,6 +389,84 @@ window.GameEngineSim = (function () {
   }
 
   // ═══════════════════════════════════════════════════════════════
+  // BLOCK SYSTEM
+  // ═══════════════════════════════════════════════════════════════
+
+  function checkBlock(defTeam) {
+    const teamBlockChance = defTeam.lineup.reduce((sum, d) =>
+      sum + perPossessionChance(sd(d.blocks_per_100, 'blocks_per_100'), defTeam.possessions_per_game), 0
+    );
+    if (Math.random() >= teamBlockChance) return { occurred: false };
+    const blocker = weightedRandom(defTeam.lineup,
+      defTeam.lineup.map(d => sd(d.blocks_per_100, 'blocks_per_100')));
+    return { occurred: true, blocker };
+  }
+
+  function resolveBlockedShot(shooter, blocker, off, def, isThree) {
+    const foul = checkShootingFoul(def.lineup, shooter, def);
+
+    if (foul.occurred) {
+      // Block cancelled by foul — no FGA, no BLK, shooter goes to line
+      const ftCount = isThree ? 3 : 2;
+      const ftDesc  = isThree ? 'three' : 'two';
+      log(`BLOCK + FOUL: ${blocker.name} blocked ${shooter.name} but fouled — ${shootFoulDesc(foul.fouler, def, shooter, ftDesc)}`, 'foul');
+      resolveFreeThrows(shooter, off, def, ftCount);
+      checkMediaTimeout(G.clock, 'shooting_foul');
+      return false;
+    }
+
+    // Clean block — FGA to shooter, BLK to blocker
+    G.stats[shooter.name].fga++;
+    if (isThree) G.stats[shooter.name].tpa++;
+    G.stats[blocker.name].blk++;
+    log(`BLOCK: ${blocker.name} (${def.name}) blocks ${shooter.name} (${off.name}) | ${G.homeScore}-${G.awayScore}`, 'block');
+
+    // Rebound at reduced defensive probability
+    const drbChance = (def.defensive_rebound_pct || 0.72) - 0.10;
+    if (Math.random() > drbChance) {
+      // Offensive rebound
+      const r = assignRebounder(off.lineup, 'offensive', isThree);
+      G.stats[r.name].reb++;
+      log(`  OFF REB (block): ${r.name} (${off.name})`, 'reb');
+      applyMomentumEvent(off.isHome, 1);
+      return resolvePutbackOrPossession(r, off, def, isThree);
+    } else {
+      // Defensive rebound
+      const r = assignRebounder(def.lineup, 'defensive', isThree);
+      G.stats[r.name].reb++;
+      log(`  DEF REB (block): ${r.name} (${def.name})`, 'reb');
+      switchPossession();
+      return false;
+    }
+  }
+
+  function resolvePutbackOrPossession(rebounder, off, def, isThree) {
+    if (Math.random() < 0.30) {
+      // Putback attempt — rebounder shoots immediately, 5s clock, no assist
+      decrementClock(5);
+      const made = Math.random() < sd(rebounder.two_point_pct, 'two_point_pct');
+      G.stats[rebounder.name].fga++;
+      G.stats[rebounder.name].pts += made ? 2 : 0;
+      if (made) {
+        G.stats[rebounder.name].fgm++;
+        if (off.isHome) G.homeScore += 2; else G.awayScore += 2;
+        applyMomentumBasket(off.isHome, 0);
+        updateRun(off.isHome, 2);
+        log(`PUTBACK: ${rebounder.name} (${off.name}) | ${G.homeScore}-${G.awayScore}`, 'make');
+        switchPossession();
+        return false;
+      } else {
+        log(`PUTBACK MISS: ${rebounder.name} (${off.name})`, 'miss');
+        resolveRebound(off, def, false);
+        return false;
+      }
+    } else {
+      // Normal ORB continuation — signal runHalf to use isOrb=true next possession
+      return true;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
   // MAIN POSSESSION RESOLVER
   // ═══════════════════════════════════════════════════════════════
 
@@ -488,24 +566,25 @@ window.GameEngineSim = (function () {
     // ── Step 5: Shot type ────────────────────────────────────────
     const threeRate = clamp(shooter.three_pa_rate + mods.three_pa_rate_mod, 0, 1);
     const isThree = Math.random() < threeRate;
+    const clockCost = isOrb ? 11 : 17;
 
-    // ── Step 6: Shot outcome ─────────────────────────────────────
-    let shotMade;
-    if (assister) {
-      // Assisted shots use a fixed probability (not auto-make) to keep math consistent
-      const assistedPct = isThree ? ASSISTED_PCT_3 : ASSISTED_PCT_2;
-      shotMade = Math.random() < assistedPct;
-    } else {
-      const base = isThree ? sd(shooter.three_point_pct,'three_point_pct') : sd(shooter.two_point_pct,'two_point_pct');
-      let pct = calcNonAssistedPct(base, off.assist_rate, isThree);
-      pct += isThree ? mods.three_pt_pct_mod : mods.two_pt_pct_mod;
-      if (off.isHome) pct += off.home_fg_bonus;
-      pct += getMomentumMod(off.isHome);
-      pct = clamp(pct, 0.05, 0.95);
-      shotMade = Math.random() < pct;
+    // ── Step 5b: Block check ─────────────────────────────────────
+    const block = checkBlock(def);
+    if (block.occurred) {
+      decrementClock(clockCost);
+      return resolveBlockedShot(shooter, block.blocker, off, def, isThree);
     }
 
-    const clockCost = isOrb ? 8 : 17;
+    // ── Step 6: Shot outcome ─────────────────────────────────────
+    const base = isThree
+      ? sd(shooter.three_point_pct, 'three_point_pct')
+      : sd(shooter.two_point_pct, 'two_point_pct');
+    let pct = base;
+    pct += isThree ? mods.three_pt_pct_mod : mods.two_pt_pct_mod;
+    if (off.isHome) pct += off.home_fg_bonus;
+    pct += getMomentumMod(off.isHome);
+    pct = clamp(pct, 0.05, 0.95);
+    const shotMade = Math.random() < pct;
 
     // ── Made basket ──────────────────────────────────────────────
     if (shotMade) {
