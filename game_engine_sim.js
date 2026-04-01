@@ -529,7 +529,7 @@ function selectShooter(players, mods) {
       } else {
         log(`Foul on ${defFouler.name} — ${foulDesc(defFouler, def)} — ${off.name} retains`, 'foul');
         checkMediaTimeout(clockBefore, 'non_shooting_foul');
-        if (retryDepth < 3) return runPossession(isOrb, retryDepth + 1);
+        if (retryDepth < 3) { G.totalPossessions--; return runPossession(isOrb, retryDepth + 1); }
         return false;
       }
     }
