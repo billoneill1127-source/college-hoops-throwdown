@@ -110,8 +110,8 @@ function runSim() {
   const agg = {
     homeWins:0, awayWins:0, otGames:0,
     homeScores:[], awayScores:[],
-    home:{ fgm:0,fga:0,tpm:0,tpa:0,ftm:0,fta:0,reb:0,ast:0,stl:0,tov:0,pf:0 },
-    away:{ fgm:0,fga:0,tpm:0,tpa:0,ftm:0,fta:0,reb:0,ast:0,stl:0,tov:0,pf:0 },
+    home:{ fgm:0,fga:0,tpm:0,tpa:0,ftm:0,fta:0,reb:0,ast:0,stl:0,blk:0,tov:0,pf:0 },
+    away:{ fgm:0,fga:0,tpm:0,tpa:0,ftm:0,fta:0,reb:0,ast:0,stl:0,blk:0,tov:0,pf:0 },
     poss:0
   };
   for (let i = 0; i < n; i++) {
@@ -233,9 +233,9 @@ function renderAggregateResults(agg, n, homeName, homeNick, awayName, awayNick) 
 
   html += `<h3>Other Stats (per-game averages)</h3>
   <table>
-    <tr><th>Team</th><th>Reb</th><th>Ast</th><th>Stl</th><th>TOV</th><th style="color:#484f58">NCAA TOV avg</th><th>PF</th></tr>
-    <tr><td>${homeName}</td><td>${(agg.home.reb/n).toFixed(1)}</td><td>${(agg.home.ast/n).toFixed(1)}</td><td>${(agg.home.stl/n).toFixed(1)}</td><td>${(agg.home.tov/n).toFixed(1)}</td><td style="color:#484f58">${NCAA_BENCH.tov}</td><td>${(agg.home.pf/n).toFixed(1)}</td></tr>
-    <tr><td>${awayName}</td><td>${(agg.away.reb/n).toFixed(1)}</td><td>${(agg.away.ast/n).toFixed(1)}</td><td>${(agg.away.stl/n).toFixed(1)}</td><td>${(agg.away.tov/n).toFixed(1)}</td><td style="color:#484f58">${NCAA_BENCH.tov}</td><td>${(agg.away.pf/n).toFixed(1)}</td></tr>
+    <tr><th>Team</th><th>Reb</th><th>Ast</th><th>Stl</th><th>Blk</th><th>TOV</th><th style="color:#484f58">NCAA TOV avg</th><th>PF</th></tr>
+    <tr><td>${homeName}</td><td>${(agg.home.reb/n).toFixed(1)}</td><td>${(agg.home.ast/n).toFixed(1)}</td><td>${(agg.home.stl/n).toFixed(1)}</td><td>${(agg.home.blk/n).toFixed(1)}</td><td>${(agg.home.tov/n).toFixed(1)}</td><td style="color:#484f58">${NCAA_BENCH.tov}</td><td>${(agg.home.pf/n).toFixed(1)}</td></tr>
+    <tr><td>${awayName}</td><td>${(agg.away.reb/n).toFixed(1)}</td><td>${(agg.away.ast/n).toFixed(1)}</td><td>${(agg.away.stl/n).toFixed(1)}</td><td>${(agg.away.blk/n).toFixed(1)}</td><td>${(agg.away.tov/n).toFixed(1)}</td><td style="color:#484f58">${NCAA_BENCH.tov}</td><td>${(agg.away.pf/n).toFixed(1)}</td></tr>
   </table>`;
 
   html += `<h3>Score Distribution</h3>
