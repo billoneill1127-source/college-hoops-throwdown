@@ -412,7 +412,27 @@ function selectShooter(players, mods) {
     G.stats[shooter.name].fga++;
     if (isThree) G.stats[shooter.name].tpa++;
     G.stats[blocker.name].blk++;
-    log(`BLOCK: ${blocker.name} (${def.name}) blocks ${shooter.name} (${off.name}) | ${G.homeScore}-${G.awayScore}`, 'block');
+
+    const BLOCK_TEMPLATES = [
+      `${shooter.name} with a good look... BLOCKED by ${blocker.name}!`,
+      `Pull up by ${shooter.name}. ${blocker.name} says NO!`,
+      `${shooter.name} to the hole... REJECTED by ${blocker.name}!`,
+      `${shooter.name} with a floater... ${blocker.name} says get that out of here!`,
+      `${shooter.name} rises up... ${blocker.name} says not in my house!`,
+      `${shooter.name} drives... ${blocker.name} swats it away!`,
+      `${blocker.name} comes from nowhere to block ${shooter.name}!`,
+      `${shooter.name} thought he had it... ${blocker.name} disagrees!`,
+      `${blocker.name} with the rejection on ${shooter.name}!`,
+    ];
+    const blockMsg = BLOCK_TEMPLATES[Math.floor(Math.random() * BLOCK_TEMPLATES.length)];
+    log(`${blockMsg} | ${G.homeScore}-${G.awayScore}`, 'block');
+
+    // Momentum: +1 for blocking team; if opposing team already has momentum, pull it back instead
+    if (G.momentum !== 0 && Math.sign(G.momentum) !== (def.isHome ? 1 : -1)) {
+      applyMomentumEvent(def.isHome, 2);  // opponent had momentum — swing it harder
+    } else {
+      applyMomentumEvent(def.isHome, 1);
+    }
 
     // Rebound at reduced defensive probability
     const drbChance = (def.defensive_rebound_pct || 0.72) - 0.10;
