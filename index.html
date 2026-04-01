@@ -316,7 +316,23 @@ header { background: var(--primary); color: #fff; padding: 0 28px; position: sti
     <p>Player statistics sourced from Sports Reference (sports-reference.com/cbb) for the 2025–26 season.</p>
     <p>Built as a passion project for college basketball fans. All team names, nicknames, and logos are property of their respective institutions.</p>
     <p>Created by Claude Code with help from Bill O'Neill</p>
-    <p>Release 1.0</p>
+
+    <h3 style="margin-top:1.2em">Version History</h3>
+
+    <p><strong>v1.5</strong><br>
+    Block system (checkBlock / resolveBlockedShot / resolvePutbackOrPossession) wired into runPossession with 9 randomised announce templates and momentum swing on clean blocks. Assist crediting moved post-make, driven by team assist_rate; removed pre-shot assister logic. Real team stats (pace, ORB%, DRB%, AST%, fouls/game) loaded from Sports Reference via 3 extract scripts and apply_team_stats.js pipeline. Pace calibration confirmed: 68 base possessions per team vs real mean 68.6. Non-shooting foul retry no longer inflates possession count. Blk column added to simulate.html.</p>
+
+    <p><strong>v1.4</strong><br>
+    Fixed simulate.html team dropdowns (corrupted template literals replaced with Option constructor). Version bump across all pages.</p>
+
+    <p><strong>v1.3</strong><br>
+    Added 12 new independent teams. Fixed gameId collisions on simultaneous simulations. Rebuilt simulate.html: replaced stale 850KB inline DATA blob with teams-data.js. Fixed GameEngineSim double-nesting bug. Coordinated non-conf scheduler prevents same opponent appearing on same date. Removed simulatedThisRun dedup. Independent teams hidden from season setup conference picker.</p>
+
+    <p><strong>v1.2</strong><br>
+    Split non-conf schedule into 6 P5 games and 6 Independent games (3H/3A each). Added independent teams to data pipeline via migrate.js auto-scan. Fixed teams-data.js to expose window.CONFERENCES alongside window.TEAMS.</p>
+
+    <p><strong>v1.0</strong><br>
+    Initial release. Season mode, exhibition play, stats dashboard, conference schedules, box score logging.</p>
   </div>
 </div>
 
