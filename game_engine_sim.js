@@ -184,14 +184,7 @@ window.GameEngineSim = (function () {
   // SHOT SELECTION
   // ═══════════════════════════════════════════════════════════════
 
-  function getAssistCandidates(lineup, strategy) {
-    const G_ = p => p.position === 'G', F_ = p => p.position === 'F', C_ = p => p.position === 'C';
-    if (strategy === 'low_post')  return [...lineup.filter(C_), ...lineup.filter(F_), ...lineup.filter(G_)];
-    if (strategy === 'high_post') return [...lineup.filter(F_), ...lineup.filter(C_), ...lineup.filter(G_)];
-    return [...lineup.filter(G_), ...lineup.filter(F_), ...lineup.filter(C_)];
-  }
-
-  function selectShooter(players, mods) {
+function selectShooter(players, mods) {
     const w = players.map(p => {
       let wt = sd(p.fga_per_100, 'fga_per_100');
       if (p.position === 'G') wt *= mods.guard_weight_mod;
@@ -550,18 +543,8 @@ window.GameEngineSim = (function () {
       }
     }
 
-    // ── Step 3: Assist determination ────────────────────────────
-    const candidates = getAssistCandidates(off.lineup, off.strategy_offense);
-    let assister = null;
-    for (const p of candidates) {
-      if (Math.random() < perPossessionChance(sd(p.assists_per_100,'assists_per_100'), off.possessions_per_game)) {
-        assister = p; break;
-      }
-    }
-
-    // ── Step 4: Shooter ─────────────────────────────────────────
-    const pool = assister ? off.lineup.filter(p => p !== assister) : off.lineup;
-    const shooter = selectShooter(pool.length ? pool : off.lineup, mods);
+    // ── Step 3: Shooter ─────────────────────────────────────────
+    const shooter = selectShooter(off.lineup, mods);
 
     // ── Step 5: Shot type ────────────────────────────────────────
     const threeRate = clamp(shooter.three_pa_rate + mods.three_pa_rate_mod, 0, 1);
