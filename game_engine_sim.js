@@ -596,7 +596,6 @@ window.GameEngineSim = (function () {
       G.stats[shooter.name].fgm++;
       G.stats[shooter.name].pts += pts;
       if (isThree) { G.stats[shooter.name].tpa++; G.stats[shooter.name].tpm++; }
-      if (assister) G.stats[assister.name].ast++;
 
       const clockBefore = G.clock;
       decrementClock(clockCost);
@@ -606,6 +605,16 @@ window.GameEngineSim = (function () {
       updateRun(off.isHome, pts);
 
       const label = isDunk ? 'DUNK' : isThree ? '3-PTR' : '2-PTR';
+      // Assist crediting — driven by team assist_rate, individual per-100s for attribution
+      let assister = null;
+      if (Math.random() < (off.assist_rate || 0.54)) {
+        const assistPool = off.lineup.filter(p => p !== shooter);
+        if (assistPool.length) {
+          assister = weightedRandom(assistPool,
+            assistPool.map(p => sd(p.assists_per_100, 'assists_per_100')));
+          G.stats[assister.name].ast++;
+        }
+      }
       const assist = assister ? ` (${assister.name})` : '';
       const evType = isDunk ? 'dunk' : isThree ? 'three' : 'make';
       log(`${label}: ${shooter.name}${assist} (${off.name}) | ${G.homeScore}-${G.awayScore}`, evType);
