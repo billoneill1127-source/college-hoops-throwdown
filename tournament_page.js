@@ -535,9 +535,18 @@ window.TournamentPage = (function () {
     _state = Tournament.load();
     if (!_state) return;
 
-    // Keep looping until no games have teams assigned but no result
+    // Keep looping until no games remain to be played.
+    // Generate unlockable rounds FIRST each iteration so that games created
+    // by a previous sim batch are found by the ready-game check.
     let safety = 0;
     while (safety++ < 20) {
+      for (const region of ['East', 'Southeast', 'Midwest', 'West']) {
+        Tournament.generateNextRound(_state, region);
+        _state = Tournament.load();
+      }
+      Tournament.generateFinalFour(_state);    _state = Tournament.load();
+      Tournament.generateChampionship(_state); _state = Tournament.load();
+
       const ready = _state.games.filter(g =>
         g.winnerId === null && g.homeTeamId && g.awayTeamId
       );
@@ -551,14 +560,6 @@ window.TournamentPage = (function () {
         Tournament.recordResult(_state, game.id, r.homeScore, r.awayScore);
         _state = Tournament.load();
       }
-
-      // Try to unlock subsequent rounds
-      for (const region of ['East', 'Southeast', 'Midwest', 'West']) {
-        Tournament.generateNextRound(_state, region);
-        _state = Tournament.load();
-      }
-      Tournament.generateFinalFour(_state);   _state = Tournament.load();
-      Tournament.generateChampionship(_state); _state = Tournament.load();
     }
 
     _renderBracket();
