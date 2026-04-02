@@ -41,6 +41,11 @@ window.TournamentBracket = (function () {
     return t ? t.name : (teamId ? String(teamId) : 'TBD');
   }
 
+  function teamColor(teamId) {
+    const t = Tournament.getTeam(teamId);
+    return (t && t.primaryColor) ? t.primaryColor : '';
+  }
+
   function teamSeed(teamId) {
     if (!_state || !teamId) return '';
     const e = _state.seededField.find(x => x.teamId === teamId);
@@ -66,10 +71,12 @@ window.TournamentBracket = (function () {
     }
 
     const hId = game.homeTeamId, aId = game.awayTeamId;
-    const hName = hId ? teamName(hId) : 'TBD';
-    const aName = aId ? teamName(aId) : 'TBD';
-    const hSeed = hId ? teamSeed(hId) : '';
-    const aSeed = aId ? teamSeed(aId) : '';
+    const hName  = hId ? teamName(hId)  : 'TBD';
+    const aName  = aId ? teamName(aId)  : 'TBD';
+    const hSeed  = hId ? teamSeed(hId)  : '';
+    const aSeed  = aId ? teamSeed(aId)  : '';
+    const hColor = hId ? teamColor(hId) : '';
+    const aColor = aId ? teamColor(aId) : '';
 
     const played  = game.winnerId !== null;
     const hWon    = played && game.winnerId === hId;
@@ -87,13 +94,13 @@ window.TournamentBracket = (function () {
     return `<div class="tb-game tb-game--${esc(statCls)}" data-game-id="${esc(game.id)}">
   <div class="tb-team${hWon ? ' tb-winner' : played ? ' tb-loser' : ''}">
     <span class="tb-seed">${esc(hSeed)}</span>
-    <span class="tb-name" title="${esc(hName)}">${esc(hName)}</span>
+    <span class="tb-name" title="${esc(hName)}"${hColor ? ` style="color:${esc(hColor)}"` : ''}>${esc(hName)}</span>
     <span class="tb-score">${esc(hScr)}</span>
   </div>
   <div class="tb-sep"></div>
   <div class="tb-team${aWon ? ' tb-winner' : played ? ' tb-loser' : ''}">
     <span class="tb-seed">${esc(aSeed)}</span>
-    <span class="tb-name" title="${esc(aName)}">${esc(aName)}</span>
+    <span class="tb-name" title="${esc(aName)}"${aColor ? ` style="color:${esc(aColor)}"` : ''}>${esc(aName)}</span>
     <span class="tb-score">${esc(aScr)}</span>
   </div>${playBtn ? '\n  ' + playBtn : ''}
 </div>`;
@@ -251,8 +258,9 @@ window.TournamentBracket = (function () {
 
   function renderRegionPanel(region) {
     const rtl    = RTL_REGIONS.has(region);
-    // Round order in DOM: LTR = 1,2,3,4 / RTL = 4,3,2,1
-    const rounds = rtl ? [4, 3, 2, 1] : [1, 2, 3, 4];
+    // Always append cols in 1→4 DOM order. For RTL regions, flex-direction:row-reverse
+    // visually flips them to 4→1, placing Round 1 on the far right as intended.
+    const rounds = [1, 2, 3, 4];
     const cols   = rounds.map(r => renderRoundCol(r, region)).join('');
 
     return `<div class="tb-scroll">
