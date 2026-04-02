@@ -67,7 +67,11 @@ window.TournamentBracket = (function () {
 
   function gameNodeHTML(game) {
     if (!game) {
-      return '<div class="tb-game tb-game--empty"></div>';
+      return `<div class="tb-game tb-game--placeholder">
+  <div class="tb-team"><span class="tb-seed"></span><span class="tb-name tb-name--tbd">TBD</span></div>
+  <div class="tb-sep"></div>
+  <div class="tb-team"><span class="tb-seed"></span><span class="tb-name tb-name--tbd">TBD</span></div>
+</div>`;
     }
 
     const hId = game.homeTeamId, aId = game.awayTeamId;
@@ -141,8 +145,14 @@ window.TournamentBracket = (function () {
       .filter(g => g.region === region && g.round === round)
       .sort((a, b) => a.id.localeCompare(b.id));
 
+    // Always render the full expected number of slots so later rounds show
+    // their placeholder nodes even before they are populated by results.
+    const expectedCount = 8 / Math.pow(2, round - 1); // R1=8, R2=4, R3=2, R4=1
+    const paddedGames = [...games];
+    while (paddedGames.length < expectedCount) paddedGames.push(null);
+
     const label  = ROUND_LABELS[round] || `Round ${round}`;
-    const layout = buildLayout(round, games);
+    const layout = buildLayout(round, paddedGames);
 
     let body = '';
     for (const item of layout) {
@@ -441,6 +451,17 @@ window.TournamentBracket = (function () {
   background: transparent;
   border-color: transparent;
   box-shadow: none;
+}
+.tb-game--placeholder {
+  background: var(--surface, #f0f4f8);
+  border-color: var(--border, #dde3ee);
+  border-style: dashed;
+  box-shadow: none;
+}
+.tb-name--tbd {
+  color: var(--text-muted, #6b7a99) !important;
+  font-weight: 400;
+  font-style: italic;
 }
 .tb-game--locked {
   display: flex;
