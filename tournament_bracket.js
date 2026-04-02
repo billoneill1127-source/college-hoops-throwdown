@@ -739,6 +739,8 @@ window.TournamentBracket = (function () {
         return;
       }
       const game = games[i++];
+      // Skip the player's game — it stays in "next up" state with PLAY button
+      if (game.isPlayerGame) { setTimeout(revealNext, 0); return; }
       // Find the node anywhere in the bracket (may be in any panel)
       const node = document.querySelector(
         `[data-game-id="${CSS.escape(game.id)}"]`
