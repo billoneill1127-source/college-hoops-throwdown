@@ -140,7 +140,48 @@ window.Tournament = (function () {
    */
   function generate(userTeamId) {
     const seededField = buildSeededField();
-    const userEntry   = seededField.find(e => e.teamId === userTeamId);
+
+    // ── User team guarantee ───────────────────────────────────────────────────
+    // If the user team didn't land in the 64-team field (no net_rating or fell
+    // outside the tier cuts), force them in at their natural seed tier by
+    // displacing the weakest occupant at that seed line.
+    if (!seededField.find(e => e.teamId === userTeamId)) {
+      const allRated = (window.TEAMS || [])
+        .filter(t => t.net_rating != null)
+        .sort((a, b) => b.net_rating - a.net_rating);
+
+      const rankIdx = allRated.findIndex(t => t.id === userTeamId); // -1 if unrated
+      const rank    = rankIdx >= 0 ? rankIdx + 1 : allRated.length + 1;
+
+      // Map rank → natural seed using the same tier boundaries as buildSeededField
+      let naturalSeed;
+      if      (rank <= 16) naturalSeed = Math.ceil(rank / 4);
+      else if (rank <= 32) naturalSeed = 4  + Math.ceil((rank - 16) / 4);
+      else if (rank <= 52) naturalSeed = 8  + Math.ceil((rank - 32) / 4);
+      else                 naturalSeed = Math.min(16, 13 + Math.ceil((rank - 52) / 4));
+
+      // Among the four regions at that seed, pick the one whose occupant has
+      // the lowest net_rating (weakest team gets bumped).
+      const slotTeams = (window.TEAMS || []);
+      const candidates = seededField
+        .filter(e => e.seed === naturalSeed)
+        .slice()
+        .sort((a, b) => {
+          const ra = slotTeams.find(t => t.id === a.teamId)?.net_rating ?? -Infinity;
+          const rb = slotTeams.find(t => t.id === b.teamId)?.net_rating ?? -Infinity;
+          return ra - rb; // ascending — weakest first
+        });
+
+      const victim   = candidates[0];
+      const userTeam = slotTeams.find(t => t.id === userTeamId);
+      if (victim) {
+        victim.teamId     = userTeamId;
+        victim.conference = userTeam?.conference ?? null;
+      }
+    }
+    // ── End user team guarantee ───────────────────────────────────────────────
+
+    const userEntry = seededField.find(e => e.teamId === userTeamId);
 
     const state = {
       id:           `tournament-${Date.now()}`,
