@@ -92,6 +92,7 @@ window.GameEngineSim = (function () {
       assist_rate: td.assist_rate || 0.54,
       team_fouls_per_game: td.team_fouls_per_game || 18,
       home_fg_bonus: td.home_fg_bonus || 0.02,
+      net_rating: td.net_rating || 0,
       allPlayers: eligible,
       lineup: eligible.slice(0, 5),
       bench:  eligible.slice(5),
@@ -586,6 +587,10 @@ function selectShooter(players, mods) {
     pct += isThree ? mods.three_pt_pct_mod : mods.two_pt_pct_mod;
     if (off.isHome) pct += off.home_fg_bonus;
     pct += getMomentumMod(off.isHome);
+    // Quality-of-competition adjustment
+    // Accounts for stats compiled against different levels of competition
+    const netDiff = (off.net_rating || 0) - (def.net_rating || 0);
+    pct += netDiff * 0.0008;
     pct = clamp(pct, 0.05, 0.95);
     const shotMade = Math.random() < pct;
 
