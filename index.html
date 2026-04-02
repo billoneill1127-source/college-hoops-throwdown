@@ -278,7 +278,7 @@ header { background: var(--primary); color: #fff; padding: 0 28px; position: sti
   <div class="modal-card" onclick="event.stopPropagation()">
     <div class="modal-header">
       <div class="modal-title" id="modalTitle"></div>
-      <button id="rosterModalHomeBtn" class="modal-close" style="display:none;margin-right:8px;font-size:.8rem;padding:4px 12px;border-radius:5px;background:var(--accent);color:#fff;border:none;cursor:pointer;font-weight:700" onclick="closeModal();showScreen('home')">Home</button><button class="modal-close" onclick="closeModal()">&#10005;</button>
+      <button id="rosterModalHomeBtn" class="modal-close" style="display:none;margin-right:8px;font-size:.8rem;padding:4px 12px;border-radius:5px;background:var(--accent);color:#fff;border:none;cursor:pointer;font-weight:700" onclick="closeModal();if(sessionStorage.getItem('tournament_return')&&window.TournamentPage){showScreen('tournament');}else{showScreen('home');}">Home</button><button class="modal-close" onclick="closeModal()">&#10005;</button>
     </div>
     <div class="modal-body" id="modalBody"></div>
   </div>
@@ -303,14 +303,20 @@ header { background: var(--primary); color: #fff; padding: 0 28px; position: sti
     <a class="home-btn" href="stats.html" style="text-decoration:none">
       <span class="home-btn-icon">&#128202;</span> STATS
     </a>
+    <button class="home-btn" onclick="showScreen('tournament');TournamentPage.init('screenTournament')">
+      <span class="home-btn-icon">&#127942;</span> TOURNAMENT
+    </button>
     <button class="home-btn" onclick="showScreen('credits')">
-      <span class="home-btn-icon">&#127942;</span> CREDITS
+      <span class="home-btn-icon">&#9733;</span> CREDITS
     </button>
   </div>
 </div>
 
 <!-- ── TEAMS & ROSTERS ── -->
 <div id="screenTeams" class="screen"></div>
+
+<!-- ── TOURNAMENT ── -->
+<div id="screenTournament" class="screen"></div>
 
 <!-- ── CREDITS ── -->
 <div id="screenCredits" class="screen">
@@ -380,6 +386,27 @@ const G = {
   gameInProgress: false,
   pendingSeasonGame: null,
 };
+
+// ── TOURNAMENT SHIMS ─────────────────────────────────────────
+// Called by TournamentPage to start a user-played tournament game.
+function tp_setupGame(homeTeam, awayTeam, userIsHome) {
+  G.home        = Object.assign({}, homeTeam, { home_fg_bonus: 0 });
+  G.visitor     = awayTeam;
+  G.homeOp      = userIsHome ? 'P1' : 'CPU';
+  G.visitorOp   = userIsHome ? 'CPU' : 'P1';
+  G.p1Team      = userIsHome ? G.home : G.visitor;
+  G.watchMode   = false;
+  G.lineup      = [];
+  G.offStrategy = null;
+  G.defStrategy = null;
+  renderLineupPane();
+  renderGameplanPane();
+  showScreen('lineup');
+}
+// Returns final score from GAME after a user-played game ends.
+function tp_getFinalScore() {
+  return { homeScore: GAME ? GAME.homeScore : 0, awayScore: GAME ? GAME.awayScore : 0 };
+}
 
 // ── UTILITIES ────────────────────────────────────────────────
 function esc(s) {
@@ -1932,7 +1959,19 @@ function showBoxScore(isHalftime){
 }
 function startDisplay(){ displayIdx=0; gamePaused=false; if(displayTimer)clearInterval(displayTimer); displayTimer=setInterval(showNext,SPEED_SETTINGS[displaySpeed]); }
 
-function quitGame(){ clearInterval(displayTimer); displayTimer=null; gamePaused=false; G.gameInProgress=false; if(G.watchMode){G.visitorOp='CPU';G.watchMode=false;} showScreen('home'); }
+function quitGame(){
+  clearInterval(displayTimer); displayTimer=null; gamePaused=false;
+  if (sessionStorage.getItem('tournament_return') && window.TournamentPage) {
+    const sc = tp_getFinalScore();
+    G.gameInProgress=false;
+    if(G.watchMode){G.visitorOp='CPU';G.watchMode=false;}
+    TournamentPage._onGameEnd(sc.homeScore, sc.awayScore);
+    return;
+  }
+  G.gameInProgress=false;
+  if(G.watchMode){G.visitorOp='CPU';G.watchMode=false;}
+  showScreen('home');
+}
 function callTimeout(){
   if(gamePaused)return;
   const p1IsHome=G.homeOp==='P1';
@@ -2011,5 +2050,6 @@ fetch('data/data.json')
 <script src="cpu_sim.js"></script>
 <script src="stats_engine.js"></script>
 <script src="season_engine.js"></script>
+<script src="tournament_page.js"></script>
 </body>
 </html>

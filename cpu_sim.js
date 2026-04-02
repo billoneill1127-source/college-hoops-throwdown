@@ -18,6 +18,11 @@ window.CpuSim = (() => {
   function simulateGame(homeTeam, awayTeam, options) {
     options = options || {};
 
+    // ── 0. Neutral site — zero out home court advantage ───────────────────────
+    if (options.neutralSite) {
+      homeTeam = Object.assign({}, homeTeam, { home_fg_bonus: 0 });
+    }
+
     // ── 1. Run the game ───────────────────────────────────────────────────────
     GameEngineSim.runOneGame(homeTeam, awayTeam);
     // Results are now in GameEngineSim.G (from game_engine_sim.js)
