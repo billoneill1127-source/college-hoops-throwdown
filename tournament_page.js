@@ -363,6 +363,8 @@ window.TournamentPage = (function () {
     const gameId = sessionStorage.getItem('tournament_game_id');
     sessionStorage.removeItem('tournament_return');
     sessionStorage.removeItem('tournament_game_id');
+    sessionStorage.removeItem('tournament_home_score');
+    sessionStorage.removeItem('tournament_away_score');
     if (!gameId) return;
 
     _state = Tournament.load();
@@ -393,13 +395,13 @@ window.TournamentPage = (function () {
     const gameId = sessionStorage.getItem('tournament_game_id');
     sessionStorage.removeItem('tournament_return');
     sessionStorage.removeItem('tournament_game_id');
+    const hs  = parseInt(sessionStorage.getItem('tournament_home_score') || '0', 10);
+    const as_ = parseInt(sessionStorage.getItem('tournament_away_score') || '0', 10);
+    sessionStorage.removeItem('tournament_home_score');
+    sessionStorage.removeItem('tournament_away_score');
 
     _state = Tournament.load();
     if (!_state || !gameId) { init(_containerId); return; }
-
-    // Scores from game engine (best effort after reload)
-    const hs = (window.GameEngineSim && GameEngineSim.G) ? GameEngineSim.G.homeScore : 0;
-    const as_ = (window.GameEngineSim && GameEngineSim.G) ? GameEngineSim.G.awayScore : 0;
 
     Tournament.recordResult(_state, gameId, hs, as_);
     _state = Tournament.load();

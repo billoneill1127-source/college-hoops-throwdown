@@ -278,7 +278,7 @@ header { background: var(--primary); color: #fff; padding: 0 28px; position: sti
   <div class="modal-card" onclick="event.stopPropagation()">
     <div class="modal-header">
       <div class="modal-title" id="modalTitle"></div>
-      <button id="rosterModalHomeBtn" class="modal-close" style="display:none;margin-right:8px;font-size:.8rem;padding:4px 12px;border-radius:5px;background:var(--accent);color:#fff;border:none;cursor:pointer;font-weight:700" onclick="closeModal();if(sessionStorage.getItem('tournament_return')&&window.TournamentPage){showScreen('tournament');}else{showScreen('home');}">Home</button><button class="modal-close" onclick="closeModal()">&#10005;</button>
+      <button id="rosterModalHomeBtn" class="modal-close" style="display:none;margin-right:8px;font-size:.8rem;padding:4px 12px;border-radius:5px;background:var(--accent);color:#fff;border:none;cursor:pointer;font-weight:700" onclick="closeModal();if(sessionStorage.getItem('tournament_return')&&window.TournamentPage){const _hs=+sessionStorage.getItem('tournament_home_score')||0;const _as=+sessionStorage.getItem('tournament_away_score')||0;TournamentPage._onGameEnd(_hs,_as);}else{showScreen('home');}">Home</button><button class="modal-close" onclick="closeModal()">&#10005;</button>
     </div>
     <div class="modal-body" id="modalBody"></div>
   </div>
@@ -1771,7 +1771,7 @@ function setSpeed(speed){ displaySpeed=speed; document.querySelectorAll('.speed-
 function togglePause(){ gamePaused=!gamePaused; const btn=document.getElementById('pauseBtn'); if(gamePaused){clearInterval(displayTimer);displayTimer=null;if(btn)btn.textContent='\u25B6';}else{if(btn)btn.textContent='\u23F8';displayTimer=setInterval(showNext,SPEED_SETTINGS[displaySpeed]);} }
 
 function showNext(){
-  if(displayIdx>=eventQueue.length){clearInterval(displayTimer);displayTimer=null;G.gameInProgress=false;const _savedGid=BoxScore.save(eventQueue);const bb=document.getElementById('boxScoreBtn');if(bb)bb.style.display='inline-block';if(G.pendingSeasonGame){const _pg=G.pendingSeasonGame;G.pendingSeasonGame=null;const _wid=GAME.homeScore>GAME.awayScore?_pg.homeTeamId:_pg.awayTeamId;if(window.SeasonEngine)SeasonEngine.recordResult(_pg.gameIndex,{homeScore:GAME.homeScore,awayScore:GAME.awayScore,winnerId:_wid,method:'played',gameId:_savedGid});console.log('[CHT] Season result recorded: game '+_pg.gameIndex+' '+_wid+' wins '+GAME.homeScore+'-'+GAME.awayScore);const _rb=document.createElement('a');_rb.href='season.html';_rb.textContent='\u2190 Return to Season';_rb.className='action-btn';_rb.style.cssText='display:inline-block;text-decoration:none;padding:9px 22px;font-size:.88rem;border-radius:8px;margin-top:6px;';const _qd=document.querySelector('.sb-quit');if(_qd)_qd.appendChild(_rb);}return;}
+  if(displayIdx>=eventQueue.length){clearInterval(displayTimer);displayTimer=null;G.gameInProgress=false;if(sessionStorage.getItem('tournament_return')==='true'){sessionStorage.setItem('tournament_home_score',GAME.homeScore);sessionStorage.setItem('tournament_away_score',GAME.awayScore);}const _savedGid=BoxScore.save(eventQueue);const bb=document.getElementById('boxScoreBtn');if(bb)bb.style.display='inline-block';if(G.pendingSeasonGame){const _pg=G.pendingSeasonGame;G.pendingSeasonGame=null;const _wid=GAME.homeScore>GAME.awayScore?_pg.homeTeamId:_pg.awayTeamId;if(window.SeasonEngine)SeasonEngine.recordResult(_pg.gameIndex,{homeScore:GAME.homeScore,awayScore:GAME.awayScore,winnerId:_wid,method:'played',gameId:_savedGid});console.log('[CHT] Season result recorded: game '+_pg.gameIndex+' '+_wid+' wins '+GAME.homeScore+'-'+GAME.awayScore);const _rb=document.createElement('a');_rb.href='season.html';_rb.textContent='\u2190 Return to Season';_rb.className='action-btn';_rb.style.cssText='display:inline-block;text-decoration:none;padding:9px 22px;font-size:.88rem;border-radius:8px;margin-top:6px;';const _qd=document.querySelector('.sb-quit');if(_qd)_qd.appendChild(_rb);}return;}
   const ev=eventQueue[displayIdx++];
   if(ev.type==='halftime'){
     applySnap(ev.snapshot);
@@ -1965,10 +1965,11 @@ function startDisplay(){ displayIdx=0; gamePaused=false; if(displayTimer)clearIn
 function quitGame(){
   clearInterval(displayTimer); displayTimer=null; gamePaused=false;
   if (sessionStorage.getItem('tournament_return') && window.TournamentPage) {
-    const sc = tp_getFinalScore();
+    const _hs = +sessionStorage.getItem('tournament_home_score') || tp_getFinalScore().homeScore;
+    const _as = +sessionStorage.getItem('tournament_away_score') || tp_getFinalScore().awayScore;
     G.gameInProgress=false;
     if(G.watchMode){G.visitorOp='CPU';G.watchMode=false;}
-    TournamentPage._onGameEnd(sc.homeScore, sc.awayScore);
+    TournamentPage._onGameEnd(_hs, _as);
     return;
   }
   G.gameInProgress=false;
