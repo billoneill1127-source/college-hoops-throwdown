@@ -268,7 +268,7 @@ header { background: var(--primary); color: #fff; padding: 0 28px; position: sti
 <header>
   <button class="back-btn" id="backBtn" style="display:none" onclick="handleBack()">&#8592; Back</button>
   <div class="header-brand">
-    <div class="header-sub">2025–26 Season &nbsp;·&nbsp; v1.5</div>
+    <div class="header-sub">2025–26 Season &nbsp;·&nbsp; v1.6</div>
     <div class="header-logo">College Hoops <span>Throwdown</span></div>
   </div>
 </header>
@@ -327,6 +327,9 @@ header { background: var(--primary); color: #fff; padding: 0 28px; position: sti
     <p>Created by Claude Code with help from Bill O'Neill</p>
 
     <h3 style="margin-top:1.2em">Version History</h3>
+
+    <p><strong>v1.6</strong><br>
+    Tournament mode. 64-team single-elimination bracket seeded from net ratings (tiers A–D with conference-conflict resolution). Full bracket UI with regional tabs (East, Southeast, Midwest, West) and SVG connector lines. CPU games simulate automatically with animated score reveals; user plays their games through the normal game engine with neutral-site rules. Box score shown after every user game. Bracket persists in localStorage; sim the rest at any time after elimination.</p>
 
     <p><strong>v1.5</strong><br>
     Block system (checkBlock / resolveBlockedShot / resolvePutbackOrPossession) wired into runPossession with 9 randomised announce templates and momentum swing on clean blocks. Assist crediting moved post-make, driven by team assist_rate; removed pre-shot assister logic. Real team stats (pace, ORB%, DRB%, AST%, fouls/game) loaded from Sports Reference via 3 extract scripts and apply_team_stats.js pipeline. Pace calibration confirmed: 68 base possessions per team vs real mean 68.6. Non-shooting foul retry no longer inflates possession count. Blk column added to simulate.html.</p>
