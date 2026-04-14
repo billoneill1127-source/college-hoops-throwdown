@@ -56,7 +56,7 @@ window.CpuSim = (() => {
     function mapPlayer(name, s, mpgMap) {
       return {
         name,
-        min:   mpgMap[name] || 0,
+        min:   Math.round((s.poss || 0) * _G.baseClockCost / 60),
         pts:   s.pts  || 0,
         reb:   s.reb  || 0,
         ast:   s.ast  || 0,

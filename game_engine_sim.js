@@ -77,7 +77,7 @@ window.GameEngineSim = (function () {
   let pbp = [];   // play-by-play log
 
   function buildTeam(td, isHome) {
-    const eligible = [...(td.players || [])]
+    const allEligible = [...(td.players || [])]
       .filter(p => (p.minutes_per_game || 0) > 0 && p.fga_per_100 != null)
       .sort((a, b) => (b.minutes_per_game || 0) - (a.minutes_per_game || 0))
       .map(p => ({
@@ -85,8 +85,25 @@ window.GameEngineSim = (function () {
         three_pa_rate: (p.three_pa_per_100 && p.fga_per_100)
           ? clamp(p.three_pa_per_100 / p.fga_per_100, 0, 1)
           : (THREE_PA_RATE_DEFAULTS[p.position] || 0.25),
-        gamePF: 0
+        gamePF: 0,
+        isInGame: false,
+        inFoulTrouble: false,
+        foulTroubleSitPoss: null,
       }));
+
+    // Rotation players: MPG >= 8
+    const rotationPlayers = allEligible.filter(p => (p.minutes_per_game || 0) >= 8);
+    // Non-rotation: MPG < 8 — only used for emergency foul-out coverage
+    const nonRotation = allEligible.filter(p => (p.minutes_per_game || 0) < 8);
+
+    // Starting lineup: top 5 rotation players by MPG
+    const lineup = rotationPlayers.slice(0, 5).map(p => ({ ...p, isInGame: true }));
+    // Bench: remaining rotation players + non-rotation as emergency depth
+    const bench = [
+      ...rotationPlayers.slice(5).map(p => ({ ...p, isInGame: false })),
+      ...nonRotation.map(p => ({ ...p, isInGame: false })),
+    ];
+    const allPlayers = [...lineup, ...bench];
 
     return {
       id: td.id || td.name, name: td.name, nickname: td.nickname || '', isHome,
@@ -97,9 +114,10 @@ window.GameEngineSim = (function () {
       team_fouls_per_game: td.team_fouls_per_game || 18,
       home_fg_bonus: td.home_fg_bonus || 0.02,
       net_rating: td.net_rating || 0,
-      allPlayers: eligible,
-      lineup: eligible.slice(0, 5),
-      bench:  eligible.slice(5),
+      allPlayers,
+      lineup,
+      bench,
+      rotationPlayers,
       strategy_offense: 'motion',
       strategy_defense: 'man_to_man',
       teamFouls: 0,
@@ -119,11 +137,12 @@ window.GameEngineSim = (function () {
       homeTimeouts: 3, awayTimeouts: 3,
       mediaTimeouts: [960, 720, 480, 240],
       stats: {},
-      halfPossessions: 0, totalPossessions: 0
+      halfPossessions: 0, totalPossessions: 0,
+      baseClockCost: 17
     };
     for (const p of [...(G.home.allPlayers||[]), ...(G.away.allPlayers||[])]) {
       G.stats[p.name] = { pts:0, reb:0, ast:0, stl:0, blk:0, tov:0,
-                          fga:0, fgm:0, tpa:0, tpm:0, fta:0, ftm:0, pf:0 };
+                          fga:0, fgm:0, tpa:0, tpm:0, fta:0, ftm:0, pf:0, poss:0 };
     }
   }
 
@@ -303,23 +322,121 @@ function selectShooter(players, mods) {
 
   // Call after incrementing gamePF. CPU sub: same position first, then any.
   // In the full game UI, human teams will trigger an interactive substitution instead.
+  // ═══════════════════════════════════════════════════════════════
+  // ROTATION SYSTEM
+  // ═══════════════════════════════════════════════════════════════
+
+  function checkRotation(team) {
+    // Increment possession count for all players currently in lineup
+    for (const p of team.lineup) {
+      if (G.stats[p.name]) G.stats[p.name].poss++;
+    }
+
+    const isSecondHalf = G.half === 2;
+
+    for (let i = 0; i < team.lineup.length; i++) {
+      const p = team.lineup[i];
+      const minutesPlayed = (G.stats[p.name].poss * G.baseClockCost) / 60;
+
+      // ── Foul trouble check ───────────────────────────────────
+      const inFoulTrouble =
+        (!isSecondHalf && p.gamePF >= 3) ||
+        (isSecondHalf && p.gamePF >= 4);
+
+      if (inFoulTrouble && !p.inFoulTrouble) {
+        p.inFoulTrouble = true;
+        p.foulTroubleSitPoss = G.totalPossessions;
+        const sub = findRotationSub(team, p, i);
+        if (sub) {
+          performSub(team, i, sub);
+          log(`  SUB (foul trouble): ${p.name} out — ${sub.name} in`, 'sub');
+        }
+        continue;
+      }
+
+      // Clear foul trouble flag at halftime
+      if (G.half === 2 && p.inFoulTrouble && p.gamePF < 4) {
+        p.inFoulTrouble = false;
+        p.foulTroubleSitPoss = null;
+      }
+
+      // ── Minutes budget check ─────────────────────────────────
+      const minutesBudget = (p.minutes_per_game || 0) * 0.92;
+      if (minutesPlayed >= minutesBudget && !p.inFoulTrouble) {
+        const sub = findRotationSub(team, p, i);
+        if (sub) {
+          performSub(team, i, sub);
+          log(`  SUB (minutes): ${p.name} (${minutesPlayed.toFixed(0)}min) out — ${sub.name} in`, 'sub');
+        }
+      }
+    }
+
+    // Check if any bench players in foul trouble sit should return
+    checkBenchReturns(team);
+  }
+
+  function findRotationSub(team, playerOut, lineupIdx) {
+    const available = team.rotationPlayers.filter(p =>
+      !team.lineup.includes(p) &&
+      !p.inFoulTrouble &&
+      ((G.stats[p.name]?.poss || 0) * G.baseClockCost / 60) < (p.minutes_per_game || 0) * 0.92
+    );
+    if (!available.length) return null;
+    const samePos = available.filter(p => p.position === playerOut.position);
+    const pool = samePos.length ? samePos : available;
+    return pool.sort((a, b) => (b.minutes_per_game || 0) - (a.minutes_per_game || 0))[0];
+  }
+
+  function performSub(team, lineupIdx, subIn) {
+    const subOut = team.lineup[lineupIdx];
+    subOut.isInGame = false;
+    subIn.isInGame = true;
+    team.lineup[lineupIdx] = subIn;
+    if (!G.stats[subIn.name]) {
+      G.stats[subIn.name] = {
+        pts:0, reb:0, ast:0, stl:0, blk:0, tov:0,
+        fga:0, fgm:0, tpa:0, tpm:0, fta:0, ftm:0, pf:0, poss:0
+      };
+    }
+  }
+
+  function checkBenchReturns(team) {
+    for (const p of team.rotationPlayers) {
+      if (!p.inFoulTrouble || p.isInGame) continue;
+      const possElapsed = G.totalPossessions - (p.foulTroubleSitPoss || 0);
+      const isSecondHalf = G.half === 2;
+      const safeFouls = isSecondHalf ? 3 : 2;
+      if (possElapsed >= 8 && p.gamePF <= safeFouls) {
+        const overBudget = team.lineup.findIndex(lp => {
+          const min = (G.stats[lp.name]?.poss || 0) * G.baseClockCost / 60;
+          return min >= (lp.minutes_per_game || 0) * 0.92 && !lp.inFoulTrouble;
+        });
+        if (overBudget !== -1) {
+          p.inFoulTrouble = false;
+          p.foulTroubleSitPoss = null;
+          log(`  SUB (return): ${p.name} back in for ${team.lineup[overBudget].name}`, 'sub');
+          performSub(team, overBudget, p);
+        }
+      }
+    }
+  }
+
   function checkFoulOut(player, team) {
     if (player.gamePF < 5) return;
     const idx = team.lineup.indexOf(player);
     if (idx === -1) return;
-    // Prefer same position, fall back to highest remaining MPG
-    const samePosIdx = team.bench.findIndex(p => p.position === player.position);
-    const subIdx = samePosIdx !== -1 ? samePosIdx : 0;
-    const sub = team.bench.length > 0 ? team.bench.splice(subIdx, 1)[0] : null;
+    // Try rotation sub first
+    let sub = findRotationSub(team, player, idx);
+    // Fall back to any bench player if no rotation sub available
+    if (!sub && team.bench.length > 0) {
+      sub = team.bench.find(p => !p.inFoulTrouble) || team.bench[0];
+    }
     if (sub) {
-      team.lineup[idx] = sub;
-      if (!G.stats[sub.name]) {
-        G.stats[sub.name] = { pts:0, reb:0, ast:0, stl:0, tov:0, fga:0, fgm:0, tpa:0, tpm:0, fta:0, ftm:0, pf:0 };
-      }
-      log(`  FOUL OUT: ${player.name} has fouled out — ${sub.name} (${sub.position}) enters for ${team.name}`, 'foul');
+      performSub(team, idx, sub);
+      log(`  FOUL OUT: ${player.name} — ${sub.name} enters`, 'foul');
     } else {
       team.lineup.splice(idx, 1);
-      log(`  FOUL OUT: ${player.name} has fouled out — ${team.name} playing short-handed`, 'foul');
+      log(`  FOUL OUT: ${player.name} — ${team.name} playing short-handed`, 'foul');
     }
   }
 
@@ -492,6 +609,8 @@ function selectShooter(players, mods) {
 
   // Returns true if possession ended with an offensive rebound (next poss uses 8s clock)
   function runPossession(isOrb, retryDepth) {
+    checkRotation(G.home);
+    checkRotation(G.away);
     if (G.clock <= 0) return false;
     retryDepth = retryDepth || 0;
 
@@ -693,6 +812,16 @@ function selectShooter(players, mods) {
       G.mediaTimeouts = [960, 720, 480, 240];
       G.homeTimeouts = 3;
       G.awayTimeouts = 3;
+    }
+    if (halfLabel === 2) {
+      for (const team of [G.home, G.away]) {
+        for (const p of team.rotationPlayers) {
+          if (p.inFoulTrouble && p.gamePF < 4) {
+            p.inFoulTrouble = false;
+            p.foulTroubleSitPoss = null;
+          }
+        }
+      }
     }
     const label = isOT ? halfLabel : (halfLabel === 1 ? 'FIRST HALF' : 'SECOND HALF');
     log(`══════════════ ${label} ══════════════`, 'info');
