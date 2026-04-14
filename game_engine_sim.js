@@ -138,7 +138,7 @@ window.GameEngineSim = (function () {
     };
     for (const p of [...(G.home.allPlayers||[]), ...(G.away.allPlayers||[])]) {
       G.stats[p.name] = { pts:0, reb:0, ast:0, stl:0, blk:0, tov:0,
-                          fga:0, fgm:0, tpa:0, tpm:0, fta:0, ftm:0, pf:0, poss:0 };
+                          fga:0, fgm:0, tpa:0, tpm:0, fta:0, ftm:0, pf:0, secs:0 };
     }
   }
 
@@ -323,18 +323,11 @@ function selectShooter(players, mods) {
   // ═══════════════════════════════════════════════════════════════
 
   function checkRotation(team) {
-    // Both teams increment poss every possession — all players are on the floor
-    // for every possession regardless of which team has the ball.
-    for (const p of team.lineup) {
-      if (G.stats[p.name]) G.stats[p.name].poss++;
-    }
-
     const isSecondHalf = G.half === 2;
 
     for (let i = 0; i < team.lineup.length; i++) {
       const p = team.lineup[i];
-      // Both teams share the clock each possession, so divide by 2
-      const minutesPlayed = (G.stats[p.name].poss * G.baseClockCost) / 2 / 60;
+      const minutesPlayed = (G.stats[p.name].secs || 0) / 60;
 
       // ── Foul trouble check ───────────────────────────────────
       const inFoulTrouble =
@@ -379,7 +372,7 @@ function selectShooter(players, mods) {
     const available = team.rotationPlayers.filter(p =>
       !team.lineup.includes(p) &&
       !p.inFoulTrouble &&
-      ((G.stats[p.name]?.poss || 0) * G.baseClockCost / 2 / 60) < (p.minutes_per_game || 0) * 0.92
+      ((G.stats[p.name]?.secs || 0) / 60) < (p.minutes_per_game || 0) * 0.92
     );
     if (!available.length) return null;
     const samePos = available.filter(p => p.position === playerOut.position);
@@ -395,7 +388,7 @@ function selectShooter(players, mods) {
     if (!G.stats[subIn.name]) {
       G.stats[subIn.name] = {
         pts:0, reb:0, ast:0, stl:0, blk:0, tov:0,
-        fga:0, fgm:0, tpa:0, tpm:0, fta:0, ftm:0, pf:0, poss:0
+        fga:0, fgm:0, tpa:0, tpm:0, fta:0, ftm:0, pf:0, secs:0
       };
     }
   }
@@ -408,7 +401,7 @@ function selectShooter(players, mods) {
       const safeFouls = isSecondHalf ? 3 : 2;
       if (possElapsed >= 8 && p.gamePF <= safeFouls) {
         const overBudget = team.lineup.findIndex(lp => {
-          const min = (G.stats[lp.name]?.poss || 0) * G.baseClockCost / 2 / 60;
+          const min = (G.stats[lp.name]?.secs || 0) / 60;
           return min >= (lp.minutes_per_game || 0) * 0.92 && !lp.inFoulTrouble;
         });
         if (overBudget !== -1) {
@@ -613,6 +606,17 @@ function selectShooter(players, mods) {
     checkRotation(G.away);
     if (G.clock <= 0) return false;
     retryDepth = retryDepth || 0;
+    const clockAtStart = G.clock;
+
+    // Credits elapsed seconds to every player on the floor then returns val.
+    // Defined here so it closes over clockAtStart without threading it through every call.
+    function creditAndReturn(val) {
+      const elapsed = Math.max(0, clockAtStart - G.clock);
+      for (const p of [...G.home.lineup, ...G.away.lineup]) {
+        if (G.stats[p.name]) G.stats[p.name].secs += elapsed;
+      }
+      return val;
+    }
 
     const off = offTeam(), def = defTeam();
     const netEdge     = (off.net_rating - def.net_rating) * NET_RATING_SCALAR;
@@ -632,7 +636,7 @@ function selectShooter(players, mods) {
         log(`Offensive foul on ${fouler.name} — ${ordinal(fouler.gamePF)} personal — ${def.name} ball`, 'foul');
         checkFoulOut(fouler, off);
         switchPossession();
-        return false;
+        return creditAndReturn(false);
       }
 
       // Defensive non-shooting foul — pick both players
@@ -648,17 +652,17 @@ function selectShooter(players, mods) {
         log(`Foul on ${defFouler.name} — ${foulDesc(defFouler, def)} — ${fouledPlayer.name} to shoot two`, 'foul');
         resolveFreeThrows(fouledPlayer, off, def, 2);
         checkMediaTimeout(clockBefore, 'non_shooting_foul');
-        return false;
+        return creditAndReturn(false);
       } else if (def.teamFouls >= 7) {
         log(`Foul on ${defFouler.name} — ${foulDesc(defFouler, def)} — ${fouledPlayer.name} to shoot one-and-one`, 'foul');
         resolveOneAndOne(fouledPlayer, off, def);
         checkMediaTimeout(clockBefore, 'non_shooting_foul');
-        return false;
+        return creditAndReturn(false);
       } else {
         log(`Foul on ${defFouler.name} — ${foulDesc(defFouler, def)} — ${off.name} retains`, 'foul');
         checkMediaTimeout(clockBefore, 'non_shooting_foul');
-        if (retryDepth < 3) { G.totalPossessions--; return runPossession(isOrb, retryDepth + 1); }
-        return false;
+        if (retryDepth < 3) { G.totalPossessions--; return creditAndReturn(runPossession(isOrb, retryDepth + 1)); }
+        return creditAndReturn(false);
       }
     }
 
@@ -674,7 +678,7 @@ function selectShooter(players, mods) {
         decrementClock(10);
         applyMomentumEvent(def.isHome, 2);
         switchPossession();
-        return false;
+        return creditAndReturn(false);
       }
     }
 
@@ -689,7 +693,7 @@ function selectShooter(players, mods) {
         decrementClock(10);
         checkMediaTimeout(clockBefore, 'turnover');
         switchPossession();
-        return false;
+        return creditAndReturn(false);
       }
     }
 
@@ -705,7 +709,7 @@ function selectShooter(players, mods) {
     const block = checkBlock(def, netEdge);
     if (block.occurred) {
       decrementClock(clockCost);
-      return resolveBlockedShot(shooter, block.blocker, off, def, isThree);
+      return creditAndReturn(resolveBlockedShot(shooter, block.blocker, off, def, isThree));
     }
 
     // ── Step 6: Shot outcome ─────────────────────────────────────
@@ -762,7 +766,7 @@ function selectShooter(players, mods) {
       } else {
         switchPossession();
       }
-      return false;
+      return creditAndReturn(false);
     }
 
     // ── Missed shot ──────────────────────────────────────────────
@@ -782,14 +786,14 @@ function selectShooter(players, mods) {
       log(`${shootFoulDesc(foul.fouler, def, shooter, ftDesc)}`, 'foul');
       resolveFreeThrows(shooter, off, def, ftCount);
       checkMediaTimeout(clockBefore, 'shooting_foul');
-      return false;
+      return creditAndReturn(false);
     }
 
     log(`MISS: ${shooter.name} (${isThree?'3':'2'}pt, ${off.name}) | ${G.homeScore}-${G.awayScore}`, 'miss');
     const gotOrb = resolveRebound(off, def, isThree);
     // If offensive rebound: next possession uses 8s clock (isOrb=true)
     // resolveRebound already handled possession switch for defensive rebound
-    return gotOrb;
+    return creditAndReturn(gotOrb);
   }
 
   // ═══════════════════════════════════════════════════════════════
