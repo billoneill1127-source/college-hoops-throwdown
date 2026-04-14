@@ -32,6 +32,10 @@ window.GameEngineSim = (function () {
   // Chance of a foul being called during a contested rebound
   const REBOUND_FOUL_CHANCE = 0.06;
 
+  // Quality-of-competition scalar.
+  // Single value to tune — all stat adjustments derive from this.
+  const NET_RATING_SCALAR = 0.0008;
+
   // ═══════════════════════════════════════════════════════════════
   // UTILITIES
   // ═══════════════════════════════════════════════════════════════
@@ -235,7 +239,8 @@ function selectShooter(players, mods) {
     const offStr = offT.lineup.reduce((s,p) => s + sd(p.offensive_rebounds_per_100,'offensive_rebounds_per_100'), 0);
     const defStr = defT.lineup.reduce((s,p) => s + sd(p.defensive_rebounds_per_100,'defensive_rebounds_per_100'), 0);
     const blended = offT.offensive_rebound_pct * (0.70 + 0.30 * ((offStr / 10.0) / (defStr / 18.0)));
-    const prob = clamp(blended, 0.05, 0.60);
+    const rebEdge = ((offT.net_rating || 0) - (defT.net_rating || 0)) * NET_RATING_SCALAR * 0.35;
+    const prob = clamp(blended + rebEdge, 0.05, 0.60);
 
     if (Math.random() < prob) {
       const r = assignRebounder(offT.lineup, 'offensive', isThree);
@@ -386,11 +391,12 @@ function selectShooter(players, mods) {
   // BLOCK SYSTEM
   // ═══════════════════════════════════════════════════════════════
 
-  function checkBlock(defTeam) {
-    const teamBlockChance = defTeam.lineup.reduce((sum, d) =>
+  function checkBlock(defTeam, netEdge) {
+    const teamBlockChance    = defTeam.lineup.reduce((sum, d) =>
       sum + perPossessionChance(sd(d.blocks_per_100, 'blocks_per_100'), defTeam.possessions_per_game), 0
     );
-    if (Math.random() >= teamBlockChance) return { occurred: false };
+    const adjustedBlockChance = teamBlockChance * (1 + (-(netEdge || 0)));
+    if (Math.random() >= adjustedBlockChance) return { occurred: false };
     const blocker = weightedRandom(defTeam.lineup,
       defTeam.lineup.map(d => sd(d.blocks_per_100, 'blocks_per_100')));
     return { occurred: true, blocker };
@@ -490,6 +496,8 @@ function selectShooter(players, mods) {
     retryDepth = retryDepth || 0;
 
     const off = offTeam(), def = defTeam();
+    const netEdge     = (off.net_rating - def.net_rating) * NET_RATING_SCALAR;
+    const countingEdge = netEdge * 0.35;
     const mods = NEUTRAL_MODS;
     G.totalPossessions++;
 
@@ -537,8 +545,9 @@ function selectShooter(players, mods) {
 
     // ── Step 1: Steal check ─────────────────────────────────────
     for (const d of def.lineup) {
-      const chance = perPossessionChance(sd(d.steals_per_100,'steals_per_100'), def.possessions_per_game) * mods.steal_chance_mod;
-      if (Math.random() < chance) {
+      const teamStealChance    = perPossessionChance(sd(d.steals_per_100,'steals_per_100'), def.possessions_per_game) * mods.steal_chance_mod;
+      const adjustedStealChance = teamStealChance * (1 + (-countingEdge));
+      if (Math.random() < adjustedStealChance) {
         const victim = weightedRandom(off.lineup, off.lineup.map(p => sd(p.turnovers_per_100,'turnovers_per_100')));
         G.stats[d.name].stl++;
         G.stats[victim.name].tov++;
@@ -552,8 +561,9 @@ function selectShooter(players, mods) {
 
     // ── Step 2: Turnover check ──────────────────────────────────
     for (const p of off.lineup) {
-      const chance = perPossessionChance(sd(p.turnovers_per_100,'turnovers_per_100'), off.possessions_per_game) * 0.55 * mods.turnover_chance_mod;
-      if (Math.random() < chance) {
+      const teamTovChance    = perPossessionChance(sd(p.turnovers_per_100,'turnovers_per_100'), off.possessions_per_game) * 0.55 * mods.turnover_chance_mod;
+      const adjustedTovChance = teamTovChance * (1 + (-countingEdge));
+      if (Math.random() < adjustedTovChance) {
         G.stats[p.name].tov++;
         const clockBefore = G.clock;
         log(`TURNOVER: ${p.name} (${off.name}) | ${G.homeScore}-${G.awayScore}`, 'tov');
@@ -573,7 +583,7 @@ function selectShooter(players, mods) {
     const clockCost = isOrb ? 11 : 17;
 
     // ── Step 5b: Block check ─────────────────────────────────────
-    const block = checkBlock(def);
+    const block = checkBlock(def, netEdge);
     if (block.occurred) {
       decrementClock(clockCost);
       return resolveBlockedShot(shooter, block.blocker, off, def, isThree);
@@ -587,10 +597,7 @@ function selectShooter(players, mods) {
     pct += isThree ? mods.three_pt_pct_mod : mods.two_pt_pct_mod;
     if (off.isHome) pct += off.home_fg_bonus;
     pct += getMomentumMod(off.isHome);
-    // Quality-of-competition adjustment
-    // Accounts for stats compiled against different levels of competition
-    const netDiff = (off.net_rating || 0) - (def.net_rating || 0);
-    pct += netDiff * 0.0008;
+    pct += netEdge;
     pct = clamp(pct, 0.05, 0.95);
     const shotMade = Math.random() < pct;
 
