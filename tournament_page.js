@@ -94,6 +94,8 @@ window.TournamentPage = (function () {
 .tp-bs-table td:first-child { text-align: left; font-weight: 600; }
 .tp-bs-table tr:last-child td { border-bottom: none; }
 .tp-bs-table tr:hover td { background: #f5f8ff; }
+.tp-bs-totals td { background: #eef2f8; border-top: 2px solid var(--border,#dde3ee); font-size: .76rem; }
+.tp-bs-totals td:hover { background: #eef2f8; }
 .tp-bs-actions { text-align: center; padding: 8px 0 16px; }
 .tp-return-btn {
   background: var(--accent,#e8600a); color: #fff; border: none; border-radius: 9px;
@@ -450,10 +452,11 @@ window.TournamentPage = (function () {
     function buildTable(team) {
       const mpg   = buildMpgMap(team);
       const names = new Set((team.players || []).map(p => p.name));
-      const rows  = Object.entries(_G.stats || {})
+      const teamStats = Object.entries(_G.stats || {})
         .filter(([n]) => names.has(n))
-        .sort(([, a], [, b]) => (b.pts || 0) - (a.pts || 0))
-        .map(([name, s]) => `<tr>
+        .sort(([, a], [, b]) => (b.pts || 0) - (a.pts || 0));
+
+      const rows = teamStats.map(([name, s]) => `<tr>
   <td>${esc(name)}</td>
   <td>${mpg[name] || 0}</td>
   <td>${s.pts || 0}</td>
@@ -467,12 +470,35 @@ window.TournamentPage = (function () {
   <td>${s.ftm || 0}/${s.fta || 0}</td>
 </tr>`).join('');
 
+      const tot = teamStats.reduce((acc, [, s]) => {
+        acc.pts += s.pts || 0; acc.reb += s.reb || 0; acc.ast += s.ast || 0;
+        acc.stl += s.stl || 0; acc.blk += s.blk || 0; acc.tov += s.tov || 0;
+        acc.fgm += s.fgm || 0; acc.fga += s.fga || 0;
+        acc.tpm += s.tpm || 0; acc.tpa += s.tpa || 0;
+        acc.ftm += s.ftm || 0; acc.fta += s.fta || 0;
+        return acc;
+      }, { pts:0, reb:0, ast:0, stl:0, blk:0, tov:0, fgm:0, fga:0, tpm:0, tpa:0, ftm:0, fta:0 });
+
+      const totRow = `<tr class="tp-bs-totals">
+  <td><strong>TOTALS</strong></td>
+  <td>—</td>
+  <td><strong>${tot.pts}</strong></td>
+  <td>${tot.reb}</td>
+  <td>${tot.ast}</td>
+  <td>${tot.stl}</td>
+  <td>${tot.blk}</td>
+  <td>${tot.tov}</td>
+  <td>${tot.fgm}/${tot.fga}</td>
+  <td>${tot.tpm}/${tot.tpa}</td>
+  <td>${tot.ftm}/${tot.fta}</td>
+</tr>`;
+
       return `<table class="tp-bs-table">
 <thead><tr>
   <th>Player</th><th>MIN</th><th>PTS</th><th>REB</th><th>AST</th>
   <th>STL</th><th>BLK</th><th>TOV</th><th>FG</th><th>3P</th><th>FT</th>
 </tr></thead>
-<tbody>${rows}</tbody>
+<tbody>${rows}${totRow}</tbody>
 </table>`;
     }
 
