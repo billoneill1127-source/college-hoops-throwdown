@@ -91,19 +91,15 @@ window.GameEngineSim = (function () {
         foulTroubleSitPoss: null,
       }));
 
-    // Rotation players: MPG >= 8
+    // Rotation players: MPG >= 8 — same object references as allEligible
     const rotationPlayers = allEligible.filter(p => (p.minutes_per_game || 0) >= 8);
-    // Non-rotation: MPG < 8 — only used for emergency foul-out coverage
-    const nonRotation = allEligible.filter(p => (p.minutes_per_game || 0) < 8);
 
-    // Starting lineup: top 5 rotation players by MPG
-    const lineup = rotationPlayers.slice(0, 5).map(p => ({ ...p, isInGame: true }));
-    // Bench: remaining rotation players + non-rotation as emergency depth
-    const bench = [
-      ...rotationPlayers.slice(5).map(p => ({ ...p, isInGame: false })),
-      ...nonRotation.map(p => ({ ...p, isInGame: false })),
-    ];
-    const allPlayers = [...lineup, ...bench];
+    // Mark starters in place — mutates shared objects so all arrays stay in sync
+    rotationPlayers.slice(0, 5).forEach(p => { p.isInGame = true; });
+
+    // All arrays are slices/filters of allEligible — no spreads, same references
+    const lineup = rotationPlayers.slice(0, 5);
+    const bench  = allEligible.filter(p => !lineup.includes(p));
 
     return {
       id: td.id || td.name, name: td.name, nickname: td.nickname || '', isHome,
@@ -114,7 +110,7 @@ window.GameEngineSim = (function () {
       team_fouls_per_game: td.team_fouls_per_game || 18,
       home_fg_bonus: td.home_fg_bonus || 0.02,
       net_rating: td.net_rating || 0,
-      allPlayers,
+      allPlayers: allEligible,
       lineup,
       bench,
       rotationPlayers,
