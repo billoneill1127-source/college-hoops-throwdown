@@ -268,7 +268,7 @@ header { background: var(--primary); color: #fff; padding: 0 28px; position: sti
 <header>
   <button class="back-btn" id="backBtn" style="display:none" onclick="handleBack()">&#8592; Back</button>
   <div class="header-brand">
-    <div class="header-sub">2025–26 Season &nbsp;·&nbsp; v2.0</div>
+    <div class="header-sub">2025–26 Season &nbsp;·&nbsp; v2.1</div>
     <div class="header-logo">College Hoops <span>Throwdown</span></div>
   </div>
 </header>
@@ -327,6 +327,9 @@ header { background: var(--primary); color: #fff; padding: 0 28px; position: sti
     <p>Created by Claude Code with help from Bill O'Neill</p>
 
     <h3 style="margin-top:1.2em">Version History</h3>
+
+    <p><strong>v2.1</strong><br>
+    CPU rotation substitution system. Players sub in/out based on minutes budget (MPG × 0.92) and foul trouble thresholds (3 fouls in first half, 4 in second). Rotation players (MPG ≥ 8) managed separately from emergency depth. Minutes played now tracked via possession counter (poss) rather than static MPG. Net rating quality-of-competition adjustments applied across shooting, steals, turnovers, blocks, and rebounds.</p>
 
     <p><strong>v2.0</strong><br>
     Tournament mode. 64-team single-elimination bracket seeded from net ratings (tiers A–D with conference-conflict resolution). Full bracket UI with regional tabs (East, Southeast, Midwest, West) and SVG connector lines. CPU games simulate automatically with animated score reveals; user plays their games through the normal game engine with neutral-site rules. Box score shown after every user game. Bracket persists in localStorage; sim the rest at any time after elimination. Fixed Final Four / Championship PLAY button (cross-region prerequisite check). Net rating quality-of-competition adjustments applied across shooting, steals, turnovers, blocks, and rebounds.</p>
