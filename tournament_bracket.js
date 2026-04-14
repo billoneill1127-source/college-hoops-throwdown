@@ -57,8 +57,12 @@ window.TournamentBracket = (function () {
   function isNextUp(game) {
     if (!game.isPlayerGame || game.winnerId !== null) return false;
     if (game.round <= 1) return true;
+    // Final Four (r5) and Championship (r6) cross region boundaries —
+    // their prerequisites span all regions so skip the region filter.
+    const crossRegion = game.round >= 5;
     const prev = _state.games.filter(g =>
-      g.region === game.region && g.round === game.round - 1
+      g.round === game.round - 1 &&
+      (crossRegion || g.region === game.region)
     );
     return prev.length > 0 && prev.every(g => g.winnerId !== null);
   }
