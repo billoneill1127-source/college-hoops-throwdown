@@ -327,9 +327,14 @@ function selectShooter(players, mods) {
   // ═══════════════════════════════════════════════════════════════
 
   function checkRotation(team) {
-    // Increment possession count for all players currently in lineup
-    for (const p of team.lineup) {
-      if (G.stats[p.name]) G.stats[p.name].poss++;
+    // Increment possession count only for the team that currently has the ball.
+    // Both teams call checkRotation each possession, but poss must only tick
+    // for one side — otherwise minutes estimates run ~2× too high.
+    const isOffense = (team === G.home) === (G.possession === 'home');
+    if (isOffense) {
+      for (const p of team.lineup) {
+        if (G.stats[p.name]) G.stats[p.name].poss++;
+      }
     }
 
     const isSecondHalf = G.half === 2;
