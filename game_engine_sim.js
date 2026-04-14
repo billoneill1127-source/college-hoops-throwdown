@@ -323,21 +323,18 @@ function selectShooter(players, mods) {
   // ═══════════════════════════════════════════════════════════════
 
   function checkRotation(team) {
-    // Increment possession count only for the team that currently has the ball.
-    // Both teams call checkRotation each possession, but poss must only tick
-    // for one side — otherwise minutes estimates run ~2× too high.
-    const isOffense = (team === G.home) === (G.possession === 'home');
-    if (isOffense) {
-      for (const p of team.lineup) {
-        if (G.stats[p.name]) G.stats[p.name].poss++;
-      }
+    // Both teams increment poss every possession — all players are on the floor
+    // for every possession regardless of which team has the ball.
+    for (const p of team.lineup) {
+      if (G.stats[p.name]) G.stats[p.name].poss++;
     }
 
     const isSecondHalf = G.half === 2;
 
     for (let i = 0; i < team.lineup.length; i++) {
       const p = team.lineup[i];
-      const minutesPlayed = (G.stats[p.name].poss * G.baseClockCost) / 60;
+      // Both teams share the clock each possession, so divide by 2
+      const minutesPlayed = (G.stats[p.name].poss * G.baseClockCost) / 2 / 60;
 
       // ── Foul trouble check ───────────────────────────────────
       const inFoulTrouble =
@@ -351,6 +348,7 @@ function selectShooter(players, mods) {
         if (sub) {
           performSub(team, i, sub);
           log(`  SUB (foul trouble): ${p.name} out — ${sub.name} in`, 'sub');
+          i--;  // re-evaluate this slot with the incoming player
         }
         continue;
       }
@@ -368,6 +366,7 @@ function selectShooter(players, mods) {
         if (sub) {
           performSub(team, i, sub);
           log(`  SUB (minutes): ${p.name} (${minutesPlayed.toFixed(0)}min) out — ${sub.name} in`, 'sub');
+          i--;  // re-evaluate this slot with the incoming player
         }
       }
     }
@@ -380,7 +379,7 @@ function selectShooter(players, mods) {
     const available = team.rotationPlayers.filter(p =>
       !team.lineup.includes(p) &&
       !p.inFoulTrouble &&
-      ((G.stats[p.name]?.poss || 0) * G.baseClockCost / 60) < (p.minutes_per_game || 0) * 0.92
+      ((G.stats[p.name]?.poss || 0) * G.baseClockCost / 2 / 60) < (p.minutes_per_game || 0) * 0.92
     );
     if (!available.length) return null;
     const samePos = available.filter(p => p.position === playerOut.position);
@@ -409,7 +408,7 @@ function selectShooter(players, mods) {
       const safeFouls = isSecondHalf ? 3 : 2;
       if (possElapsed >= 8 && p.gamePF <= safeFouls) {
         const overBudget = team.lineup.findIndex(lp => {
-          const min = (G.stats[lp.name]?.poss || 0) * G.baseClockCost / 60;
+          const min = (G.stats[lp.name]?.poss || 0) * G.baseClockCost / 2 / 60;
           return min >= (lp.minutes_per_game || 0) * 0.92 && !lp.inFoulTrouble;
         });
         if (overBudget !== -1) {
