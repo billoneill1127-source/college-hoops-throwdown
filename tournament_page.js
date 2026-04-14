@@ -454,6 +454,7 @@ window.TournamentPage = (function () {
       const names = new Set((team.players || []).map(p => p.name));
       const teamStats = Object.entries(_G.stats || {})
         .filter(([n]) => names.has(n))
+        .filter(([, s]) => Math.round((s.secs || 0) / 60) > 0)
         .sort(([, a], [, b]) => (b.pts || 0) - (a.pts || 0));
 
       const rows = teamStats.map(([name, s]) => `<tr>

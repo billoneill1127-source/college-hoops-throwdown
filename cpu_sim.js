@@ -84,6 +84,10 @@ window.CpuSim = (() => {
       }
     }
 
+    // Remove players who never actually entered the game
+    const activeHomePlayers = homePlayers.filter(p => p.min > 0);
+    const activeAwayPlayers = awayPlayers.filter(p => p.min > 0);
+
     // ── 3. Top 3 scorers per side ─────────────────────────────────────────────
     function topScorers(players) {
       return players
@@ -99,7 +103,7 @@ window.CpuSim = (() => {
       gameId = BoxScore.saveFromSim(
         homeTeam, awayTeam,
         homeScore, awayScore,
-        homePlayers, awayPlayers,
+        activeHomePlayers, activeAwayPlayers,
         options.seasonId || null,
         'season'
       );
@@ -116,13 +120,13 @@ window.CpuSim = (() => {
           teamId:     homeTeam.id   || homeTeam.name,
           teamName:   homeTeam.name,
           score:      homeScore,
-          topScorers: topScorers(homePlayers),
+          topScorers: topScorers(activeHomePlayers),
         },
         away: {
           teamId:     awayTeam.id   || awayTeam.name,
           teamName:   awayTeam.name,
           score:      awayScore,
-          topScorers: topScorers(awayPlayers),
+          topScorers: topScorers(activeAwayPlayers),
         },
       },
     };
