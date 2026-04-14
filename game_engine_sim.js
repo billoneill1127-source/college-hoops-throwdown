@@ -94,7 +94,7 @@ window.GameEngineSim = (function () {
       }));
 
     // Rotation players: MPG >= 8 — same object references as allEligible
-    const rotationPlayers = allEligible.filter(p => (p.minutes_per_game || 0) >= 8);
+    const rotationPlayers = allEligible.filter(p => (p.minutes_per_game || 0) >= 6);
 
     // Mark starters in place — mutates shared objects so all arrays stay in sync
     rotationPlayers.slice(0, 5).forEach(p => { p.isInGame = true; });
@@ -368,41 +368,50 @@ function selectShooter(players, mods) {
     const windowFired = G.subWindows.some(w => clockBefore > w && clockNow <= w);
     if (!windowFired) return;
 
-    // Sub OUT pass
-    for (let i = 0; i < team.lineup.length; i++) {
-      const p = team.lineup[i];
-      if (p.inFoulTrouble) continue;
+    // Determine which window fired
+    const firedWindow = G.subWindows.find(w => clockBefore > w && clockNow <= w);
+    // No fatigue subs in the final 4 minutes of the second half — ride starters
+    const isCrunchTime = G.half === 2 && firedWindow === 240;
 
-      const minsOn = p.halfMinsOn;
-      let subOutChance = 0;
-      if (minsOn >= 15) subOutChance = 0.75;
-      else if (minsOn >= 12) subOutChance = 0.60;
-      else if (minsOn >= 9)  subOutChance = 0.25;
+    // Sub OUT pass — skip for crunch time
+    if (!isCrunchTime) {
+      for (let i = 0; i < team.lineup.length; i++) {
+        const p = team.lineup[i];
+        if (p.inFoulTrouble) continue;
 
-      if (subOutChance > 0 && Math.random() < subOutChance) {
-        const sub = findRotationSub(team, p);
-        if (sub) {
-          performSub(team, i, sub);
-          log(`  SUB (rotation): ${p.name} (${minsOn.toFixed(0)}min) out — ${sub.name} in`, 'sub');
-          i--;
+        const minsOn = p.halfMinsOn;
+        let subOutChance = 0;
+        if (minsOn >= 15) subOutChance = 1.0;       // always sub — no exceptions
+        else if (minsOn >= 12) subOutChance = 0.60;
+        else if (minsOn >= 9)  subOutChance = 0.25;
+
+        if (subOutChance > 0 && Math.random() < subOutChance) {
+          const sub = findRotationSub(team, p);
+          if (sub) {
+            performSub(team, i, sub);
+            log(`  SUB (rotation): ${p.name} (${minsOn.toFixed(0)}min) out — ${sub.name} in`, 'sub');
+            i--;
+          }
         }
       }
     }
 
-    // Sub IN pass — return rested bench players
-    for (const benchP of team.rotationPlayers) {
-      if (benchP.isInGame || benchP.inFoulTrouble) continue;
-      if (benchP.halfMinsOff < 5) continue;
+    // Sub IN pass — also skip for crunch time
+    if (!isCrunchTime) {
+      for (const benchP of team.rotationPlayers) {
+        if (benchP.isInGame || benchP.inFoulTrouble) continue;
+        if (benchP.halfMinsOff < 5) continue;
 
-      const replaceIdx = team.lineup.reduce((bestIdx, lp, idx) => {
-        if (lp.inFoulTrouble) return bestIdx;
-        if (bestIdx === -1) return idx;
-        return lp.halfMinsOn > team.lineup[bestIdx].halfMinsOn ? idx : bestIdx;
-      }, -1);
+        const replaceIdx = team.lineup.reduce((bestIdx, lp, idx) => {
+          if (lp.inFoulTrouble) return bestIdx;
+          if (bestIdx === -1) return idx;
+          return lp.halfMinsOn > team.lineup[bestIdx].halfMinsOn ? idx : bestIdx;
+        }, -1);
 
-      if (replaceIdx !== -1 && team.lineup[replaceIdx].halfMinsOn >= 9) {
-        log(`  SUB (return): ${benchP.name} in for ${team.lineup[replaceIdx].name}`, 'sub');
-        performSub(team, replaceIdx, benchP);
+        if (replaceIdx !== -1 && team.lineup[replaceIdx].halfMinsOn >= 9) {
+          log(`  SUB (return): ${benchP.name} in for ${team.lineup[replaceIdx].name}`, 'sub');
+          performSub(team, replaceIdx, benchP);
+        }
       }
     }
   }
