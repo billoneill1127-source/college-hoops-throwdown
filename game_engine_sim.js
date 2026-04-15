@@ -34,7 +34,7 @@ window.GameEngineSim = (function () {
 
   // Quality-of-competition scalar.
   // Single value to tune — all stat adjustments derive from this.
-  const NET_RATING_SCALAR = 0.0008;
+  const NET_RATING_SCALAR = 0.0006;
 
   // Rotation tables: player index slots (into team.rotationPlayers, 0 = highest MPG).
   // 5 segments per half: seg0 1200–961s, seg1 960–721s, seg2 720–481s, seg3 480–241s, seg4 240–0s.
@@ -659,7 +659,9 @@ function selectShooter(players, mods) {
     }
 
     const off = offTeam(), def = defTeam();
-    const netEdge     = (off.net_rating - def.net_rating) * NET_RATING_SCALAR;
+    const rawDiff      = (off.net_rating || 0) - (def.net_rating || 0);
+    const cappedDiff   = Math.sign(rawDiff) * Math.min(Math.abs(rawDiff), 25);
+    const netEdge      = cappedDiff * NET_RATING_SCALAR;
     const countingEdge = netEdge * 0.35;
     const mods = NEUTRAL_MODS;
     G.totalPossessions++;
