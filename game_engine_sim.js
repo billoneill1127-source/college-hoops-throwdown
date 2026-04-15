@@ -36,6 +36,16 @@ window.GameEngineSim = (function () {
   // Single value to tune — all stat adjustments derive from this.
   const NET_RATING_SCALAR = 0.0008;
 
+  // Rotation tables: player index slots (into team.rotationPlayers, 0 = highest MPG).
+  // 5 segments per half: seg0 1200–961s, seg1 960–721s, seg2 720–481s, seg3 480–241s, seg4 240–0s.
+  // Each row lists the 5 indices that should be on the floor in that segment.
+  const ROTATION_TABLES = {
+    7:  [[0,1,2,3,4], [0,1,2,5,6], [0,3,4,5,6], [0,1,2,3,4], [0,1,2,3,4]],
+    8:  [[0,1,2,3,4], [0,1,5,6,7], [2,3,4,5,6], [0,1,2,3,4], [0,1,2,3,4]],
+    9:  [[0,1,2,3,4], [0,1,5,6,7], [2,3,4,5,8], [0,1,2,3,4], [0,1,2,3,4]],
+    10: [[0,1,2,3,4], [0,1,5,6,7], [2,3,4,8,9], [0,1,2,3,4], [0,1,2,3,4]],
+  };
+
   // ═══════════════════════════════════════════════════════════════
   // UTILITIES
   // ═══════════════════════════════════════════════════════════════
@@ -325,6 +335,21 @@ function selectShooter(players, mods) {
   // ROTATION SYSTEM
   // ═══════════════════════════════════════════════════════════════
 
+  // Clamp roster depth to [7, 10] and return the matching ROTATION_TABLES row set.
+  function getRotationTable(team) {
+    const n = Math.min(10, Math.max(7, team.rotationPlayers.length));
+    return ROTATION_TABLES[n] || ROTATION_TABLES[7];
+  }
+
+  // Returns 0–4: which of the 5 half-segments the clock is currently in.
+  function getSegmentIndex(clock) {
+    if (clock > 960) return 0;
+    if (clock > 720) return 1;
+    if (clock > 480) return 2;
+    if (clock > 240) return 3;
+    return 4;
+  }
+
   function checkRotation(team, clockBefore) {
     // ── Time tracking ────────────────────────────────────────────
     const secsThisPoss = Math.max(0, clockBefore - G.clock);
@@ -363,71 +388,33 @@ function selectShooter(players, mods) {
       }
     }
 
-    // ── Substitution window check ────────────────────────────────
-    const clockNow = G.clock;
-    const windowFired = G.subWindows.some(w => clockBefore > w && clockNow <= w);
-    if (!windowFired) return;
+    // ── Segment-boundary rotation ────────────────────────────────
+    const segBefore = getSegmentIndex(clockBefore);
+    const segNow    = getSegmentIndex(G.clock);
+    if (segBefore === segNow) return;
 
-    // Consume the fired window
-    const firedWindow = G.subWindows.find(w => clockBefore > w && clockNow <= w);
-    G.subWindows = G.subWindows.filter(w => w !== firedWindow);
+    // Segment boundary crossed — apply table-driven lineup for segNow
+    const table      = getRotationTable(team);
+    const targetIdxs = table[segNow];
+    const targetSet  = new Set(
+      targetIdxs.map(i => team.rotationPlayers[i]).filter(Boolean)
+    );
 
-    const isCrunchTime = G.half === 2 && firedWindow === 240;
-
-    // Fixed sub-out count per window: 16-min→2, 12-min→1, 8-min→2, 4-min→0
-    const subOutCount = isCrunchTime ? 0
-      : firedWindow === 960 ? 2
-      : firedWindow === 720 ? 1
-      : firedWindow === 480 ? 2
-      : 0;
-
-    // ── Sub OUT pass ─────────────────────────────────────────────
-    if (subOutCount > 0) {
-      // Sort lineup by MPG ascending — sub out lowest-MPG players first
-      const sortedLineup = team.lineup
-        .map((p, idx) => ({ p, idx }))
-        .filter(({ p }) => !p.inFoulTrouble)
-        .sort((a, b) => (a.p.minutes_per_game || 0) - (b.p.minutes_per_game || 0));
-
-      let subsOut = 0;
-      for (const { p, idx } of sortedLineup) {
-        if (subsOut >= subOutCount) break;
-        const sub = findRotationSub(team, p, 'fatigue');
-        if (sub) {
-          performSub(team, idx, sub);
-          log(`  SUB (window ${firedWindow}s): ${p.name} out — ${sub.name} in`, 'sub');
-          subsOut++;
-        }
+    // Bring in each player the table wants who is not currently in the lineup.
+    // Skip players in foul trouble — their absence is intentional.
+    for (const targetP of targetSet) {
+      if (targetP.isInGame || targetP.inFoulTrouble) continue;
+      // Replace the longest-running player who is not in the target set and not foul-troubled
+      let replaceIdx = -1;
+      let maxMinsOn  = -1;
+      for (let i = 0; i < team.lineup.length; i++) {
+        const lp = team.lineup[i];
+        if (targetSet.has(lp) || lp.inFoulTrouble) continue;
+        if (lp.halfMinsOn > maxMinsOn) { maxMinsOn = lp.halfMinsOn; replaceIdx = i; }
       }
-    }
-
-    // ── Sub IN pass — runs at ALL windows including crunch time ──
-    for (const benchP of [...team.rotationPlayers]
-      .filter(p => !p.isInGame && !p.inFoulTrouble && p.halfMinsOff >= 4)
-      .sort((a, b) => (b.minutes_per_game || 0) - (a.minutes_per_game || 0))) {
-
-      const replaceIdx = team.lineup.reduce((bestIdx, lp, idx) => {
-        if (lp.inFoulTrouble) return bestIdx;
-        if (isCrunchTime && (lp.minutes_per_game || 0) >= (benchP.minutes_per_game || 0)) {
-          return bestIdx; // crunch time: only bring in higher-MPG player
-        }
-        if (bestIdx === -1) return idx;
-        return lp.halfMinsOn > team.lineup[bestIdx].halfMinsOn ? idx : bestIdx;
-      }, -1);
-
       if (replaceIdx !== -1) {
-        const target = team.lineup[replaceIdx];
-        if (isCrunchTime) {
-          if ((benchP.minutes_per_game || 0) > (target.minutes_per_game || 0)) {
-            log(`  SUB (crunch return): ${benchP.name} in for ${target.name}`, 'sub');
-            performSub(team, replaceIdx, benchP);
-          }
-        } else {
-          if (target.halfMinsOn >= 4) {
-            log(`  SUB (return): ${benchP.name} in for ${target.name}`, 'sub');
-            performSub(team, replaceIdx, benchP);
-          }
-        }
+        log(`  SUB (seg ${segNow}): ${team.lineup[replaceIdx].name} out — ${targetP.name} in`, 'sub');
+        performSub(team, replaceIdx, targetP);
       }
     }
   }
