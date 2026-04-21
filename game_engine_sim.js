@@ -120,6 +120,7 @@ window.GameEngineSim = (function () {
       defensive_rebound_pct: td.defensive_rebound_pct || 0.72,
       assist_rate: td.assist_rate || 0.54,
       team_fouls_per_game: td.team_fouls_per_game || 18,
+      ft_rate: td.ft_rate || 0.292,
       home_fg_bonus: td.home_fg_bonus || 0.02,
       net_rating: td.net_rating || 0,
       allPlayers: allEligible,
@@ -135,9 +136,15 @@ window.GameEngineSim = (function () {
 
   function initGame(homeData, awayData) {
     pbp = [];
+    const homeTeam = buildTeam(homeData, true);
+    const awayTeam = buildTeam(awayData, false);
+    if (window.Strategy) {
+      Strategy.randomAssign(homeTeam);
+      Strategy.randomAssign(awayTeam);
+    }
     G = {
-      home: buildTeam(homeData, true),
-      away: buildTeam(awayData, false),
+      home: homeTeam,
+      away: awayTeam,
       homeScore: 0, awayScore: 0,
       clock: 1200, half: 1,
       possession: Math.random() < 0.5 ? 'home' : 'away',
@@ -147,7 +154,11 @@ window.GameEngineSim = (function () {
       stats: {},
       halfPossessions: 0, totalPossessions: 0,
       baseClockCost: 17,
-      subWindows: [960, 720, 480, 240]
+      subWindows: [960, 720, 480, 240],
+      fbChance: 0,
+      lastStealer: null,
+      homeFB: { count: 0, pts: 0 },
+      awayFB:  { count: 0, pts: 0 }
     };
     for (const p of [...(G.home.allPlayers||[]), ...(G.away.allPlayers||[])]) {
       G.stats[p.name] = { pts:0, reb:0, ast:0, stl:0, blk:0, tov:0,
@@ -182,8 +193,11 @@ window.GameEngineSim = (function () {
   // MOMENTUM
   // ═══════════════════════════════════════════════════════════════
 
-  function getMomentumMod(isHome) {
-    return (isHome ? G.momentum : -G.momentum) * 0.004;
+  function getMomentumMod(momentum, isHome, maxMomentum) {
+    maxMomentum = maxMomentum || 5;
+    const normalized = momentum / maxMomentum; // normalizes to -1..+1
+    if (Math.abs(normalized) < 0.3) return 0;  // threshold: ~30% of max
+    return (isHome ? normalized : -normalized) * 0.01; // ±1% at max
   }
 
   function applyMomentumBasket(scoringTeamIsHome, gain) {
@@ -268,18 +282,21 @@ function selectShooter(players, mods) {
     const defStr = defT.lineup.reduce((s,p) => s + sd(p.defensive_rebounds_per_100,'defensive_rebounds_per_100'), 0);
     const blended = offT.offensive_rebound_pct * (0.70 + 0.30 * ((offStr / 10.0) / (defStr / 18.0)));
     const rebEdge = ((offT.net_rating || 0) - (defT.net_rating || 0)) * NET_RATING_SCALAR * 0.35;
-    const prob = clamp(blended + rebEdge, 0.05, 0.60);
+    const rebMomMod = getMomentumMod(G.momentum, offT.isHome, 5) * 2;
+    const prob = clamp(blended + rebEdge + rebMomMod, 0.05, 0.60);
 
     if (Math.random() < prob) {
       const r = assignRebounder(offT.lineup, 'offensive', isThree);
       G.stats[r.name].reb++;
       log(`  OFF REB: ${r.name} (${offT.name})`, 'reb');
       applyMomentumEvent(offT.isHome, 1);
+      G.fbChance = 0;
       return true;
     } else {
       const r = assignRebounder(defT.lineup, 'defensive', isThree);
       G.stats[r.name].reb++;
       log(`  DEF REB: ${r.name} (${defT.name})`, 'reb');
+      G.fbChance = isThree ? 0.20 : 0.12;
       switchPossession();
       return false;
     }
@@ -296,6 +313,7 @@ function selectShooter(players, mods) {
       const r = assignRebounder(oppT.lineup, 'defensive', false);
       G.stats[r.name].reb++;
       log(`  FT DEF REB: ${r.name}`, 'reb');
+      G.fbChance = 0.03;
       switchPossession();
     }
   }
@@ -350,22 +368,22 @@ function selectShooter(players, mods) {
     return 4;
   }
 
-  function checkRotation(team, clockBefore) {
+  function checkRotation(team, clockBefore, gameState) {
     // ── Time tracking ────────────────────────────────────────────
-    const secsThisPoss = Math.max(0, clockBefore - G.clock);
+    const secsThisPoss = Math.max(0, clockBefore - gameState.clock);
     const minsThisPoss = secsThisPoss / 60;
 
     for (const p of team.rotationPlayers) {
       if (p.isInGame) {
         p.halfMinsOn += minsThisPoss;
-        if (G.stats[p.name]) G.stats[p.name].secs += secsThisPoss;
+        if (gameState.stats[p.name]) gameState.stats[p.name].secs += secsThisPoss;
       } else {
         p.halfMinsOff += minsThisPoss;
       }
     }
 
     // ── Foul trouble check — runs every possession ───────────────
-    const isSecondHalf = G.half === 2;
+    const isSecondHalf = gameState.half === 2;
     for (let i = 0; i < team.lineup.length; i++) {
       const p = team.lineup[i];
       const inFoulTrouble =
@@ -376,21 +394,21 @@ function selectShooter(players, mods) {
         p.inFoulTrouble = true;
         const sub = findRotationSub(team, p, 'foul_trouble');
         if (sub) {
-          performSub(team, i, sub);
+          performSub(team, i, sub, gameState);
           log(`  SUB (foul trouble): ${p.name} out — ${sub.name} in`, 'sub');
           i--;
         }
       }
 
       // Clear foul trouble at start of second half
-      if (G.half === 2 && p.inFoulTrouble && p.gamePF < 4) {
+      if (gameState.half === 2 && p.inFoulTrouble && p.gamePF < 4) {
         p.inFoulTrouble = false;
       }
     }
 
     // ── Segment-boundary rotation ────────────────────────────────
     const segBefore = getSegmentIndex(clockBefore);
-    const segNow    = getSegmentIndex(G.clock);
+    const segNow    = getSegmentIndex(gameState.clock);
     if (segBefore === segNow) return;
 
     // Segment boundary crossed — apply table-driven lineup for segNow
@@ -414,7 +432,7 @@ function selectShooter(players, mods) {
       }
       if (replaceIdx !== -1) {
         log(`  SUB (seg ${segNow}): ${team.lineup[replaceIdx].name} out — ${targetP.name} in`, 'sub');
-        performSub(team, replaceIdx, targetP);
+        performSub(team, replaceIdx, targetP, gameState);
       }
     }
   }
@@ -445,13 +463,14 @@ function selectShooter(players, mods) {
     return candidates.sort((a, b) => (b.minutes_per_game || 0) - (a.minutes_per_game || 0))[0] || null;
   }
 
-  function performSub(team, lineupIdx, subIn) {
+  function performSub(team, lineupIdx, subIn, gameState) {
+    gameState = gameState || G;
     const subOut = team.lineup[lineupIdx];
     subOut.isInGame = false;
     subIn.isInGame = true;
     team.lineup[lineupIdx] = subIn;
-    if (!G.stats[subIn.name]) {
-      G.stats[subIn.name] = {
+    if (!gameState.stats[subIn.name]) {
+      gameState.stats[subIn.name] = {
         pts:0, reb:0, ast:0, stl:0, blk:0, tov:0,
         fga:0, fgm:0, tpa:0, tpm:0, fta:0, ftm:0, pf:0, secs:0
       };
@@ -469,7 +488,7 @@ function selectShooter(players, mods) {
       sub = team.bench.find(p => !p.inFoulTrouble) || team.bench[0];
     }
     if (sub) {
-      performSub(team, idx, sub);
+      performSub(team, idx, sub, G);
       log(`  FOUL OUT: ${player.name} — ${sub.name} enters`, 'foul');
     } else {
       team.lineup.splice(idx, 1);
@@ -477,9 +496,11 @@ function selectShooter(players, mods) {
     }
   }
 
-  function checkShootingFoul(defenders, shooter, defT) {
-    // Use team-level foul rate: ~42% of all team fouls are shooting fouls
-    const teamChance = (defT.team_fouls_per_game / defT.possessions_per_game) * 0.42;
+  function checkShootingFoul(defenders, shooter, defT, offT) {
+    const offFTRate   = offT.ft_rate || 0.292;
+    const defFoulRate = (defT.team_fouls_per_game || 18) / (defT.possessions_per_game || 70);
+    const blendedRate = (offFTRate * 0.5) + (defFoulRate * 0.5);
+    const teamChance  = blendedRate * 0.55;
     if (Math.random() < teamChance) {
       const w = defenders.map(p => sd(p.personal_fouls_per_100,'personal_fouls_per_100'));
       const fouler = weightedRandom(defenders, w);
@@ -557,7 +578,7 @@ function selectShooter(players, mods) {
   }
 
   function resolveBlockedShot(shooter, blocker, off, def, isThree) {
-    const foul = checkShootingFoul(def.lineup, shooter, def);
+    const foul = checkShootingFoul(def.lineup, shooter, def, off);
 
     if (foul.occurred) {
       // Block cancelled by foul — no FGA, no BLK, shooter goes to line
@@ -641,6 +662,134 @@ function selectShooter(players, mods) {
   }
 
   // ═══════════════════════════════════════════════════════════════
+  // FAST BREAK RESOLVER
+  // ═══════════════════════════════════════════════════════════════
+
+  function resolveFastBreak(off, def, mods) {
+    const fbClockAtStart = G.clock;
+    const stealerName = G.lastStealer;
+    G.lastStealer = null;
+    G.fbChance = 0;
+    G.totalPossessions++;
+
+    const fbTeam = off.isHome ? G.homeFB : G.awayFB;
+    fbTeam.count++;
+
+    log(`FAST BREAK: ${off.name}`, 'run');
+
+    // Net rating edge
+    const rawDiff    = (off.net_rating || 0) - (def.net_rating || 0);
+    const cappedDiff = Math.sign(rawDiff) * Math.min(Math.abs(rawDiff), 25);
+    const netEdge    = cappedDiff * NET_RATING_SCALAR;
+
+    // ── Turnover check — no steal check on fast break ────────────
+    const teamTovChance = off.lineup.reduce((sum, p) =>
+      sum + perPossessionChance(
+        sd(p.turnovers_per_100, 'turnovers_per_100'),
+        off.possessions_per_game
+      ), 0
+    ) * 0.55 * mods.turnover_chance_mod * (1 + (-(netEdge * 0.35)));
+
+    if (Math.random() < teamTovChance) {
+      const culprit = weightedRandom(off.lineup,
+        off.lineup.map(p => sd(p.turnovers_per_100, 'turnovers_per_100')));
+      G.stats[culprit.name].tov++;
+      log(`FAST BREAK TURNOVER: ${culprit.name} (${off.name})`, 'tov');
+      decrementClock(G.baseClockCost);
+      applyMomentumEvent(off.isHome, -1);
+      switchPossession();
+      return false;
+    }
+
+    // ── Stealer reference ─────────────────────────────────────────
+    const stealerPlayer = stealerName
+      ? off.lineup.find(p => p.name === stealerName)
+      : null;
+
+    // ── Shooter selection ─────────────────────────────────────────
+    let shooter;
+    if (stealerPlayer && Math.random() < 0.40) {
+      shooter = stealerPlayer;
+    } else {
+      shooter = selectShooter(off.lineup, mods);
+    }
+
+    // ── Shot type — stealer-as-shooter is always 2PT ─────────────
+    const isThree = (shooter === stealerPlayer)
+      ? false
+      : Math.random() < clamp(shooter.three_pa_rate + mods.three_pa_rate_mod, 0, 1);
+
+    // ── Shot outcome — doubled 2PT%, +10% 3PT% ───────────────────
+    let pct;
+    if (isThree) {
+      pct = sd(shooter.three_point_pct, 'three_point_pct') + 0.10;
+    } else {
+      pct = sd(shooter.two_point_pct, 'two_point_pct') + 0.20;
+    }
+    pct += netEdge;
+    if (off.isHome) pct += off.home_fg_bonus;
+    pct = clamp(pct, 0.05, 0.95);
+
+    const shotMade = Math.random() < pct;
+    decrementClock(G.baseClockCost);
+
+    G.stats[shooter.name].fga++;
+    if (isThree) G.stats[shooter.name].tpa++;
+
+    if (shotMade) {
+      const pts    = isThree ? 3 : 2;
+      const isDunk = !isThree && Math.random() < 0.60;
+
+      if (off.isHome) G.homeScore += pts;
+      else            G.awayScore += pts;
+      fbTeam.pts += pts;
+
+      G.stats[shooter.name].fgm++;
+      G.stats[shooter.name].pts += pts;
+      if (isThree) G.stats[shooter.name].tpm++;
+
+      // Assist crediting — stealer gets credit if present and not the shooter
+      if (Math.random() < (off.assist_rate || 0.54)) {
+        const assistPool = off.lineup.filter(p => p !== shooter);
+        if (assistPool.length) {
+          const assister = (stealerPlayer && stealerPlayer !== shooter)
+            ? stealerPlayer
+            : weightedRandom(assistPool,
+                assistPool.map(p => sd(p.assists_per_100, 'assists_per_100')));
+          G.stats[assister.name].ast++;
+        }
+      }
+
+      const momentumGain = isDunk ? 3 : 2;
+      applyMomentumBasket(off.isHome, momentumGain);
+      updateRun(off.isHome, pts);
+
+      const label = isDunk ? 'FAST BREAK DUNK'
+        : isThree ? 'FAST BREAK 3-PTR'
+        : 'FAST BREAK';
+      log(`${label}: ${shooter.name} (${off.name}) | ${G.homeScore}-${G.awayScore}`,
+        isDunk ? 'dunk' : isThree ? 'three' : 'run');
+
+      // And-one check
+      const foul = checkShootingFoul(def.lineup, shooter, def, off);
+      if (foul.occurred) {
+        log(`  And-one! ${shootFoulDesc(foul.fouler, def, shooter, 'one')}`, 'foul');
+        resolveFreeThrows(shooter, off, def, 1);
+      } else {
+        switchPossession();
+      }
+
+    } else {
+      log(`FAST BREAK MISS: ${shooter.name} (${off.name})`, 'miss');
+      resolveRebound(off, def, isThree);
+    }
+
+    checkRotation(G.home, fbClockAtStart, G);
+    checkRotation(G.away, fbClockAtStart, G);
+    return false;
+  }
+
+  // ═══════════════════════════════════════════════════════════════
   // MAIN POSSESSION RESOLVER
   // ═══════════════════════════════════════════════════════════════
 
@@ -648,194 +797,224 @@ function selectShooter(players, mods) {
   function runPossession(isOrb, retryDepth) {
     if (G.clock <= 0) return false;
     retryDepth = retryDepth || 0;
-    const clockAtStart = G.clock;
-
-    // Runs rotation checks (time tracking + substitution logic) then returns val.
-    // clockAtStart captured before any clock decrement so checkRotation sees true elapsed.
-    function creditAndReturn(val) {
-      checkRotation(G.home, clockAtStart);
-      checkRotation(G.away, clockAtStart);
-      return val;
-    }
+    const clockAtPossStart = G.clock;
 
     const off = offTeam(), def = defTeam();
     const rawDiff      = (off.net_rating || 0) - (def.net_rating || 0);
     const cappedDiff   = Math.sign(rawDiff) * Math.min(Math.abs(rawDiff), 25);
     const netEdge      = cappedDiff * NET_RATING_SCALAR;
     const countingEdge = netEdge * 0.35;
-    const mods = NEUTRAL_MODS;
+    const mods = (window.Strategy && off.strategy_offense)
+      ? Strategy.getMods(off.strategy_offense, def.strategy_defense)
+      : NEUTRAL_MODS;
+
+    // ── Fast break check ─────────────────────────────────────────
+    // Fires based on previous possession outcome (steal, turnover, DRB).
+    // Never fires on offensive rebound continuations.
+    // resolveFastBreak handles its own rotation check and possession count.
+    const fbChance = G.fbChance || 0;
+    G.fbChance = 0;
+    if (!isOrb && fbChance > 0 && Math.random() < fbChance) {
+      return resolveFastBreak(off, def, mods);
+    }
+
     G.totalPossessions++;
 
-    // ── Pre-shot non-shooting foul ──────────────────────────────
-    const preShotChance = (def.team_fouls_per_game / 40) * 0.15;
-    if (Math.random() < preShotChance) {
-      // Determine offensive vs defensive before logging anything
-      if (Math.random() < 0.12) {
-        // Offensive foul — fouler is on offense
-        const fouler = off.lineup[Math.floor(Math.random() * off.lineup.length)];
-        fouler.gamePF++;
-        G.stats[fouler.name].pf++;
-        log(`Offensive foul on ${fouler.name} — ${ordinal(fouler.gamePF)} personal — ${def.name} ball`, 'foul');
-        checkFoulOut(fouler, off);
-        switchPossession();
-        return creditAndReturn(false);
-      }
+    // Single-exit structure: all paths set possResult and break to the exit point,
+    // which calls checkRotation (after clock has been decremented) then returns.
+    let possResult = false;
 
-      // Defensive non-shooting foul — pick both players
-      const fouledPlayer = off.lineup[Math.floor(Math.random() * off.lineup.length)];
-      const defFouler = weightedRandom(def.lineup, def.lineup.map(p => sd(p.personal_fouls_per_100,'personal_fouls_per_100')));
-      def.teamFouls++;
-      defFouler.gamePF++;
-      G.stats[defFouler.name].pf++;
-      checkFoulOut(defFouler, def);
-      const clockBefore = G.clock;
+    possBlock: {
 
-      if (def.teamFouls >= 10) {
-        log(`Foul on ${defFouler.name} — ${foulDesc(defFouler, def)} — ${fouledPlayer.name} to shoot two`, 'foul');
-        resolveFreeThrows(fouledPlayer, off, def, 2);
-        checkMediaTimeout(clockBefore, 'non_shooting_foul');
-        return creditAndReturn(false);
-      } else if (def.teamFouls >= 7) {
-        log(`Foul on ${defFouler.name} — ${foulDesc(defFouler, def)} — ${fouledPlayer.name} to shoot one-and-one`, 'foul');
-        resolveOneAndOne(fouledPlayer, off, def);
-        checkMediaTimeout(clockBefore, 'non_shooting_foul');
-        return creditAndReturn(false);
-      } else {
-        log(`Foul on ${defFouler.name} — ${foulDesc(defFouler, def)} — ${off.name} retains`, 'foul');
-        checkMediaTimeout(clockBefore, 'non_shooting_foul');
-        if (retryDepth < 3) { G.totalPossessions--; return creditAndReturn(runPossession(isOrb, retryDepth + 1)); }
-        return creditAndReturn(false);
-      }
-    }
+      // ── Pre-shot non-shooting foul ────────────────────────────
+      const preShotChance = (def.team_fouls_per_game / 40) * 0.25;
+      if (Math.random() < preShotChance) {
+        // Determine offensive vs defensive before logging anything
+        if (Math.random() < 0.12) {
+          // Offensive foul — fouler is on offense
+          const fouler = off.lineup[Math.floor(Math.random() * off.lineup.length)];
+          fouler.gamePF++;
+          G.stats[fouler.name].pf++;
+          log(`Offensive foul on ${fouler.name} — ${ordinal(fouler.gamePF)} personal — ${def.name} ball`, 'foul');
+          checkFoulOut(fouler, off);
+          switchPossession();
+          break possBlock;
+        }
 
-    // ── Step 1: Steal check ─────────────────────────────────────
-    for (const d of def.lineup) {
-      const teamStealChance    = perPossessionChance(sd(d.steals_per_100,'steals_per_100'), def.possessions_per_game) * mods.steal_chance_mod;
-      const adjustedStealChance = teamStealChance * (1 + (-countingEdge));
-      if (Math.random() < adjustedStealChance) {
-        const victim = weightedRandom(off.lineup, off.lineup.map(p => sd(p.turnovers_per_100,'turnovers_per_100')));
-        G.stats[d.name].stl++;
-        G.stats[victim.name].tov++;
-        log(`STEAL: ${d.name} (${def.name}) from ${victim.name} | ${G.homeScore}-${G.awayScore}`, 'steal');
-        decrementClock(10);
-        applyMomentumEvent(def.isHome, 2);
-        switchPossession();
-        return creditAndReturn(false);
-      }
-    }
-
-    // ── Step 2: Turnover check ──────────────────────────────────
-    for (const p of off.lineup) {
-      const teamTovChance    = perPossessionChance(sd(p.turnovers_per_100,'turnovers_per_100'), off.possessions_per_game) * 0.55 * mods.turnover_chance_mod;
-      const adjustedTovChance = teamTovChance * (1 + (-countingEdge));
-      if (Math.random() < adjustedTovChance) {
-        G.stats[p.name].tov++;
+        // Defensive non-shooting foul — pick both players
+        const fouledPlayer = off.lineup[Math.floor(Math.random() * off.lineup.length)];
+        const defFouler = weightedRandom(def.lineup, def.lineup.map(p => sd(p.personal_fouls_per_100,'personal_fouls_per_100')));
+        def.teamFouls++;
+        defFouler.gamePF++;
+        G.stats[defFouler.name].pf++;
+        checkFoulOut(defFouler, def);
         const clockBefore = G.clock;
-        log(`TURNOVER: ${p.name} (${off.name}) | ${G.homeScore}-${G.awayScore}`, 'tov');
-        decrementClock(10);
-        checkMediaTimeout(clockBefore, 'turnover');
-        switchPossession();
-        return creditAndReturn(false);
-      }
-    }
 
-    // ── Step 3: Shooter ─────────────────────────────────────────
-    const shooter = selectShooter(off.lineup, mods);
-
-    // ── Step 5: Shot type ────────────────────────────────────────
-    const threeRate = clamp(shooter.three_pa_rate + mods.three_pa_rate_mod, 0, 1);
-    const isThree = Math.random() < threeRate;
-    const clockCost = isOrb ? 11 : 17;
-
-    // ── Step 5b: Block check ─────────────────────────────────────
-    const block = checkBlock(def, netEdge);
-    if (block.occurred) {
-      decrementClock(clockCost);
-      return creditAndReturn(resolveBlockedShot(shooter, block.blocker, off, def, isThree));
-    }
-
-    // ── Step 6: Shot outcome ─────────────────────────────────────
-    const base = isThree
-      ? sd(shooter.three_point_pct, 'three_point_pct')
-      : sd(shooter.two_point_pct, 'two_point_pct');
-    let pct = base;
-    pct += isThree ? mods.three_pt_pct_mod : mods.two_pt_pct_mod;
-    if (off.isHome) pct += off.home_fg_bonus;
-    pct += getMomentumMod(off.isHome);
-    pct += netEdge;
-    pct = clamp(pct, 0.05, 0.95);
-    const shotMade = Math.random() < pct;
-
-    // ── Made basket ──────────────────────────────────────────────
-    if (shotMade) {
-      const isDunk = !isThree && Math.random() < (shooter.position==='C' ? 0.18 : shooter.position==='F' ? 0.10 : 0.03);
-      const pts = isThree ? 3 : 2;
-
-      if (off.isHome) G.homeScore += pts; else G.awayScore += pts;
-      G.stats[shooter.name].fga++;
-      G.stats[shooter.name].fgm++;
-      G.stats[shooter.name].pts += pts;
-      if (isThree) { G.stats[shooter.name].tpa++; G.stats[shooter.name].tpm++; }
-
-      const clockBefore = G.clock;
-      decrementClock(clockCost);
-
-      const gain = (isDunk || isThree) ? 2 : 0;
-      applyMomentumBasket(off.isHome, gain);
-      updateRun(off.isHome, pts);
-
-      const label = isDunk ? 'DUNK' : isThree ? '3-PTR' : '2-PTR';
-      // Assist crediting — driven by team assist_rate, individual per-100s for attribution
-      let assister = null;
-      if (Math.random() < (off.assist_rate || 0.54)) {
-        const assistPool = off.lineup.filter(p => p !== shooter);
-        if (assistPool.length) {
-          assister = weightedRandom(assistPool,
-            assistPool.map(p => sd(p.assists_per_100, 'assists_per_100')));
-          G.stats[assister.name].ast++;
+        if (def.teamFouls >= 10) {
+          log(`Foul on ${defFouler.name} — ${foulDesc(defFouler, def)} — ${fouledPlayer.name} to shoot two`, 'foul');
+          resolveFreeThrows(fouledPlayer, off, def, 2);
+          checkMediaTimeout(clockBefore, 'non_shooting_foul');
+          break possBlock;
+        } else if (def.teamFouls >= 7) {
+          log(`Foul on ${defFouler.name} — ${foulDesc(defFouler, def)} — ${fouledPlayer.name} to shoot one-and-one`, 'foul');
+          resolveOneAndOne(fouledPlayer, off, def);
+          checkMediaTimeout(clockBefore, 'non_shooting_foul');
+          break possBlock;
+        } else {
+          log(`Foul on ${defFouler.name} — ${foulDesc(defFouler, def)} — ${off.name} retains`, 'foul');
+          checkMediaTimeout(clockBefore, 'non_shooting_foul');
+          // Recursive retry — inner call handles its own rotation check
+          if (retryDepth < 3) { G.totalPossessions--; return runPossession(isOrb, retryDepth + 1); }
+          break possBlock;
         }
       }
-      const assist = assister ? ` (${assister.name})` : '';
-      const evType = isDunk ? 'dunk' : isThree ? 'three' : 'make';
-      log(`${label}: ${shooter.name}${assist} (${off.name}) | ${G.homeScore}-${G.awayScore}`, evType);
 
-      // And-one check
-      const foul = checkShootingFoul(def.lineup, shooter, def);
-      if (foul.occurred) {
-        log(`  And-one! ${shootFoulDesc(foul.fouler, def, shooter, 'one')}`, 'foul');
-        resolveFreeThrows(shooter, off, def, 1);
-        checkMediaTimeout(clockBefore, 'shooting_foul');
-      } else {
-        switchPossession();
+      // ── Step 1: Steal check ───────────────────────────────────
+      for (const d of def.lineup) {
+        const teamStealChance     = perPossessionChance(sd(d.steals_per_100,'steals_per_100'), def.possessions_per_game) * mods.steal_chance_mod;
+        const adjustedStealChance = teamStealChance * (1 + (-countingEdge));
+        if (Math.random() < adjustedStealChance) {
+          const victim = weightedRandom(off.lineup, off.lineup.map(p => sd(p.turnovers_per_100,'turnovers_per_100')));
+          G.stats[d.name].stl++;
+          G.stats[victim.name].tov++;
+          log(`STEAL: ${d.name} (${def.name}) from ${victim.name} | ${G.homeScore}-${G.awayScore}`, 'steal');
+          decrementClock(G.baseClockCost);
+          applyMomentumEvent(def.isHome, 2);
+          G.fbChance = 0.50;
+          G.lastStealer = d.name;
+          switchPossession();
+          break possBlock;
+        }
       }
-      return creditAndReturn(false);
-    }
 
-    // ── Missed shot ──────────────────────────────────────────────
-    G.stats[shooter.name].fga++;
-    if (isThree) G.stats[shooter.name].tpa++;
+      // ── Step 2: Turnover check ────────────────────────────────
+      for (const p of off.lineup) {
+        const teamTovChance    = perPossessionChance(sd(p.turnovers_per_100,'turnovers_per_100'), off.possessions_per_game) * 0.55 * mods.turnover_chance_mod;
+        const adjustedTovChance = teamTovChance * (1 + (-countingEdge));
+        if (Math.random() < adjustedTovChance) {
+          G.stats[p.name].tov++;
+          const clockBefore = G.clock;
+          log(`TURNOVER: ${p.name} (${off.name}) | ${G.homeScore}-${G.awayScore}`, 'tov');
+          decrementClock(G.baseClockCost);
+          checkMediaTimeout(clockBefore, 'turnover');
+          G.fbChance = 0.20;
+          switchPossession();
+          break possBlock;
+        }
+      }
 
-    const foul = checkShootingFoul(def.lineup, shooter, def);
-    const clockBefore = G.clock;
-    decrementClock(clockCost);
+      // ── Broken press fast break ───────────────────────────────
+      // Fires after steal and turnover checks both fail, when defense is pressing.
+      // mods.offense_fastbreak is 0.50 for full_court_press matchups (set in strategy.js).
+      // resolveFastBreak handles its own rotation check and possession count.
+      if ((mods.offense_fastbreak || 0) > 0 && Math.random() < mods.offense_fastbreak) {
+        G.totalPossessions--;  // resolveFastBreak will re-increment
+        return resolveFastBreak(off, def, mods);
+      }
 
-    if (foul.occurred) {
-      // Shot nullified — undo the FGA we just counted
-      G.stats[shooter.name].fga--;
-      if (isThree) G.stats[shooter.name].tpa--;
-      const ftCount = isThree ? 3 : 2;
-      const ftDesc = ftCount === 3 ? 'three' : 'two';
-      log(`${shootFoulDesc(foul.fouler, def, shooter, ftDesc)}`, 'foul');
-      resolveFreeThrows(shooter, off, def, ftCount);
-      checkMediaTimeout(clockBefore, 'shooting_foul');
-      return creditAndReturn(false);
-    }
+      // ── Step 3: Shooter ───────────────────────────────────────
+      const shooter = selectShooter(off.lineup, mods);
 
-    log(`MISS: ${shooter.name} (${isThree?'3':'2'}pt, ${off.name}) | ${G.homeScore}-${G.awayScore}`, 'miss');
-    const gotOrb = resolveRebound(off, def, isThree);
-    // If offensive rebound: next possession uses 8s clock (isOrb=true)
-    // resolveRebound already handled possession switch for defensive rebound
-    return creditAndReturn(gotOrb);
+      // ── Step 5: Shot type ─────────────────────────────────────
+      const threeRate = clamp(shooter.three_pa_rate + mods.three_pa_rate_mod, 0, 1);
+      const isThree = Math.random() < threeRate;
+      const clockCost = isOrb ? 11 : 17;
+
+      // ── Step 5b: Block check ──────────────────────────────────
+      const block = checkBlock(def, netEdge);
+      if (block.occurred) {
+        decrementClock(clockCost);
+        possResult = resolveBlockedShot(shooter, block.blocker, off, def, isThree);
+        break possBlock;
+      }
+
+      // ── Step 6: Shot outcome ──────────────────────────────────
+      const base = isThree
+        ? sd(shooter.three_point_pct, 'three_point_pct')
+        : sd(shooter.two_point_pct, 'two_point_pct');
+      let pct = base;
+      pct += isThree ? mods.three_pt_pct_mod : mods.two_pt_pct_mod;
+      if (off.isHome) pct += off.home_fg_bonus;
+      pct += getMomentumMod(G.momentum, off.isHome, 5);
+      pct += netEdge;
+      pct = clamp(pct, 0.05, 0.95);
+      const shotMade = Math.random() < pct;
+
+      // ── Made basket ───────────────────────────────────────────
+      if (shotMade) {
+        const isDunk = !isThree && Math.random() < (shooter.position==='C' ? 0.18 : shooter.position==='F' ? 0.10 : 0.03);
+        const pts = isThree ? 3 : 2;
+
+        if (off.isHome) G.homeScore += pts; else G.awayScore += pts;
+        G.stats[shooter.name].fga++;
+        G.stats[shooter.name].fgm++;
+        G.stats[shooter.name].pts += pts;
+        if (isThree) { G.stats[shooter.name].tpa++; G.stats[shooter.name].tpm++; }
+
+        const clockBefore = G.clock;
+        decrementClock(clockCost);
+
+        const gain = (isDunk || isThree) ? 2 : 0;
+        applyMomentumBasket(off.isHome, gain);
+        updateRun(off.isHome, pts);
+
+        const label = isDunk ? 'DUNK' : isThree ? '3-PTR' : '2-PTR';
+        // Assist crediting — driven by team assist_rate, individual per-100s for attribution
+        let assister = null;
+        if (Math.random() < (off.assist_rate || 0.54)) {
+          const assistPool = off.lineup.filter(p => p !== shooter);
+          if (assistPool.length) {
+            assister = weightedRandom(assistPool,
+              assistPool.map(p => sd(p.assists_per_100, 'assists_per_100')));
+            G.stats[assister.name].ast++;
+          }
+        }
+        const assist = assister ? ` (${assister.name})` : '';
+        const evType = isDunk ? 'dunk' : isThree ? 'three' : 'make';
+        log(`${label}: ${shooter.name}${assist} (${off.name}) | ${G.homeScore}-${G.awayScore}`, evType);
+
+        // And-one check
+        const foul = checkShootingFoul(def.lineup, shooter, def, off);
+        if (foul.occurred) {
+          log(`  And-one! ${shootFoulDesc(foul.fouler, def, shooter, 'one')}`, 'foul');
+          resolveFreeThrows(shooter, off, def, 1);
+          checkMediaTimeout(clockBefore, 'shooting_foul');
+        } else {
+          switchPossession();
+        }
+        break possBlock;
+      }
+
+      // ── Missed shot ───────────────────────────────────────────
+      G.stats[shooter.name].fga++;
+      if (isThree) G.stats[shooter.name].tpa++;
+
+      const foul = checkShootingFoul(def.lineup, shooter, def, off);
+      const clockBefore = G.clock;
+      decrementClock(clockCost);
+
+      if (foul.occurred) {
+        // Shot nullified — undo the FGA we just counted
+        G.stats[shooter.name].fga--;
+        if (isThree) G.stats[shooter.name].tpa--;
+        const ftCount = isThree ? 3 : 2;
+        const ftDesc = ftCount === 3 ? 'three' : 'two';
+        log(`${shootFoulDesc(foul.fouler, def, shooter, ftDesc)}`, 'foul');
+        resolveFreeThrows(shooter, off, def, ftCount);
+        checkMediaTimeout(clockBefore, 'shooting_foul');
+        break possBlock;
+      }
+
+      log(`MISS: ${shooter.name} (${isThree?'3':'2'}pt, ${off.name}) | ${G.homeScore}-${G.awayScore}`, 'miss');
+      possResult = resolveRebound(off, def, isThree);
+      // If offensive rebound: next possession uses 8s clock (isOrb=true)
+      // resolveRebound already handled possession switch for defensive rebound
+
+    } // end possBlock
+
+    checkRotation(G.home, clockAtPossStart, G);
+    checkRotation(G.away, clockAtPossStart, G);
+    return possResult;
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -895,6 +1074,7 @@ function selectShooter(players, mods) {
   // ── Public API ─────────────────────────────────────────────────────────────
   return {
     runOneGame,
+    getMomentumMod,
     get G()   { return G;   },
     get pbp() { return pbp; },
   };

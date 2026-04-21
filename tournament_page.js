@@ -130,6 +130,21 @@ window.TournamentPage = (function () {
   padding: 12px 32px; font-size: .92rem; font-weight: 700; cursor: pointer; transition: background .14s;
 }
 .tp-new-tourn-btn:hover { background: #c85008; }
+
+/* ── Page header (matches season.html header style) ── */
+.tp-page-header {
+  background: var(--primary,#0d2240); color: #fff; padding: 0 20px;
+  position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 14px rgba(0,0,0,.35);
+  display: flex; align-items: center; gap: 10px; height: 58px;
+  flex-wrap: nowrap; overflow: hidden;
+}
+.tp-page-header-brand { flex-shrink: 0; }
+.tp-page-header-logo { font-size: 1.2rem; font-weight: 800; letter-spacing: -.5px; white-space: nowrap; }
+.tp-page-header-logo span { color: var(--accent,#e8600a); }
+.tp-page-header-sub { font-size: .6rem; color: rgba(255,255,255,.4); text-transform: uppercase; letter-spacing: .9px; margin-top: 1px; }
+.tp-page-header-info { flex: 1; display: flex; align-items: center; gap: 10px; overflow: hidden; justify-content: flex-end; }
+.tp-page-header .hdr-link { color: rgba(255,255,255,.65); font-size: .75rem; font-weight: 700; text-decoration: none; letter-spacing: .4px; }
+.tp-page-header .hdr-link:hover { color: #fff; }
 `;
     document.head.appendChild(s);
   }
@@ -187,8 +202,25 @@ window.TournamentPage = (function () {
   // ── Public: init ───────────────────────────────────────────────────────────
 
   function init(containerId) {
-    _containerId = containerId;
     _injectStyles();
+
+    // Inject header + content wrapper once; re-renders target the inner div
+    const contentId = containerId + '-content';
+    if (!document.getElementById(contentId)) {
+      const outerEl = document.getElementById(containerId);
+      outerEl.innerHTML =
+        '<div class="tp-page-header">' +
+          '<div class="tp-page-header-brand">' +
+            '<div class="tp-page-header-logo">\uD83C\uDFC0 <span>TOURNAMENT</span> MODE</div>' +
+            '<div class="tp-page-header-sub">2025\u201326 &nbsp;\u00B7&nbsp; v2.3</div>' +
+          '</div>' +
+          '<div class="tp-page-header-info">' +
+            '<a href="#" class="hdr-link" onclick="showScreen(\'home\');return false;">\u2190 Home</a>' +
+          '</div>' +
+        '</div>' +
+        '<div id="' + contentId + '"></div>';
+    }
+    _containerId = contentId;
     _bindContainerEvents();
 
     // Return from a played tournament game

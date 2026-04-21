@@ -268,7 +268,7 @@ header { background: var(--primary); color: #fff; padding: 0 28px; position: sti
 <header>
   <button class="back-btn" id="backBtn" style="display:none" onclick="handleBack()">&#8592; Back</button>
   <div class="header-brand">
-    <div class="header-sub">2025–26 Season &nbsp;·&nbsp; v2.1</div>
+    <div class="header-sub">2025–26 Season &nbsp;·&nbsp; v2.3</div>
     <div class="header-logo">College Hoops <span>Throwdown</span></div>
   </div>
 </header>
@@ -327,6 +327,9 @@ header { background: var(--primary); color: #fff; padding: 0 28px; position: sti
     <p>Created by Claude Code with help from Bill O'Neill</p>
 
     <h3 style="margin-top:1.2em">Version History</h3>
+
+    <p><strong>v2.2</strong><br>
+    Modularized architecture. Strategy system extracted from index.html into shared module strategy.js (window.Strategy). Strategy modifier table, CPU strategy selection, and random assignment for sim games now shared across index.html, season.html, and simulate.html. game_engine_sim.js applies live strategy mods per possession when strategy.js is loaded; falls back to neutral mods when running standalone.</p>
 
     <p><strong>v2.1</strong><br>
     CPU rotation substitution system. Players sub in/out based on minutes budget (MPG × 0.92) and foul trouble thresholds (3 fouls in first half, 4 in second). Rotation players (MPG ≥ 8) managed separately from emergency depth. Minutes played now tracked via possession counter (poss) rather than static MPG. Net rating quality-of-competition adjustments applied across shooting, steals, turnovers, blocks, and rebounds.</p>
@@ -810,61 +813,7 @@ const DEFENSE = [
   { name: 'Full Court Press', desc: 'Deny inbounds and attack the ball the full length of the floor.' },
 ];
 function normalizeStrat(s){ return s.toLowerCase().replace(/&/g,'and').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,''); }
-// Strategy modifier table: [tpa,cwm,fwm,gwm,tp2,tp3,orb,ast,stl,tov,foul,fb]
-// tpa/tp2/tp3/orb: divide by 100 for decimal. cwm/fwm/gwm: additive to 1.0. ast/stl/tov/foul: extra check counts. fb: offense fast break.
-const STRATEGY_MODS = {
-  'five_out|man_to_man':          [5,  0,   0,   0.5, 0,  -2,  0, 0,0,0,0,false],
-  'five_out|2_3_zone':            [5,  0,   0,   0.5, 0,   5,  5, 0,0,0,0,false],
-  'five_out|1_3_1_zone':          [-10,0,   0,   0,  -5,  -5,  3, 0,0,0,0,false],
-  'five_out|matchup_zone':        [-10,0,   0.5, 0,   0,  -2,  5, 0,0,0,0,false],
-  'five_out|half_court_trap':     [-10,0.5, 0.5, 0,   5,   0,  3, 0,0,1,1,false],
-  'five_out|full_court_press':    [0,  0.5, 0.5, 0,  10,   5,  3, 0,1,2,1,0.80],
-  'pick_and_roll|man_to_man':     [-10,0,   0,   0.5, 0,   0,  0, 1,0,0,0,false],
-  'pick_and_roll|2_3_zone':       [-10,0,   0,   0.5, 5,   5,  5, 0,0,0,0,false],
-  'pick_and_roll|1_3_1_zone':     [-10,0,   0,   0,  -5,  -5,  3, 0,0,0,0,false],
-  'pick_and_roll|matchup_zone':   [-10,0,   0.5, 0,   0,   0,  5, 1,0,0,0,false],
-  'pick_and_roll|half_court_trap':[-20,0.5, 0.5, 0,   5,   0,  3, 1,0,1,1,false],
-  'pick_and_roll|full_court_press':[0, 0.5, 0.5, 0,  10,   5,  3, 0,1,2,1,0.80],
-  'pick_and_pop|man_to_man':      [5,  0,   0,   0.5, 0,   0,  0, 0,0,0,0,false],
-  'pick_and_pop|2_3_zone':        [5,  0,   0,   0.5, 0,   5,  5, 0,0,0,0,false],
-  'pick_and_pop|1_3_1_zone':      [-10,0,   0,   0,  -5,  -5,  3, 0,0,0,0,false],
-  'pick_and_pop|matchup_zone':    [-10,0,   0.5, 0,   0,   0,  5, 0,0,0,0,false],
-  'pick_and_pop|half_court_trap': [-20,0.5, 0.5, 0,   5,   0,  3, 0,0,1,1,false],
-  'pick_and_pop|full_court_press':[0,  0.5, 0.5, 0,  10,   5,  3, 0,1,2,1,0.80],
-  'motion|man_to_man':            [0,  0,   0,   0,   5,   0,  0, 0,0,0,0,false],
-  'motion|2_3_zone':              [5,  0,   0,   0,   0,   5,  5, 0,0,0,0,false],
-  'motion|1_3_1_zone':            [-10,0,   0.5, 0,  -5,  -5,  3, 0,0,0,0,false],
-  'motion|matchup_zone':          [-10,0,   0,   0,   0,   0,  5, 0,0,0,0,false],
-  'motion|half_court_trap':       [-20,0.5, 0.5, 0,   5,   0,  3, 1,0,1,1,false],
-  'motion|full_court_press':      [0,  0.5, 0.5, 0,  10,   5,  3, 0,1,2,1,0.80],
-  'high_post|man_to_man':         [5,  0,   0,   0.5, 0,   0,  0, 0,0,0,0,false],
-  'high_post|2_3_zone':           [5,  0,   0,   0.5, 5,   5,  5, 0,0,0,0,false],
-  'high_post|1_3_1_zone':         [-10,0,   0,   0,   0,  -5,  3, 0,0,0,0,false],
-  'high_post|matchup_zone':       [-10,0,   0.5, 0,   0,   0,  5, 0,0,0,0,false],
-  'high_post|half_court_trap':    [-20,0.5, 0.5, 0,   5,   0,  3, 0,0,1,1,false],
-  'high_post|full_court_press':   [0,  0.5, 0.5, 0,  10,   5,  3, 0,1,2,1,0.80],
-  'low_post|man_to_man':          [0,  1,   0,   0,   0,   0,  0, 0,0,0,0,false],
-  'low_post|2_3_zone':            [0,  0,   0,   0.5,-5,   5,  5, 0,0,0,0,false],
-  'low_post|1_3_1_zone':          [-10,0.5, 0,   0,  -5,  -5,  3, 0,0,0,0,false],
-  'low_post|matchup_zone':        [-10,0,   0.5, 0,   0,   0,  5, 0,0,0,0,false],
-  'low_post|half_court_trap':     [-20,0.5, 0.5, 0,   5,   0,  3, 0,0,1,1,false],
-  'low_post|full_court_press':    [0,  0.5, 0.5, 0,  10,   5,  3, 0,1,2,1,0.80],
-};
-function ge_setStrategyMods(offStrat,defStrat){
-  const m=STRATEGY_MODS[(offStrat||'motion')+'|'+(defStrat||'man_to_man')]||[];
-  GE_MODS.three_pa_rate_mod        =(m[0]||0)/100;
-  GE_MODS.center_weight_mod        =1+(m[1]||0);
-  GE_MODS.forward_weight_mod       =1+(m[2]||0);
-  GE_MODS.guard_weight_mod         =1+(m[3]||0);
-  GE_MODS.two_pt_pct_mod           =(m[4]||0)/100;
-  GE_MODS.three_pt_pct_mod         =(m[5]||0)/100;
-  GE_MODS.offensive_rebound_pct_mod=(m[6]||0)/100;
-  GE_MODS.extra_assist_checks      =m[7]||0;
-  GE_MODS.extra_steal_checks       =m[8]||0;
-  GE_MODS.extra_tov_checks         =m[9]||0;
-  GE_MODS.extra_foul_checks        =m[10]||0;
-  GE_MODS.offense_fastbreak        =m[11]||0;
-}
+// STRATEGY_MODS and ge_setStrategyMods moved to strategy.js
 
 function renderGameplanPane() {
   const team = G.p1Team;
@@ -1161,7 +1110,7 @@ function logEv(text,type,milestone){
 
 function ge_buildTeam(td,isHome){
   const elig=[...(td.players||[])].filter(p=>(p.minutes_per_game||0)>0&&p.fga_per_100!=null).sort((a,b)=>(b.minutes_per_game||0)-(a.minutes_per_game||0)).map(p=>({...p,three_pa_rate:(p.three_pa_per_100&&p.fga_per_100)?clamp(p.three_pa_per_100/p.fga_per_100,0,1):(GE_THREE_PA_DEFAULTS[p.position]||0.25),gamePF:0,halfSecs:0,totalGameSecs:0,halfTov:0,consec_misses:0,sitUntilH2:false,sitUntilNextTO:false}));
-  return { name:td.name, nickname:td.nickname||'', isHome, primaryColor:td.primaryColor||'#888', head_coach:td.head_coach||'', possessions_per_game:td.possessions_per_game||70, offensive_rebound_pct:td.offensive_rebound_pct||0.28, defensive_rebound_pct:td.defensive_rebound_pct||0.72, assist_rate:td.assist_rate||0.54, team_fouls_per_game:td.team_fouls_per_game||18, home_fg_bonus:td.home_fg_bonus||0.02, lineup:elig.slice(0,5), bench:elig.slice(5), strategy_offense:'motion', strategy_defense:'man_to_man', lastLoggedDefense:null, teamFouls:0, currentRun:0 };
+  return { name:td.name, nickname:td.nickname||'', isHome, primaryColor:td.primaryColor||'#888', head_coach:td.head_coach||'', possessions_per_game:td.possessions_per_game||70, offensive_rebound_pct:td.offensive_rebound_pct||0.28, defensive_rebound_pct:td.defensive_rebound_pct||0.72, assist_rate:td.assist_rate||0.54, team_fouls_per_game:td.team_fouls_per_game||18, home_fg_bonus:td.home_fg_bonus||0.02, lineup:elig.slice(0,5), bench:elig.slice(5), strategy_offense:null, strategy_defense:null, lastLoggedDefense:null, teamFouls:0, currentRun:0 };
 }
 
 function restoreGameState(snap,newP1Lineup){
@@ -1233,46 +1182,7 @@ function ge_cpuDoSub(team,out,ins){
 const DEF_LABELS={'man_to_man':'Man to Man','2_3_zone':'2-3 Zone','1_3_1_zone':'1-3-1 Zone','matchup_zone':'Matchup Zone','half_court_trap':'Half Court Trap','full_court_press':'Full Court Press'};
 const OFF_LABELS={'five_out':'Five Out','pick_and_roll':'Pick & Roll','pick_and_pop':'Pick & Pop','motion':'Motion','high_post':'High Post','low_post':'Low Post'};
 
-function ge_cpuChooseStrategy(cpuTeam, isHalftime){
-  if(!cpuTeam) return;
-  const p1IsHome=G.homeOp==='P1';
-  const p1Team=p1IsHome?GAME.home:GAME.away;
-
-  if(!isHalftime){
-    // ── Offense: based on position FGA distribution and 3pt tendencies ──
-    const players=cpuTeam.allPlayers||cpuTeam.lineup||[];
-    const posFGA={G:0,F:0,C:0}, posCount={G:0,F:0,C:0};
-    for(const p of players){
-      if(posFGA[p.position]!==undefined){ posFGA[p.position]+=(p.fga_per_100||0); posCount[p.position]++; }
-    }
-    const avgG=posCount.G>0?posFGA.G/posCount.G:0;
-    const avgF=posCount.F>0?posFGA.F/posCount.F:0;
-    const avgC=posCount.C>0?posFGA.C/posCount.C:0;
-    const avgThreeRate=players.reduce((s,p)=>s+(p.three_pa_rate||0),0)/Math.max(players.length,1);
-    let off;
-    if(avgC>avgG*1.2 && avgC>avgF*1.1)         off='low_post';
-    else if(avgThreeRate>0.38)                  off=Math.random()<0.5?'five_out':'pick_and_pop';
-    else if(avgG>avgF && avgG>avgC && (cpuTeam.assist_rate||0)>0.50) off=Math.random()<0.5?'pick_and_roll':'motion';
-    else if(avgF>=avgG)                         off=Math.random()<0.5?'high_post':'motion';
-    else                                        off='motion';
-    cpuTeam.strategy_offense=off;
-    cpuTeam.strategy_defense='man_to_man';
-  } else {
-    // ── Halftime: adjust defense based on P1's first half stats ──
-    const p1Players=p1Team.allPlayers||[...(p1Team.lineup||[]),...(p1Team.bench||[])];
-    let p1FGM=0,p1FGA=0,p1TPA=0,p1AST=0;
-    for(const p of p1Players){ const s=GAME.stats[p.name]||{}; p1FGM+=s.fgm||0; p1FGA+=s.fga||0; p1TPA+=s.tpa||0; p1AST+=s.ast||0; }
-    const p1FGpct=p1FGA>0?p1FGM/p1FGA:0.45;
-    const p1ThreeRate=p1FGA>0?p1TPA/p1FGA:0;
-    const prevDef=cpuTeam.strategy_defense||'man_to_man';
-    let def;
-    if(p1ThreeRate>0.40 && p1FGpct>0.44)       def='2_3_zone';
-    else if(p1AST>10)                           def='matchup_zone';
-    else if(p1FGpct>0.52)                       def='1_3_1_zone';
-    else                                        def='man_to_man';
-    cpuTeam.strategy_defense=def;
-  }
-}
+// ge_cpuChooseStrategy moved to strategy.js as Strategy.cpuChoose
 
 function ge_applyCpuCoaching(cpuTeam){
   if(!cpuTeam)return;
@@ -1308,12 +1218,14 @@ function ge_applyCpuCoaching(cpuTeam){
     // Rest rotation at 15:00 (≤900s), 12:00 (≤720s), 8:00 (≤480s) remaining
     const restMarks=[{maxClock:900,flag:'subAt15Done'},{maxClock:720,flag:'subAt12Done'},{maxClock:480,flag:'subAt8Done'}];
     for(const mark of restMarks){
+      console.log(`[coaching] clock:${GAME.clock} mark:${mark.maxClock} flag:${mark.flag} done:${GAME[mark.flag]}`);
       if(GAME.clock<=mark.maxClock&&!GAME[mark.flag]){
         GAME[mark.flag]=true;
         if(cpuTeam.lineup.length>0){
           const highMin=cpuTeam.lineup.reduce((a,b)=>b.halfSecs>a.halfSecs?b:a);
           const sub=ge_cpuBestBench(cpuTeam,highMin.position);
-          if(sub&&ge_cpuDoSub(cpuTeam,highMin,sub)){ GAME.cpuReturnQueue.push({playerName:highMin.name,toosUntilReturn:1}); }
+          console.log(`[coaching] attempting sub: out=${highMin.name} halfSecs=${highMin.halfSecs} in=${sub?.name||'null'}`);
+          if(sub&&ge_cpuDoSub(cpuTeam,highMin,sub)){ GAME.cpuReturnQueue.push({playerName:highMin.name,toosUntilReturn:1}); console.log(`[coaching] sub successful`); } else { console.log(`[coaching] sub FAILED — sub:${sub?.name||'null'}`); }
         }
         break;
       }
@@ -1341,7 +1253,9 @@ function ge_firePendingMTO(){
   const t=GAME.pendingMediaTO;
   GAME.pendingMediaTO=null;
   GAME.mediaTimeouts=GAME.mediaTimeouts.filter(x=>x!==t);
-  ge_applyCpuCoaching(ge_cpuTeam());
+  // Run coaching for CPU team(s)
+  if(G.homeOp!=='P1') ge_applyCpuCoaching(GAME.home);
+  if(G.visitorOp!=='P1') ge_applyCpuCoaching(GAME.away);
   eventQueue.push({ text:null, type:'media_timeout', snapshot:captureSnap() });
 }
 
@@ -1353,7 +1267,7 @@ function ge_scoreStr(off){
   if(diff>0)   return `${offScore}-${defScore} ${off.name}`;
                return `${defScore}-${offScore}`;
 }
-function ge_momMod(isHome){ return (isHome?GAME.momentum:-GAME.momentum)*0.002; }
+
 function ge_momBasket(isHome,gain){ const d=isHome?1:-1; if(gain>0){ if(isHome)GAME.momentum=Math.max(0,GAME.momentum); else GAME.momentum=Math.min(0,GAME.momentum); GAME.momentum=clamp(GAME.momentum+d*gain,-10,10); } else { GAME.momentum=clamp(GAME.momentum+d,-10,10); } }
 function ge_momEvt(isHome,gain){ GAME.momentum=clamp(GAME.momentum+(isHome?1:-1)*gain,-10,10); }
 function ge_updateRun(isHome,pts){
@@ -1496,7 +1410,7 @@ function ge_fastBreak(){
   const is3=(shooter===stealerPlayer)?false:Math.random()<clamp(shooter.three_pa_rate+GE_MODS.three_pa_rate_mod,0,1);
   const fat=ge_fatigue(shooter); const cost=17;
   let pct; if(actualAssister){ pct=is3?clamp(ASSISTED_PCT_3+fat.three+0.05,0.05,0.95):clamp(ASSISTED_PCT_2+fat.two+0.12,0.05,0.95); }
-  else{ pct=calcNAP(is3?ge_sd(shooter.three_point_pct,'three_point_pct'):ge_sd(shooter.two_point_pct,'two_point_pct'),off.assist_rate,is3); pct+=is3?GE_MODS.three_pt_pct_mod:GE_MODS.two_pt_pct_mod; if(off.isHome)pct+=off.home_fg_bonus; pct+=ge_momMod(off.isHome); pct+=is3?fat.three:fat.two; pct=clamp(is3?pct+0.05:pct+0.15,0.05,0.95); }
+  else{ pct=calcNAP(is3?ge_sd(shooter.three_point_pct,'three_point_pct'):ge_sd(shooter.two_point_pct,'two_point_pct'),off.assist_rate,is3); pct+=is3?GE_MODS.three_pt_pct_mod:GE_MODS.two_pt_pct_mod; if(off.isHome)pct+=off.home_fg_bonus; pct+=GameEngineSim.getMomentumMod(GAME.momentum,off.isHome,10); pct+=is3?fat.three:fat.two; pct=clamp(is3?pct+0.05:pct+0.15,0.05,0.95); }
   const made=Math.random()<pct;
   if(made){
     const dunk=!is3&&Math.random()<0.60; const pts=is3?3:2;
@@ -1520,8 +1434,8 @@ function ge_fastBreak(){
 
 function ge_poss(isOrb,depth){
   if(GAME.clock<=0)return false; depth=depth||0;
-  const off=ge_off(),def=ge_def(),mods=GE_MODS; GAME.totalPossessions++;
-  ge_setStrategyMods(off.strategy_offense,def.strategy_defense);
+  const off=ge_off(),def=ge_def(); GAME.totalPossessions++;
+  const mods=Object.assign(GE_MODS, Strategy.getMods(off.strategy_offense,def.strategy_defense));
   if(!isOrb&&depth===0){
     const fbC=GAME.fbChance||0; GAME.fbChance=0;
     if(fbC>0&&Math.random()<fbC){ return ge_fastBreak(); }
@@ -1592,7 +1506,7 @@ function ge_poss(isOrb,depth){
   if(blocker){ GAME.stats[shooter.name].fga++; if(is3)GAME.stats[shooter.name].tpa++; GAME.stats[blocker.name].blk++; shooter.consec_misses=(shooter.consec_misses||0)+1; ge_tick(cost); logEv(`BLOCK: ${blocker.name} (${def.name}) blocks ${shooter.name} | ${GAME.homeScore}-${GAME.awayScore}`,'block'); ge_momEvt(def.isHome,1); return ge_rebound(off,def,is3); }
   let made;
   if(assister){ made=Math.random()<clamp((is3?ASSISTED_PCT_3:ASSISTED_PCT_2)+(is3?fat.three:fat.two),0.05,0.95); }
-  else{ let pct=calcNAP(is3?ge_sd(shooter.three_point_pct,'three_point_pct'):ge_sd(shooter.two_point_pct,'two_point_pct'),off.assist_rate,is3); pct+=is3?mods.three_pt_pct_mod:mods.two_pt_pct_mod; if(off.isHome)pct+=off.home_fg_bonus; pct+=ge_momMod(off.isHome); pct+=is3?fat.three:fat.two; made=Math.random()<clamp(pct,0.05,0.95); }
+  else{ let pct=calcNAP(is3?ge_sd(shooter.three_point_pct,'three_point_pct'):ge_sd(shooter.two_point_pct,'two_point_pct'),off.assist_rate,is3); pct+=is3?mods.three_pt_pct_mod:mods.two_pt_pct_mod; if(off.isHome)pct+=off.home_fg_bonus; pct+=GameEngineSim.getMomentumMod(GAME.momentum,off.isHome,10); pct+=is3?fat.three:fat.two; made=Math.random()<clamp(pct,0.05,0.95); }
 
   if(made){
     const dunk=!is3&&Math.random()<(shooter.position==='C'?0.18:shooter.position==='F'?0.10:0.03),pts=is3?3:2;
@@ -1623,7 +1537,7 @@ function ge_setupHalf(lbl){
   GAME.half=lbl; const isOT=typeof lbl==='string'&&lbl.startsWith('OT');
   GAME.clock=isOT?300:1200; GAME.momentum=0; GAME.home.teamFouls=0; GAME.away.teamFouls=0; GAME.halfPossessions=0; GAME.pendingMediaTO=null;
   if(isOT){GAME.mediaTimeouts=[];GAME.homeTimeouts=1;GAME.awayTimeouts=1;}
-  else{GAME.mediaTimeouts=[720,240];GAME.homeTimeouts=3;GAME.awayTimeouts=3;}
+  else{GAME.mediaTimeouts=[720,480,240];GAME.homeTimeouts=3;GAME.awayTimeouts=3;}
   if(!isOT){
     // Reset per-half fatigue/coaching fields
     GAME.fbChance=0; GAME.lastStealer=null; GAME.cpuRunToDone=false; GAME.cpuPressApplied=false; GAME.cpuDefChangeOnRunDone=false;
@@ -1631,13 +1545,16 @@ function ge_setupHalf(lbl){
     const allP=[...GAME.home.lineup,...GAME.home.bench,...GAME.away.lineup,...GAME.away.bench];
     for(const p of allP){ p.halfSecs=0; p.halfTov=0; p.consec_misses=0; p.sitUntilNextTO=false; }
     if(lbl===2){
-      // Return H1 foul-trouble sitters
-      const cpuT=ge_cpuTeam();
-      for(let i=cpuT.bench.length-1;i>=0;i--){ const p=cpuT.bench[i]; if(p.sitUntilH2){ p.sitUntilH2=false; if(cpuT.lineup.length>0){ const worst=cpuT.lineup.reduce((a,b)=>b.totalGameSecs>a.totalGameSecs?b:a); ge_cpuDoSub(cpuT,worst,p); } } }
+      // Return H1 foul-trouble sitters — process all CPU-controlled teams
+      const cpuTeams=[];
+      if(G.homeOp!=='P1') cpuTeams.push(GAME.home);
+      if(G.visitorOp!=='P1') cpuTeams.push(GAME.away);
+      for(const cpuT of cpuTeams){
+        for(let i=cpuT.bench.length-1;i>=0;i--){ const p=cpuT.bench[i]; if(p.sitUntilH2){ p.sitUntilH2=false; if(cpuT.lineup.length>0){ const worst=cpuT.lineup.reduce((a,b)=>b.totalGameSecs>a.totalGameSecs?b:a); ge_cpuDoSub(cpuT,worst,p); } } }
+        Strategy.cpuChoose(cpuT, true, GAME);
+      }
       GAME.cpuReturnQueue=[];
       GAME.subAt15Done=false; GAME.subAt12Done=false; GAME.subAt8Done=false;
-      // CPU halftime strategy adjustment
-      ge_cpuChooseStrategy(cpuT, true);
     }
   }
   logEv(`\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 ${isOT?lbl:lbl===1?'FIRST HALF':'SECOND HALF'} \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550`,'info');
@@ -1647,7 +1564,7 @@ function ge_runHalf(){ let orb=false; while(GAME.clock>0){orb=ge_poss(orb)||fals
 function startGame(){
   const homeData=G.home, awayData=G.visitor;
   eventQueue=[]; displayIdx=0; prevHS=0; prevAS=0;
-  GAME={ home:ge_buildTeam(homeData,true), away:ge_buildTeam(awayData,false), homeScore:0, awayScore:0, clock:1200, half:1, possession:Math.random()<0.5?'home':'away', momentum:0, homeTimeouts:3, awayTimeouts:3, mediaTimeouts:[720,240], pendingMediaTO:null, stats:{}, halfPossessions:0, totalPossessions:0, cpuReturnQueue:[], subAt15Done:false, subAt12Done:false, subAt8Done:false, fbChance:0, lastStealer:null, cpuRunToDone:false, cpuPressApplied:false, cpuDefChangeOnRunDone:false };
+  GAME={ home:ge_buildTeam(homeData,true), away:ge_buildTeam(awayData,false), homeScore:0, awayScore:0, clock:1200, half:1, possession:Math.random()<0.5?'home':'away', momentum:0, homeTimeouts:3, awayTimeouts:3, mediaTimeouts:[720,480,240], pendingMediaTO:null, stats:{}, halfPossessions:0, totalPossessions:0, cpuReturnQueue:[], subAt15Done:false, subAt12Done:false, subAt8Done:false, fbChance:0, lastStealer:null, cpuRunToDone:false, cpuPressApplied:false, cpuDefChangeOnRunDone:false };
 
   const p1IsHome = G.homeOp === 'P1';
   const p1Team = p1IsHome ? GAME.home : GAME.away;
@@ -1663,10 +1580,16 @@ function startGame(){
     if(G.defStrategy) p1Team.strategy_defense=normalizeStrat(G.defStrategy);
   }
 
-  // Set CPU initial strategy (and P1 strategy in watch mode)
+  // Set initial strategies via Strategy module
   const cpuTeam=p1IsHome?GAME.away:GAME.home;
-  ge_cpuChooseStrategy(cpuTeam, false);
-  if(G.watchMode) ge_cpuChooseStrategy(p1Team, false);
+  if(G.watchMode){
+    // CPU vs CPU — random strategies for variety
+    Strategy.randomAssign(GAME.home);
+    Strategy.randomAssign(GAME.away);
+  } else {
+    // Normal game — CPU gets roster-based selection, P1 keeps UI selection
+    Strategy.cpuChoose(cpuTeam, false, GAME);
+  }
 
   GAME.home.allPlayers=[...GAME.home.lineup,...GAME.home.bench]; GAME.away.allPlayers=[...GAME.away.lineup,...GAME.away.bench];
   for(const p of[...GAME.home.lineup,...GAME.home.bench,...GAME.away.lineup,...GAME.away.bench]){
@@ -2053,6 +1976,7 @@ fetch('data/data.json')
   });
 </script>
 <script src="boxscore.js"></script>
+<script src="strategy.js"></script>
 <script src="game_engine_sim.js"></script>
 <script src="cpu_sim.js"></script>
 <script src="stats_engine.js"></script>

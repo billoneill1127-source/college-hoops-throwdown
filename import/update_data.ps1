@@ -10,7 +10,12 @@ $root      = Split-Path -Parent $PSScriptRoot
 $dataPath  = Join-Path $root "data.json"
 $utf8NoBom = New-Object System.Text.UTF8Encoding $false
 
-$data    = Get-Content $dataPath -Raw | ConvertFrom-Json
+if (Test-Path $dataPath) {
+    $data = @(Get-Content $dataPath -Raw | ConvertFrom-Json)
+} else {
+    Write-Warning "data.json not found at root - creating new file"
+    $data = @()
+}
 $updated = $false
 
 $outputFiles = Get-ChildItem $PSScriptRoot -Filter "*_output.json" | Sort-Object Name
@@ -43,7 +48,7 @@ foreach ($file in $outputFiles) {
     }
 
     if (-not $found) {
-        $data   += $confData
+        $data   = @($data) + @($confData)
         $updated = $true
         Write-Host "$confName added: $teamCount teams" -ForegroundColor Yellow
     }

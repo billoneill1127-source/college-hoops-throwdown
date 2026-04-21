@@ -82,9 +82,9 @@ function findTableWithCols(requiredCols) {
   return null;
 }
 
-const found = findTableWithCols(['Pace', 'AST%', 'ORB%']);
+const found = findTableWithCols(['Pace', 'AST%', 'ORB%', 'FT/FGA']);
 if (!found) {
-  alert('ERROR: No table with Pace, AST%, and ORB% columns found on this page.\n'
+  alert('ERROR: No table with Pace, AST%, ORB%, and FT/FGA columns found on this page.\n'
     + 'Make sure you are on the "Advanced School Stats" tab.');
   return;
 }
@@ -96,13 +96,14 @@ const schoolIdx  = headers.findIndex(h => /school/i.test(h));
 const paceIdx    = headers.findIndex(h => h === 'Pace');
 const astPctIdx  = headers.findIndex(h => h === 'AST%');
 const orbPctIdx  = headers.findIndex(h => h === 'ORB%');
+const ftFgaIdx   = headers.findIndex(h => h === 'FT/FGA');
 
 // ── Parse all data rows ───────────────────────────────────────────────────────
 const allSchools = {};
 for (const row of table.querySelectorAll('tbody tr')) {
   if (row.classList.contains('thead')) continue;
   const cells  = row.querySelectorAll('th, td');
-  const maxIdx = Math.max(schoolIdx, paceIdx, astPctIdx, orbPctIdx);
+  const maxIdx = Math.max(schoolIdx, paceIdx, astPctIdx, orbPctIdx, ftFgaIdx);
   if (cells.length <= maxIdx) continue;
 
   const link       = cells[schoolIdx].querySelector('a');
@@ -112,13 +113,15 @@ for (const row of table.querySelectorAll('tbody tr')) {
   const pace   = parseFloat(cells[paceIdx].textContent.trim());
   const astPct = parseFloat(cells[astPctIdx].textContent.trim());
   const orbPct = parseFloat(cells[orbPctIdx].textContent.trim());
-  if (isNaN(pace) || isNaN(astPct) || isNaN(orbPct)) continue;
+  const ftFga  = parseFloat(cells[ftFgaIdx].textContent.trim());
+  if (isNaN(pace) || isNaN(astPct) || isNaN(orbPct) || isNaN(ftFga)) continue;
 
   allSchools[toSlug(schoolName)] = {
     name: schoolName,
     possessions_per_game:  Math.round(pace * 10) / 10,
     assist_rate:           Math.round(astPct) / 100,
     offensive_rebound_pct: Math.round(orbPct) / 100,
+    ft_rate:               Math.round(ftFga * 1000) / 1000,
   };
 }
 

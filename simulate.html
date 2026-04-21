@@ -37,7 +37,7 @@ tr.totals td { font-weight: bold; border-top: 2px solid #30363d; color: #f0f6fc;
 </style>
 </head>
 <body>
-<h1>College Hoops Throwdown — Simulation Test &nbsp;<span style="color:#484f58;font-size:0.6em">v2.1</span></h1>
+<h1>College Hoops Throwdown — Simulation Test &nbsp;<span style="color:#484f58;font-size:0.6em">v2.2</span></h1>
 <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
   <label style="color:#8b949e;font-size:0.85em;">HOME
     <select id="homeSelect" style="margin-left:8px;background:#161b22;color:#e6edf3;border:1px solid #30363d;padding:6px 10px;font-family:inherit;font-size:0.9em;border-radius:4px;"></select>
@@ -60,6 +60,7 @@ tr.totals td { font-weight: bold; border-top: 2px solid #30363d; color: #f0f6fc;
 <div id="output"></div>
 
 <script src="data/teams-data.js"></script>
+<script src="strategy.js"></script>
 <script src="game_engine_sim.js"></script>
 <script>
 // AUTO-GENERATED — do not edit by hand; run import\update_data.ps1 to refresh
@@ -110,8 +111,8 @@ function runSim() {
   const agg = {
     homeWins:0, awayWins:0, otGames:0,
     homeScores:[], awayScores:[],
-    home:{ fgm:0,fga:0,tpm:0,tpa:0,ftm:0,fta:0,reb:0,ast:0,stl:0,blk:0,tov:0,pf:0 },
-    away:{ fgm:0,fga:0,tpm:0,tpa:0,ftm:0,fta:0,reb:0,ast:0,stl:0,blk:0,tov:0,pf:0 },
+    home:{ fgm:0,fga:0,tpm:0,tpa:0,ftm:0,fta:0,reb:0,ast:0,stl:0,blk:0,tov:0,pf:0,fbCount:0,fbPts:0 },
+    away:{ fgm:0,fga:0,tpm:0,tpa:0,ftm:0,fta:0,reb:0,ast:0,stl:0,blk:0,tov:0,pf:0,fbCount:0,fbPts:0 },
     poss:0
   };
   for (let i = 0; i < n; i++) {
@@ -123,6 +124,10 @@ function runSim() {
     agg.poss += GameEngineSim.G.totalPossessions;
     const ht = teamTotals(GameEngineSim.G.home), at = teamTotals(GameEngineSim.G.away);
     for (const k of Object.keys(agg.home)) { agg.home[k] += (ht[k]||0); agg.away[k] += (at[k]||0); }
+    agg.home.fbCount += (GameEngineSim.G.homeFB || {count:0}).count;
+    agg.home.fbPts   += (GameEngineSim.G.homeFB || {pts:0}).pts;
+    agg.away.fbCount += (GameEngineSim.G.awayFB || {count:0}).count;
+    agg.away.fbPts   += (GameEngineSim.G.awayFB || {pts:0}).pts;
   }
   renderAggregateResults(agg, n, homeData.name, homeData.nickname||'', awayData.name, awayData.nickname||'');
 }
@@ -233,9 +238,9 @@ function renderAggregateResults(agg, n, homeName, homeNick, awayName, awayNick) 
 
   html += `<h3>Other Stats (per-game averages)</h3>
   <table>
-    <tr><th>Team</th><th>Reb</th><th>Ast</th><th>Stl</th><th>Blk</th><th>TOV</th><th style="color:#484f58">NCAA TOV avg</th><th>PF</th></tr>
-    <tr><td>${homeName}</td><td>${(agg.home.reb/n).toFixed(1)}</td><td>${(agg.home.ast/n).toFixed(1)}</td><td>${(agg.home.stl/n).toFixed(1)}</td><td>${(agg.home.blk/n).toFixed(1)}</td><td>${(agg.home.tov/n).toFixed(1)}</td><td style="color:#484f58">${NCAA_BENCH.tov}</td><td>${(agg.home.pf/n).toFixed(1)}</td></tr>
-    <tr><td>${awayName}</td><td>${(agg.away.reb/n).toFixed(1)}</td><td>${(agg.away.ast/n).toFixed(1)}</td><td>${(agg.away.stl/n).toFixed(1)}</td><td>${(agg.away.blk/n).toFixed(1)}</td><td>${(agg.away.tov/n).toFixed(1)}</td><td style="color:#484f58">${NCAA_BENCH.tov}</td><td>${(agg.away.pf/n).toFixed(1)}</td></tr>
+    <tr><th>Team</th><th>Reb</th><th>Ast</th><th>Stl</th><th>Blk</th><th>TOV</th><th style="color:#484f58">NCAA TOV avg</th><th>PF</th><th>FB</th><th>FB Pts</th></tr>
+    <tr><td>${homeName}</td><td>${(agg.home.reb/n).toFixed(1)}</td><td>${(agg.home.ast/n).toFixed(1)}</td><td>${(agg.home.stl/n).toFixed(1)}</td><td>${(agg.home.blk/n).toFixed(1)}</td><td>${(agg.home.tov/n).toFixed(1)}</td><td style="color:#484f58">${NCAA_BENCH.tov}</td><td>${(agg.home.pf/n).toFixed(1)}</td><td>${(agg.home.fbCount/n).toFixed(1)}</td><td>${(agg.home.fbPts/n).toFixed(1)}</td></tr>
+    <tr><td>${awayName}</td><td>${(agg.away.reb/n).toFixed(1)}</td><td>${(agg.away.ast/n).toFixed(1)}</td><td>${(agg.away.stl/n).toFixed(1)}</td><td>${(agg.away.blk/n).toFixed(1)}</td><td>${(agg.away.tov/n).toFixed(1)}</td><td style="color:#484f58">${NCAA_BENCH.tov}</td><td>${(agg.away.pf/n).toFixed(1)}</td><td>${(agg.away.fbCount/n).toFixed(1)}</td><td>${(agg.away.fbPts/n).toFixed(1)}</td></tr>
   </table>`;
 
   html += `<h3>Score Distribution</h3>

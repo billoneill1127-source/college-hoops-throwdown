@@ -252,6 +252,7 @@ for (const [srSlug, td] of Object.entries(teamDataMap).sort()) {
     defensive_rebound_pct: savedTeamStats[srSlug]?.defensive_rebound_pct ?? teamStats.defensive_rebound_pct ?? 0.72,
     assist_rate:           savedTeamStats[srSlug]?.assist_rate           ?? teamStats.assist_rate           ?? 0.54,
     team_fouls_per_game:   savedTeamStats[srSlug]?.team_fouls_per_game   ?? teamStats.team_fouls_per_game   ?? 18,
+    ft_rate:               savedTeamStats[srSlug]?.ft_rate               ?? teamStats.ft_rate               ?? 0.292,
     home_fg_bonus:         teamStats.home_fg_bonus         || 0.02,
     players:               teamPlayers,
   };

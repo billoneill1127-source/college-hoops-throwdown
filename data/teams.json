@@ -14,6 +14,7 @@
     "defensive_rebound_pct": 0.707,
     "assist_rate": 0.57,
     "team_fouls_per_game": 15.7,
+    "ft_rate": 0.211,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -397,6 +398,7 @@
     "defensive_rebound_pct": 0.672,
     "assist_rate": 0.54,
     "team_fouls_per_game": 18.5,
+    "ft_rate": 0.276,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -915,11 +917,12 @@
     "primaryColor": "#CC0033",
     "head_coach": "Tommy Lloyd",
     "net_rating": 41.22,
-    "possessions_per_game": 71.2,
+    "possessions_per_game": 71.4,
     "offensive_rebound_pct": 0.38,
     "defensive_rebound_pct": 0.732,
-    "assist_rate": 0.55,
+    "assist_rate": 0.54,
     "team_fouls_per_game": 15.8,
+    "ft_rate": 0.323,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -1331,6 +1334,7 @@
     "defensive_rebound_pct": 0.651,
     "assist_rate": 0.53,
     "team_fouls_per_game": 17.2,
+    "ft_rate": 0.298,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -1686,6 +1690,7 @@
     "defensive_rebound_pct": 0.691,
     "assist_rate": 0.53,
     "team_fouls_per_game": 16.7,
+    "ft_rate": 0.27,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -2069,6 +2074,7 @@
     "defensive_rebound_pct": 0.727,
     "assist_rate": 0.6,
     "team_fouls_per_game": 18.8,
+    "ft_rate": 0.183,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -2590,8 +2596,9 @@
     "possessions_per_game": 69,
     "offensive_rebound_pct": 0.37,
     "defensive_rebound_pct": 0.69,
-    "assist_rate": 0.47,
+    "assist_rate": 0.48,
     "team_fouls_per_game": 17.1,
+    "ft_rate": 0.321,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -3031,6 +3038,7 @@
     "defensive_rebound_pct": 0.711,
     "assist_rate": 0.57,
     "team_fouls_per_game": 16.9,
+    "ft_rate": 0.28,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -3409,11 +3417,12 @@
     "primaryColor": "#154734",
     "head_coach": "Scott Drew",
     "net_rating": 20.29,
-    "possessions_per_game": 70,
-    "offensive_rebound_pct": 0.38,
+    "possessions_per_game": 69.7,
+    "offensive_rebound_pct": 0.37,
     "defensive_rebound_pct": 0.685,
-    "assist_rate": 0.54,
+    "assist_rate": 0.53,
     "team_fouls_per_game": 16.2,
+    "ft_rate": 0.252,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -3769,6 +3778,7 @@
     "defensive_rebound_pct": 0.714,
     "assist_rate": 0.47,
     "team_fouls_per_game": 16.8,
+    "ft_rate": 0.212,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -4152,6 +4162,7 @@
     "defensive_rebound_pct": 0.722,
     "assist_rate": 0.51,
     "team_fouls_per_game": 18.6,
+    "ft_rate": 0.269,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -4535,6 +4546,7 @@
     "defensive_rebound_pct": 0.7,
     "assist_rate": 0.57,
     "team_fouls_per_game": 15.3,
+    "ft_rate": 0.303,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -4918,6 +4930,7 @@
     "defensive_rebound_pct": 0.704,
     "assist_rate": 0.45,
     "team_fouls_per_game": 15.9,
+    "ft_rate": 0.257,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -5329,6 +5342,7 @@
     "defensive_rebound_pct": 0.697,
     "assist_rate": 0.53,
     "team_fouls_per_game": 18.5,
+    "ft_rate": 0.284,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -5796,6 +5810,7 @@
     "defensive_rebound_pct": 0.728,
     "assist_rate": 0.4,
     "team_fouls_per_game": 18.5,
+    "ft_rate": 0.256,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -6179,6 +6194,7 @@
     "defensive_rebound_pct": 0.727,
     "assist_rate": 0.64,
     "team_fouls_per_game": 16,
+    "ft_rate": 0.2,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -6562,6 +6578,7 @@
     "defensive_rebound_pct": 0.737,
     "assist_rate": 0.5,
     "team_fouls_per_game": 16.2,
+    "ft_rate": 0.266,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -6912,11 +6929,12 @@
     "primaryColor": "#CFB87C",
     "head_coach": "Tad Boyle",
     "net_rating": 13.89,
-    "possessions_per_game": 70.1,
+    "possessions_per_game": 70.2,
     "offensive_rebound_pct": 0.29,
     "defensive_rebound_pct": 0.702,
-    "assist_rate": 0.56,
+    "assist_rate": 0.55,
     "team_fouls_per_game": 17.5,
+    "ft_rate": 0.279,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -7295,41 +7313,14 @@
     "primaryColor": "#000E2F",
     "head_coach": "Dan Hurley",
     "net_rating": 32.37,
-    "possessions_per_game": 65.8,
+    "possessions_per_game": 65.7,
     "offensive_rebound_pct": 0.36,
     "defensive_rebound_pct": 0.714,
     "assist_rate": 0.65,
     "team_fouls_per_game": 18,
+    "ft_rate": 0.216,
     "home_fg_bonus": 0.02,
     "players": [
-      {
-        "id": "connecticut-ball-1",
-        "teamId": "connecticut",
-        "number": "1",
-        "name": "Solomon Ball",
-        "position": "G",
-        "height": 75,
-        "weight": 185,
-        "class": "JR",
-        "minutes_per_game": 29.1,
-        "ppg": 13.5,
-        "rpg": 3.3,
-        "apg": 1.6,
-        "bpg": 0.2,
-        "spg": 0.4,
-        "fga_per_100": 23.052,
-        "three_pa_per_100": 14.28,
-        "three_point_pct": 0.306,
-        "two_point_pct": 0.555,
-        "free_throw_pct": 0.849,
-        "offensive_rebounds_per_100": 1.734,
-        "defensive_rebounds_per_100": 5.304,
-        "assists_per_100": 3.366,
-        "steals_per_100": 0.918,
-        "blocks_per_100": 0.51,
-        "turnovers_per_100": 2.5,
-        "personal_fouls_per_100": 3.7
-      },
       {
         "id": "connecticut-karaban-11",
         "teamId": "connecticut",
@@ -7339,24 +7330,80 @@
         "height": 80,
         "weight": 210,
         "class": "SR",
-        "minutes_per_game": 33.7,
-        "ppg": 12.6,
-        "rpg": 5.2,
-        "apg": 2.3,
+        "minutes_per_game": 34.3,
+        "ppg": 13.2,
+        "rpg": 5.3,
+        "apg": 2.4,
         "bpg": 0.8,
         "spg": 0.8,
-        "fga_per_100": 18.6354,
-        "three_pa_per_100": 8.8893,
-        "three_point_pct": 0.386,
-        "two_point_pct": 0.556,
-        "free_throw_pct": 0.838,
-        "offensive_rebounds_per_100": 3.3201,
-        "defensive_rebounds_per_100": 6.7473,
-        "assists_per_100": 4.3911,
+        "fga_per_100": 19.278,
+        "three_pa_per_100": 9.8532,
+        "three_point_pct": 0.374,
+        "two_point_pct": 0.558,
+        "free_throw_pct": 0.851,
+        "offensive_rebounds_per_100": 3.4272,
+        "defensive_rebounds_per_100": 6.6402,
+        "assists_per_100": 4.4982,
         "steals_per_100": 1.6065,
-        "blocks_per_100": 1.4994,
+        "blocks_per_100": 1.6065,
         "turnovers_per_100": 1.8627,
-        "personal_fouls_per_100": 3.6275
+        "personal_fouls_per_100": 3.5294
+      },
+      {
+        "id": "connecticut-reed-5",
+        "teamId": "connecticut",
+        "number": "5",
+        "name": "Tarris Reed",
+        "position": "F",
+        "height": 82,
+        "weight": 260,
+        "class": "SR",
+        "minutes_per_game": 27.3,
+        "ppg": 14.7,
+        "rpg": 9,
+        "apg": 2.3,
+        "bpg": 2,
+        "spg": 0.9,
+        "fga_per_100": 22.8888,
+        "three_pa_per_100": 0.3121,
+        "three_point_pct": 0,
+        "two_point_pct": 0.614,
+        "free_throw_pct": 0.617,
+        "offensive_rebounds_per_100": 7.3868,
+        "defensive_rebounds_per_100": 13.4212,
+        "assists_per_100": 5.306,
+        "steals_per_100": 2.0808,
+        "blocks_per_100": 4.5778,
+        "turnovers_per_100": 4.0196,
+        "personal_fouls_per_100": 6.4706
+      },
+      {
+        "id": "connecticut-ball-1",
+        "teamId": "connecticut",
+        "number": "1",
+        "name": "Solomon Ball",
+        "position": "G",
+        "height": 75,
+        "weight": 185,
+        "class": "JR",
+        "minutes_per_game": 28.4,
+        "ppg": 12.8,
+        "rpg": 3,
+        "apg": 1.5,
+        "bpg": 0.2,
+        "spg": 0.4,
+        "fga_per_100": 23.358,
+        "three_pa_per_100": 14.382,
+        "three_point_pct": 0.3,
+        "two_point_pct": 0.541,
+        "free_throw_pct": 0.852,
+        "offensive_rebounds_per_100": 1.734,
+        "defensive_rebounds_per_100": 4.896,
+        "assists_per_100": 3.264,
+        "steals_per_100": 0.918,
+        "blocks_per_100": 0.408,
+        "turnovers_per_100": 2.6,
+        "personal_fouls_per_100": 4
       },
       {
         "id": "connecticut-mullins-24",
@@ -7367,24 +7414,52 @@
         "height": 78,
         "weight": 196,
         "class": "FR",
-        "minutes_per_game": 27.4,
+        "minutes_per_game": 28.2,
         "ppg": 12,
         "rpg": 3.5,
         "apg": 1.4,
-        "bpg": 0.7,
+        "bpg": 0.6,
         "spg": 1,
-        "fga_per_100": 22.591,
-        "three_pa_per_100": 14.1943,
-        "three_point_pct": 0.345,
-        "two_point_pct": 0.588,
-        "free_throw_pct": 0.852,
+        "fga_per_100": 22.6909,
+        "three_pa_per_100": 14.0944,
+        "three_point_pct": 0.335,
+        "two_point_pct": 0.561,
+        "free_throw_pct": 0.889,
         "offensive_rebounds_per_100": 1.8992,
-        "defensive_rebounds_per_100": 5.8976,
-        "assists_per_100": 2.9988,
-        "steals_per_100": 2.2991,
-        "blocks_per_100": 1.5994,
-        "turnovers_per_100": 2.551,
-        "personal_fouls_per_100": 6.3265
+        "defensive_rebounds_per_100": 5.6977,
+        "assists_per_100": 3.0988,
+        "steals_per_100": 2.1991,
+        "blocks_per_100": 1.3994,
+        "turnovers_per_100": 2.6531,
+        "personal_fouls_per_100": 6.2245
+      },
+      {
+        "id": "connecticut-demary-2",
+        "teamId": "connecticut",
+        "number": "2",
+        "name": "Silas Demary",
+        "position": "G",
+        "height": 77,
+        "weight": 180,
+        "class": "JR",
+        "minutes_per_game": 28.4,
+        "ppg": 10.1,
+        "rpg": 4.5,
+        "apg": 5.9,
+        "bpg": 0.3,
+        "spg": 1.6,
+        "fga_per_100": 15.708,
+        "three_pa_per_100": 5.1,
+        "three_point_pct": 0.385,
+        "two_point_pct": 0.476,
+        "free_throw_pct": 0.801,
+        "offensive_rebounds_per_100": 2.142,
+        "defensive_rebounds_per_100": 7.65,
+        "assists_per_100": 12.852,
+        "steals_per_100": 3.468,
+        "blocks_per_100": 0.51,
+        "turnovers_per_100": 4.8,
+        "personal_fouls_per_100": 5.5
       },
       {
         "id": "connecticut-reibe-12",
@@ -7395,24 +7470,24 @@
         "height": 85,
         "weight": 260,
         "class": "FR",
-        "minutes_per_game": 15,
-        "ppg": 6.8,
-        "rpg": 3.8,
+        "minutes_per_game": 13.8,
+        "ppg": 5.9,
+        "rpg": 3.3,
         "apg": 0.5,
-        "bpg": 0.8,
+        "bpg": 0.7,
         "spg": 0.3,
-        "fga_per_100": 17.836,
-        "three_pa_per_100": 1.47,
+        "fga_per_100": 16.711,
+        "three_pa_per_100": 1.3446,
         "three_point_pct": 0.308,
-        "two_point_pct": 0.693,
-        "free_throw_pct": 0.543,
-        "offensive_rebounds_per_100": 5.194,
-        "defensive_rebounds_per_100": 9.702,
-        "assists_per_100": 1.96,
-        "steals_per_100": 1.176,
-        "blocks_per_100": 3.234,
-        "turnovers_per_100": 2.449,
-        "personal_fouls_per_100": 9.0816
+        "two_point_pct": 0.69,
+        "free_throw_pct": 0.521,
+        "offensive_rebounds_per_100": 4.898,
+        "defensive_rebounds_per_100": 9.0278,
+        "assists_per_100": 2.0168,
+        "steals_per_100": 1.0564,
+        "blocks_per_100": 3.0733,
+        "turnovers_per_100": 2.6531,
+        "personal_fouls_per_100": 9.5918
       },
       {
         "id": "connecticut-ross-23",
@@ -7423,52 +7498,24 @@
         "height": 79,
         "weight": 195,
         "class": "JR",
-        "minutes_per_game": 16.9,
-        "ppg": 4.7,
-        "rpg": 2.4,
+        "minutes_per_game": 17.4,
+        "ppg": 4.6,
+        "rpg": 2.5,
         "apg": 0.8,
         "bpg": 0.4,
-        "spg": 0.7,
-        "fga_per_100": 11.9,
-        "three_pa_per_100": 6.4,
-        "three_point_pct": 0.368,
-        "two_point_pct": 0.694,
-        "free_throw_pct": 0.704,
+        "spg": 0.8,
+        "fga_per_100": 11.1,
+        "three_pa_per_100": 5.9,
+        "three_point_pct": 0.391,
+        "two_point_pct": 0.632,
+        "free_throw_pct": 0.692,
         "offensive_rebounds_per_100": 2.8,
-        "defensive_rebounds_per_100": 5.7,
-        "assists_per_100": 2.9,
-        "steals_per_100": 2.6,
-        "blocks_per_100": 1.6,
-        "turnovers_per_100": 2.5,
-        "personal_fouls_per_100": 5.7
-      },
-      {
-        "id": "connecticut-stewart-3",
-        "teamId": "connecticut",
-        "number": "3",
-        "name": "Jaylin Stewart",
-        "position": "F",
-        "height": 79,
-        "weight": 205,
-        "class": "JR",
-        "minutes_per_game": 17.7,
-        "ppg": 4.5,
-        "rpg": 2.8,
-        "apg": 1.2,
-        "bpg": 0.3,
-        "spg": 0.5,
-        "fga_per_100": 12.8,
-        "three_pa_per_100": 6,
-        "three_point_pct": 0.347,
-        "two_point_pct": 0.536,
-        "free_throw_pct": 0.6,
-        "offensive_rebounds_per_100": 2.2,
-        "defensive_rebounds_per_100": 7.2,
-        "assists_per_100": 4,
-        "steals_per_100": 1.8,
-        "blocks_per_100": 1.1,
-        "turnovers_per_100": 2.8,
-        "personal_fouls_per_100": 5.6
+        "defensive_rebounds_per_100": 5.9,
+        "assists_per_100": 2.8,
+        "steals_per_100": 2.8,
+        "blocks_per_100": 1.4,
+        "turnovers_per_100": 2.2,
+        "personal_fouls_per_100": 5.9
       },
       {
         "id": "connecticut-smith-0",
@@ -7479,24 +7526,52 @@
         "height": 72,
         "weight": 170,
         "class": "SR",
-        "minutes_per_game": 15,
-        "ppg": 3.5,
+        "minutes_per_game": 15.9,
+        "ppg": 3.6,
         "rpg": 1.5,
-        "apg": 2.7,
+        "apg": 3,
         "bpg": 0.1,
-        "spg": 0.6,
-        "fga_per_100": 13.158,
-        "three_pa_per_100": 4.896,
-        "three_point_pct": 0.475,
-        "two_point_pct": 0.294,
-        "free_throw_pct": 0.535,
-        "offensive_rebounds_per_100": 1.836,
-        "defensive_rebounds_per_100": 4.488,
-        "assists_per_100": 11.118,
-        "steals_per_100": 2.652,
+        "spg": 0.8,
+        "fga_per_100": 12.546,
+        "three_pa_per_100": 4.59,
+        "three_point_pct": 0.447,
+        "two_point_pct": 0.341,
+        "free_throw_pct": 0.532,
+        "offensive_rebounds_per_100": 1.734,
+        "defensive_rebounds_per_100": 4.182,
+        "assists_per_100": 11.526,
+        "steals_per_100": 2.958,
         "blocks_per_100": 0.51,
-        "turnovers_per_100": 3.8235,
-        "personal_fouls_per_100": 4.5098
+        "turnovers_per_100": 3.5294,
+        "personal_fouls_per_100": 4.902
+      },
+      {
+        "id": "connecticut-stewart-3",
+        "teamId": "connecticut",
+        "number": "3",
+        "name": "Jaylin Stewart",
+        "position": "F",
+        "height": 79,
+        "weight": 205,
+        "class": "JR",
+        "minutes_per_game": 16.3,
+        "ppg": 4.2,
+        "rpg": 2.6,
+        "apg": 1.1,
+        "bpg": 0.3,
+        "spg": 0.5,
+        "fga_per_100": 13.3,
+        "three_pa_per_100": 6.4,
+        "three_point_pct": 0.345,
+        "two_point_pct": 0.508,
+        "free_throw_pct": 0.593,
+        "offensive_rebounds_per_100": 2.6,
+        "defensive_rebounds_per_100": 7.3,
+        "assists_per_100": 4.1,
+        "steals_per_100": 1.8,
+        "blocks_per_100": 1.2,
+        "turnovers_per_100": 2.7,
+        "personal_fouls_per_100": 6.1
       },
       {
         "id": "connecticut-koroma-4",
@@ -7507,8 +7582,8 @@
         "height": 80,
         "weight": 205,
         "class": "SR",
-        "minutes_per_game": 5.8,
-        "ppg": 1.5,
+        "minutes_per_game": 5.5,
+        "ppg": 1.4,
         "rpg": 0.9,
         "apg": 0.2,
         "bpg": 0.1,
@@ -7519,12 +7594,12 @@
         "two_point_pct": 0.563,
         "free_throw_pct": 0.545,
         "offensive_rebounds_per_100": 4.4574,
-        "defensive_rebounds_per_100": 5.1357,
+        "defensive_rebounds_per_100": 5.0388,
         "assists_per_100": 1.938,
         "steals_per_100": 4.4574,
         "blocks_per_100": 0.6783,
         "turnovers_per_100": 3.2353,
-        "personal_fouls_per_100": 10.9804
+        "personal_fouls_per_100": 10.8824
       },
       {
         "id": "connecticut-millender-9",
@@ -7535,24 +7610,24 @@
         "height": 73,
         "weight": 185,
         "class": "SR",
-        "minutes_per_game": 3.3,
+        "minutes_per_game": 3.4,
         "ppg": 0.6,
         "rpg": 0.3,
         "apg": 0.4,
         "bpg": 0,
         "spg": 0.2,
-        "fga_per_100": 11.0466,
-        "three_pa_per_100": 7.752,
+        "fga_per_100": 10.659,
+        "three_pa_per_100": 6.783,
         "three_point_pct": 0.143,
-        "two_point_pct": 0.667,
-        "free_throw_pct": 1,
-        "offensive_rebounds_per_100": 3.2946,
-        "defensive_rebounds_per_100": 1.0659,
-        "assists_per_100": 7.752,
-        "steals_per_100": 3.2946,
+        "two_point_pct": 0.75,
+        "free_throw_pct": 0.667,
+        "offensive_rebounds_per_100": 3.876,
+        "defensive_rebounds_per_100": 0.969,
+        "assists_per_100": 6.783,
+        "steals_per_100": 2.907,
         "blocks_per_100": 0,
-        "turnovers_per_100": 3.3333,
-        "personal_fouls_per_100": 4.5098
+        "turnovers_per_100": 2.9412,
+        "personal_fouls_per_100": 4.902
       },
       {
         "id": "connecticut-furphy-7",
@@ -7563,13 +7638,13 @@
         "height": 78,
         "weight": 205,
         "class": "FR",
-        "minutes_per_game": 2.7,
-        "ppg": 0.5,
+        "minutes_per_game": 2.5,
+        "ppg": 0.4,
         "rpg": 0.1,
         "apg": 0,
         "bpg": 0,
         "spg": 0.1,
-        "fga_per_100": 11.2651,
+        "fga_per_100": 11.3582,
         "three_pa_per_100": 3.2585,
         "three_point_pct": 0,
         "two_point_pct": 0.6,
@@ -7591,8 +7666,8 @@
         "height": 75,
         "weight": 190,
         "class": "JR",
-        "minutes_per_game": 1.1,
-        "ppg": 0.2,
+        "minutes_per_game": 1,
+        "ppg": 0.1,
         "rpg": 0.1,
         "apg": 0.1,
         "bpg": 0,
@@ -7603,7 +7678,7 @@
         "two_point_pct": 1,
         "free_throw_pct": null,
         "offensive_rebounds_per_100": 0,
-        "defensive_rebounds_per_100": 4.085,
+        "defensive_rebounds_per_100": 8.265,
         "assists_per_100": 4.085,
         "steals_per_100": 0,
         "blocks_per_100": 0,
@@ -7625,16 +7700,16 @@
         "apg": 0,
         "bpg": 0.3,
         "spg": 0,
-        "fga_per_100": 28.2093,
-        "three_pa_per_100": 14.0581,
+        "fga_per_100": 28.3024,
+        "three_pa_per_100": 14.1512,
         "three_point_pct": 0,
         "two_point_pct": 0,
         "free_throw_pct": null,
-        "offensive_rebounds_per_100": 14.0581,
-        "defensive_rebounds_per_100": 28.2093,
+        "offensive_rebounds_per_100": 14.1512,
+        "defensive_rebounds_per_100": 28.3024,
         "assists_per_100": 0,
         "steals_per_100": 0,
-        "blocks_per_100": 14.0581,
+        "blocks_per_100": 14.1512,
         "turnovers_per_100": 0,
         "personal_fouls_per_100": 0
       }
@@ -7650,11 +7725,12 @@
     "primaryColor": "#005CA9",
     "head_coach": "Greg McDermott",
     "net_rating": 13.68,
-    "possessions_per_game": 68.5,
-    "offensive_rebound_pct": 0.28,
+    "possessions_per_game": 68.6,
+    "offensive_rebound_pct": 0.27,
     "defensive_rebound_pct": 0.703,
     "assist_rate": 0.58,
     "team_fouls_per_game": 14.3,
+    "ft_rate": 0.216,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -8094,6 +8170,7 @@
     "defensive_rebound_pct": 0.712,
     "assist_rate": 0.59,
     "team_fouls_per_game": 16.7,
+    "ft_rate": 0.348,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -8505,6 +8582,7 @@
     "defensive_rebound_pct": 0.689,
     "assist_rate": 0.61,
     "team_fouls_per_game": 17.9,
+    "ft_rate": 0.244,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -8888,6 +8966,7 @@
     "defensive_rebound_pct": 0.7,
     "assist_rate": 0.48,
     "team_fouls_per_game": 19.4,
+    "ft_rate": 0.266,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -9299,6 +9378,7 @@
     "defensive_rebound_pct": 0.748,
     "assist_rate": 0.59,
     "team_fouls_per_game": 15.5,
+    "ft_rate": 0.278,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -9654,6 +9734,7 @@
     "defensive_rebound_pct": 0.752,
     "assist_rate": 0.55,
     "team_fouls_per_game": 17.7,
+    "ft_rate": 0.278,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -10065,6 +10146,7 @@
     "defensive_rebound_pct": 0.659,
     "assist_rate": 0.53,
     "team_fouls_per_game": 18.3,
+    "ft_rate": 0.247,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -10420,6 +10502,7 @@
     "defensive_rebound_pct": 0.749,
     "assist_rate": 0.55,
     "team_fouls_per_game": 15.7,
+    "ft_rate": 0.179,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -10887,6 +10970,7 @@
     "defensive_rebound_pct": 0.685,
     "assist_rate": 0.58,
     "team_fouls_per_game": 17.8,
+    "ft_rate": 0.276,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -11326,6 +11410,7 @@
     "defensive_rebound_pct": 0.651,
     "assist_rate": 0.48,
     "team_fouls_per_game": 16.9,
+    "ft_rate": 0.277,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -11737,6 +11822,7 @@
     "defensive_rebound_pct": 0.693,
     "assist_rate": 0.6,
     "team_fouls_per_game": 18,
+    "ft_rate": 0.237,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -12120,6 +12206,7 @@
     "defensive_rebound_pct": 0.743,
     "assist_rate": 0.58,
     "team_fouls_per_game": 16.7,
+    "ft_rate": 0.219,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -12531,6 +12618,7 @@
     "defensive_rebound_pct": 0.744,
     "assist_rate": 0.51,
     "team_fouls_per_game": 17.7,
+    "ft_rate": 0.309,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -12886,6 +12974,7 @@
     "defensive_rebound_pct": 0.701,
     "assist_rate": 0.54,
     "team_fouls_per_game": 18.5,
+    "ft_rate": 0.308,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -13325,6 +13414,7 @@
     "defensive_rebound_pct": 0.697,
     "assist_rate": 0.53,
     "team_fouls_per_game": 17.9,
+    "ft_rate": 0.203,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -13708,6 +13798,7 @@
     "defensive_rebound_pct": 0.698,
     "assist_rate": 0.62,
     "team_fouls_per_game": 19.1,
+    "ft_rate": 0.323,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -14173,8 +14264,9 @@
     "possessions_per_game": 65.7,
     "offensive_rebound_pct": 0.39,
     "defensive_rebound_pct": 0.732,
-    "assist_rate": 0.51,
+    "assist_rate": 0.5,
     "team_fouls_per_game": 13.3,
+    "ft_rate": 0.259,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -14558,6 +14650,7 @@
     "defensive_rebound_pct": 0.689,
     "assist_rate": 0.55,
     "team_fouls_per_game": 16.7,
+    "ft_rate": 0.263,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -14908,11 +15001,12 @@
     "primaryColor": "#CE1126",
     "head_coach": "Ryan Pedon",
     "net_rating": 9.26,
-    "possessions_per_game": 67.4,
+    "possessions_per_game": 67.3,
     "offensive_rebound_pct": 0.29,
     "defensive_rebound_pct": 0.746,
     "assist_rate": 0.51,
     "team_fouls_per_game": 16.7,
+    "ft_rate": 0.22,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -15268,6 +15362,7 @@
     "defensive_rebound_pct": 0.707,
     "assist_rate": 0.63,
     "team_fouls_per_game": 18.3,
+    "ft_rate": 0.273,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -15651,6 +15746,7 @@
     "defensive_rebound_pct": 0.708,
     "assist_rate": 0.58,
     "team_fouls_per_game": 17.4,
+    "ft_rate": 0.27,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -16006,6 +16102,7 @@
     "defensive_rebound_pct": 0.714,
     "assist_rate": 0.59,
     "team_fouls_per_game": 16,
+    "ft_rate": 0.233,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -16389,6 +16486,7 @@
     "defensive_rebound_pct": 0.701,
     "assist_rate": 0.52,
     "team_fouls_per_game": 14.3,
+    "ft_rate": 0.247,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -16828,6 +16926,7 @@
     "defensive_rebound_pct": 0.661,
     "assist_rate": 0.58,
     "team_fouls_per_game": 19.2,
+    "ft_rate": 0.191,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -17211,6 +17310,7 @@
     "defensive_rebound_pct": 0.7,
     "assist_rate": 0.57,
     "team_fouls_per_game": 18.4,
+    "ft_rate": 0.272,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -17622,6 +17722,7 @@
     "defensive_rebound_pct": 0.693,
     "assist_rate": 0.62,
     "team_fouls_per_game": 14.4,
+    "ft_rate": 0.22,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -18061,6 +18162,7 @@
     "defensive_rebound_pct": 0.725,
     "assist_rate": 0.6,
     "team_fouls_per_game": 18.5,
+    "ft_rate": 0.252,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -18472,6 +18574,7 @@
     "defensive_rebound_pct": 0.703,
     "assist_rate": 0.61,
     "team_fouls_per_game": 16.9,
+    "ft_rate": 0.234,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -18939,6 +19042,7 @@
     "defensive_rebound_pct": 0.689,
     "assist_rate": 0.49,
     "team_fouls_per_game": 17.8,
+    "ft_rate": 0.22,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -19350,6 +19454,7 @@
     "defensive_rebound_pct": 0.683,
     "assist_rate": 0.53,
     "team_fouls_per_game": 18.7,
+    "ft_rate": 0.313,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -19733,6 +19838,7 @@
     "defensive_rebound_pct": 0.653,
     "assist_rate": 0.58,
     "team_fouls_per_game": 17,
+    "ft_rate": 0.221,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -20116,6 +20222,7 @@
     "defensive_rebound_pct": 0.709,
     "assist_rate": 0.45,
     "team_fouls_per_game": 18,
+    "ft_rate": 0.263,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -20443,6 +20550,7 @@
     "defensive_rebound_pct": 0.741,
     "assist_rate": 0.54,
     "team_fouls_per_game": 15.5,
+    "ft_rate": 0.254,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -20742,6 +20850,7 @@
     "defensive_rebound_pct": 0.717,
     "assist_rate": 0.52,
     "team_fouls_per_game": 16.1,
+    "ft_rate": 0.292,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -21181,6 +21290,7 @@
     "defensive_rebound_pct": 0.727,
     "assist_rate": 0.61,
     "team_fouls_per_game": 15.4,
+    "ft_rate": 0.284,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -21592,6 +21702,7 @@
     "defensive_rebound_pct": 0.776,
     "assist_rate": 0.68,
     "team_fouls_per_game": 16,
+    "ft_rate": 0.274,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -21998,11 +22109,12 @@
     "primaryColor": "#7A0019",
     "head_coach": "Niko Medved",
     "net_rating": 13.78,
-    "possessions_per_game": 63,
+    "possessions_per_game": 62.9,
     "offensive_rebound_pct": 0.27,
     "defensive_rebound_pct": 0.702,
-    "assist_rate": 0.72,
+    "assist_rate": 0.71,
     "team_fouls_per_game": 14.7,
+    "ft_rate": 0.248,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -22330,6 +22442,7 @@
     "defensive_rebound_pct": 0.674,
     "assist_rate": 0.5,
     "team_fouls_per_game": 19.3,
+    "ft_rate": 0.247,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -22769,6 +22882,7 @@
     "defensive_rebound_pct": 0.693,
     "assist_rate": 0.45,
     "team_fouls_per_game": 16.1,
+    "ft_rate": 0.202,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -23124,6 +23238,7 @@
     "defensive_rebound_pct": 0.65,
     "assist_rate": 0.53,
     "team_fouls_per_game": 21.4,
+    "ft_rate": 0.241,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -23591,6 +23706,7 @@
     "defensive_rebound_pct": 0.683,
     "assist_rate": 0.51,
     "team_fouls_per_game": 17.7,
+    "ft_rate": 0.291,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -23974,6 +24090,7 @@
     "defensive_rebound_pct": 0.695,
     "assist_rate": 0.55,
     "team_fouls_per_game": 18.3,
+    "ft_rate": 0.269,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -24357,6 +24474,7 @@
     "defensive_rebound_pct": 0.726,
     "assist_rate": 0.66,
     "team_fouls_per_game": 14.3,
+    "ft_rate": 0.198,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -24740,6 +24858,7 @@
     "defensive_rebound_pct": 0.722,
     "assist_rate": 0.57,
     "team_fouls_per_game": 14.7,
+    "ft_rate": 0.253,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -25207,6 +25326,7 @@
     "defensive_rebound_pct": 0.653,
     "assist_rate": 0.66,
     "team_fouls_per_game": 17.1,
+    "ft_rate": 0.255,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -25590,6 +25710,7 @@
     "defensive_rebound_pct": 0.733,
     "assist_rate": 0.47,
     "team_fouls_per_game": 17.9,
+    "ft_rate": 0.237,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -26001,6 +26122,7 @@
     "defensive_rebound_pct": 0.7,
     "assist_rate": 0.53,
     "team_fouls_per_game": 17.5,
+    "ft_rate": 0.289,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -26384,6 +26506,7 @@
     "defensive_rebound_pct": 0.696,
     "assist_rate": 0.5,
     "team_fouls_per_game": 16.9,
+    "ft_rate": 0.294,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -26823,6 +26946,7 @@
     "defensive_rebound_pct": 0.677,
     "assist_rate": 0.59,
     "team_fouls_per_game": 15.6,
+    "ft_rate": 0.255,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -27262,6 +27386,7 @@
     "defensive_rebound_pct": 0.679,
     "assist_rate": 0.61,
     "team_fouls_per_game": 17.8,
+    "ft_rate": 0.333,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -27673,6 +27798,7 @@
     "defensive_rebound_pct": 0.689,
     "assist_rate": 0.48,
     "team_fouls_per_game": 15.5,
+    "ft_rate": 0.253,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -28028,6 +28154,7 @@
     "defensive_rebound_pct": 0.691,
     "assist_rate": 0.53,
     "team_fouls_per_game": 16.8,
+    "ft_rate": 0.245,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -28523,6 +28650,7 @@
     "defensive_rebound_pct": 0.665,
     "assist_rate": 0.56,
     "team_fouls_per_game": 15.5,
+    "ft_rate": 0.248,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -28906,6 +29034,7 @@
     "defensive_rebound_pct": 0.719,
     "assist_rate": 0.52,
     "team_fouls_per_game": 16.2,
+    "ft_rate": 0.205,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -29205,6 +29334,7 @@
     "defensive_rebound_pct": 0.719,
     "assist_rate": 0.55,
     "team_fouls_per_game": 16.5,
+    "ft_rate": 0.257,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -29700,6 +29830,7 @@
     "defensive_rebound_pct": 0.692,
     "assist_rate": 0.48,
     "team_fouls_per_game": 18.4,
+    "ft_rate": 0.278,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -30083,6 +30214,7 @@
     "defensive_rebound_pct": 0.729,
     "assist_rate": 0.66,
     "team_fouls_per_game": 14.5,
+    "ft_rate": 0.213,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -30466,6 +30598,7 @@
     "defensive_rebound_pct": 0.668,
     "assist_rate": 0.48,
     "team_fouls_per_game": 18.5,
+    "ft_rate": 0.233,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -30933,6 +31066,7 @@
     "defensive_rebound_pct": 0.696,
     "assist_rate": 0.55,
     "team_fouls_per_game": 17.9,
+    "ft_rate": 0.276,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -31339,11 +31473,12 @@
     "primaryColor": "#CC0033",
     "head_coach": "Steve Pikiell",
     "net_rating": 5.42,
-    "possessions_per_game": 66.5,
+    "possessions_per_game": 66.7,
     "offensive_rebound_pct": 0.3,
     "defensive_rebound_pct": 0.669,
-    "assist_rate": 0.51,
+    "assist_rate": 0.5,
     "team_fouls_per_game": 16.6,
+    "ft_rate": 0.269,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -31699,6 +31834,7 @@
     "defensive_rebound_pct": 0.733,
     "assist_rate": 0.6,
     "team_fouls_per_game": 18.3,
+    "ft_rate": 0.246,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -32082,6 +32218,7 @@
     "defensive_rebound_pct": 0.762,
     "assist_rate": 0.58,
     "team_fouls_per_game": 15.5,
+    "ft_rate": 0.286,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -32465,6 +32602,7 @@
     "defensive_rebound_pct": 0.682,
     "assist_rate": 0.55,
     "team_fouls_per_game": 19.5,
+    "ft_rate": 0.185,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -32820,6 +32958,7 @@
     "defensive_rebound_pct": 0.681,
     "assist_rate": 0.52,
     "team_fouls_per_game": 18.8,
+    "ft_rate": 0.255,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -33231,6 +33370,7 @@
     "defensive_rebound_pct": 0.684,
     "assist_rate": 0.55,
     "team_fouls_per_game": 17,
+    "ft_rate": 0.226,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -33642,6 +33782,7 @@
     "defensive_rebound_pct": 0.679,
     "assist_rate": 0.53,
     "team_fouls_per_game": 17.6,
+    "ft_rate": 0.287,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -34025,6 +34166,7 @@
     "defensive_rebound_pct": 0.701,
     "assist_rate": 0.58,
     "team_fouls_per_game": 17.2,
+    "ft_rate": 0.29,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -34436,6 +34578,7 @@
     "defensive_rebound_pct": 0.741,
     "assist_rate": 0.57,
     "team_fouls_per_game": 15.7,
+    "ft_rate": 0.233,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -34871,10 +35014,11 @@
     "head_coach": "Kyle Smith",
     "net_rating": 16.18,
     "possessions_per_game": 67.9,
-    "offensive_rebound_pct": 0.32,
+    "offensive_rebound_pct": 0.33,
     "defensive_rebound_pct": 0.699,
     "assist_rate": 0.46,
     "team_fouls_per_game": 17.6,
+    "ft_rate": 0.26,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -35314,6 +35458,7 @@
     "defensive_rebound_pct": 0.664,
     "assist_rate": 0.47,
     "team_fouls_per_game": 16.4,
+    "ft_rate": 0.228,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -35725,6 +35870,7 @@
     "defensive_rebound_pct": 0.709,
     "assist_rate": 0.57,
     "team_fouls_per_game": 16.3,
+    "ft_rate": 0.264,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -36192,6 +36338,7 @@
     "defensive_rebound_pct": 0.703,
     "assist_rate": 0.49,
     "team_fouls_per_game": 17.3,
+    "ft_rate": 0.305,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -36575,6 +36722,7 @@
     "defensive_rebound_pct": 0.722,
     "assist_rate": 0.6,
     "team_fouls_per_game": 17.9,
+    "ft_rate": 0.259,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -37042,6 +37190,7 @@
     "defensive_rebound_pct": 0.67,
     "assist_rate": 0.61,
     "team_fouls_per_game": 19.3,
+    "ft_rate": 0.273,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -37481,6 +37630,7 @@
     "defensive_rebound_pct": 0.694,
     "assist_rate": 0.55,
     "team_fouls_per_game": 16.3,
+    "ft_rate": 0.198,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -37864,6 +38014,7 @@
     "defensive_rebound_pct": 0.646,
     "assist_rate": 0.56,
     "team_fouls_per_game": 17.7,
+    "ft_rate": 0.332,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -38303,6 +38454,7 @@
     "defensive_rebound_pct": 0.712,
     "assist_rate": 0.54,
     "team_fouls_per_game": 17.5,
+    "ft_rate": 0.223,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -38714,6 +38866,7 @@
     "defensive_rebound_pct": 0.667,
     "assist_rate": 0.59,
     "team_fouls_per_game": 17,
+    "ft_rate": 0.252,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -39013,6 +39166,7 @@
     "defensive_rebound_pct": 0.682,
     "assist_rate": 0.51,
     "team_fouls_per_game": 21.2,
+    "ft_rate": 0.271,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -39368,6 +39522,7 @@
     "defensive_rebound_pct": 0.685,
     "assist_rate": 0.57,
     "team_fouls_per_game": 18.7,
+    "ft_rate": 0.319,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -39863,6 +40018,7 @@
     "defensive_rebound_pct": 0.684,
     "assist_rate": 0.52,
     "team_fouls_per_game": 16.2,
+    "ft_rate": 0.234,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -40274,6 +40430,7 @@
     "defensive_rebound_pct": 0.685,
     "assist_rate": 0.56,
     "team_fouls_per_game": 19,
+    "ft_rate": 0.3,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -40713,6 +40870,7 @@
     "defensive_rebound_pct": 0.682,
     "assist_rate": 0.57,
     "team_fouls_per_game": 16.2,
+    "ft_rate": 0.213,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -41096,6 +41254,7 @@
     "defensive_rebound_pct": 0.708,
     "assist_rate": 0.58,
     "team_fouls_per_game": 17.4,
+    "ft_rate": 0.235,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -41507,6 +41666,7 @@
     "defensive_rebound_pct": 0.7,
     "assist_rate": 0.52,
     "team_fouls_per_game": 17.2,
+    "ft_rate": 0.309,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -41890,6 +42050,7 @@
     "defensive_rebound_pct": 0.674,
     "assist_rate": 0.52,
     "team_fouls_per_game": 17.1,
+    "ft_rate": 0.253,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -42217,6 +42378,7 @@
     "defensive_rebound_pct": 0.67,
     "assist_rate": 0.54,
     "team_fouls_per_game": 18.5,
+    "ft_rate": 0.273,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -42656,6 +42818,7 @@
     "defensive_rebound_pct": 0.715,
     "assist_rate": 0.49,
     "team_fouls_per_game": 16.9,
+    "ft_rate": 0.23,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -43062,11 +43225,12 @@
     "primaryColor": "#002776",
     "head_coach": "Ross Hodge",
     "net_rating": 17.32,
-    "possessions_per_game": 64,
+    "possessions_per_game": 64.1,
     "offensive_rebound_pct": 0.31,
     "defensive_rebound_pct": 0.71,
-    "assist_rate": 0.53,
+    "assist_rate": 0.52,
     "team_fouls_per_game": 15.4,
+    "ft_rate": 0.24,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -43450,6 +43614,7 @@
     "defensive_rebound_pct": 0.712,
     "assist_rate": 0.42,
     "team_fouls_per_game": 17.3,
+    "ft_rate": 0.249,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -43805,6 +43970,7 @@
     "defensive_rebound_pct": 0.718,
     "assist_rate": 0.57,
     "team_fouls_per_game": 17,
+    "ft_rate": 0.248,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -44216,6 +44382,7 @@
     "defensive_rebound_pct": 0.721,
     "assist_rate": 0.53,
     "team_fouls_per_game": 20.9,
+    "ft_rate": 0.263,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -44627,6 +44794,7 @@
     "defensive_rebound_pct": 0.705,
     "assist_rate": 0.62,
     "team_fouls_per_game": 17.5,
+    "ft_rate": 0.205,
     "home_fg_bonus": 0.02,
     "players": [
       {
@@ -45010,6 +45178,7 @@
     "defensive_rebound_pct": 0.709,
     "assist_rate": 0.57,
     "team_fouls_per_game": 15.6,
+    "ft_rate": 0.255,
     "home_fg_bonus": 0.02,
     "players": [
       {
