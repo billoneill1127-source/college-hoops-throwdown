@@ -1,0 +1,180 @@
+{
+  "version": "1.0",
+  "templates": {
+    "make2": [
+      "{player} finishes at the rim — {score}",
+      "Strong move inside by {player} — {score}",
+      "{player} off the dribble — gets the bucket. {score}",
+      "Smooth off the backboard — {player} with two. {score}",
+      "{player} pump fakes, gets the bucket. {score}",
+      "{player} with the runner in the lane — good! {score}"
+    ],
+    "make3": [
+      "Cold-blooded from downtown — {player}! {score}",
+      "{player} with no fear from downtown! {score}",
+      "Corner three by {player} — no hesitation, all net. {score}",
+      "SPLASH! {player} from three! {score}",
+      "{player} pulls up from deep — GOOD! {score}",
+      "From way downtown — {player} with the triple! {score}"
+    ],
+    "dunk": [
+      "Nobody stopping {player} at the rim — DUNKS it! {score}",
+      "{player} throws it DOWN! {score}",
+      "{player} with the slam! {score}",
+      "HAMMER! {player} finishes with authority! {score}"
+    ],
+    "assist": [
+      "{assister} finds {player} cutting — easy bucket! {score}",
+      "Pretty feed inside, {player} lays it up and in. {score}",
+      "{assister} with the dime — {player} finishes! {score}",
+      "Beautiful pass by {assister} — {player} converts. {score}"
+    ],
+    "miss2": [
+      "{player} tries the mid-range — rimmed out.",
+      "Off-balance shot by {player} — not close.",
+      "{player} drives, lays it up — can't finish. Miss.",
+      "Forced look by {player} — misses badly.",
+      "No good — {player} couldn't convert.",
+      "{player} with the runner in the lane — it rolls off. Miss."
+    ],
+    "miss3": [
+      "{player} fires from three — it's short, no good.",
+      "{player} contested — can't knock it down.",
+      "{player} pulls up from the arc — off the back iron.",
+      "Not this time — {player} misses from deep."
+    ],
+    "steal": [
+      "Deflected! {player} with the steal — {team} in transition!",
+      "{player} jumping the passing lane — turnover {opponent}!",
+      "{player} with quick hands — strips {ballhandler}, {team} ball!",
+      "{player} anticipates the pass — {team} steals it!"
+    ],
+    "block": [
+      "BLOCKED! {player} sends it back!",
+      "{player} with the rejection!",
+      "Swatted away by {player}!",
+      "{player} says not in my house!"
+    ],
+    "turnover": [
+      "{player} coughs it up — {opponent} ball.",
+      "Careless with the ball — {player} turns it over.",
+      "{player} loses the handle — {opponent} ball.",
+      "Errant pass by {player} — {opponent} gives it away.",
+      "{player} telegraphs the pass — right to the defense."
+    ],
+    "orb": [
+      "Second chance — {player} with the offensive board!",
+      "{player} crashes the glass and keeps it alive for {team}!",
+      "{player} with the tip — still alive! {team} keeps the possession.",
+      "{player} outworks everyone for the offensive rebound!"
+    ],
+    "drb": [
+      "{player} secures the defensive board. {team} ball.",
+      "{player} with the long rebound — {team} pushing.",
+      "{player} boxes out and corrals it — {team} ball.",
+      "Defensive glass by {player}. {team} going the other way."
+    ],
+    "fastbreak": [
+      "Here come the {team}!",
+      "{team} on the run — watch out!",
+      "The {team} have the numbers....",
+      "{team} in transition — pushing the pace!"
+    ],
+    "foul_shot": [
+      "Foul on {defender}! {player} going to the line for {ftcount}.",
+      "{player} draws the contact — {defender} with the foul. Free throws.",
+      "And the foul! {player} will shoot {ftcount}.",
+      "{defender} reaches in — that's a foul. {player} at the stripe.",
+      "{player} gets to the line — {ftcount} coming.",
+      "Contact on the shot! {player} heads to the stripe."
+    ],
+    "and_one_setup": [
+      "{player} finishes through contact — AND ONE! {score} One more coming.",
+      "{player} scores AND gets fouled! {score} — a chance for the and-one!",
+      "The foul AND the basket! {player} — a chance to complete the play. {score}"
+    ],
+    "and_one_setup_3": [
+      "{player} drills the triple AND gets fouled! {score} — a chance for a four-point play!",
+      "Four-point play opportunity for {player}! {score} — and the foul is called!"
+    ],
+    "and_one_complete": [
+      "{player} completes the and-one! {score}",
+      "And the free throw is good — the full three-point play! {score}"
+    ],
+    "and_one_complete_4": [
+      "{player} completes the four-point play! {score}",
+      "All four points for {player} — a massive play! {score}"
+    ],
+    "and_one_miss": [
+      "{player} couldn't finish the and-one. {score}",
+      "Free throw rimmed out — {player} leaves one on the board. {score}"
+    ],
+    "run_milestone": [
+      "━━━ {team} on a {run}-0 RUN! {context} ━━━"
+    ],
+    "run_color": [
+      "{team} can't miss right now. {opponent} needs to dig deep.",
+      "Silence in the arena — {team} is on a roll.",
+      "{team} is doing a great job taking the crowd out of this game.",
+      "The {opponent} bench needs a timeout.",
+      "{opponent} desperately needs a stop.",
+      "{team} has seized all the momentum here."
+    ],
+    "milestones": {
+      "points_10": [
+        "Double digits for {player} — {team} feeding their hot hand.",
+        "{player} has 10 points on the night."
+      ],
+      "points_15": [
+        "{player} is up to 15 — someone needs to find an answer.",
+        "Fifteen for {player} and counting."
+      ],
+      "points_20": [
+        "{player} is cooking — 20 points!",
+        "Twenty for {player} — someone has to stop this player."
+      ],
+      "points_25": [
+        "{player} with 25 — a special performance tonight.",
+        "Can't stop {player} — 25 and still going."
+      ],
+      "points_30": [
+        "Thirty points for {player} — absolutely dominant.",
+        "{player} drops 30 — put this one in the highlight reel."
+      ],
+      "rebounds_10": [
+        "{player} with 10 boards — dominant on the glass tonight.",
+        "Double figures on the glass for {player}."
+      ],
+      "assists_10": [
+        "Ten assists for {player} — a masterclass in playmaking.",
+        "{player} with double digits in assists — special night."
+      ],
+      "blocks_4": [
+        "{player} is a wall — 4 blocks tonight.",
+        "Four rejections for {player} — the lane is closed."
+      ],
+      "double_double": [
+        "{player} with a double-double — {pts} points and {stat2val} {stat2name}.",
+        "Double-double for {player} — {team} getting a complete performance tonight."
+      ],
+      "triple_double": [
+        "{player} with a triple-double! {pts} points, {reb} rebounds, {ast} assists — remarkable.",
+        "Triple-double for {player} — one of the great individual performances you'll see."
+      ],
+      "hot_streak_3": [],
+      "hot_streak_3pt": []
+    },
+    "atmosphere": [
+      "The crowd is into this one.",
+      "Both benches on their feet.",
+      "The energy in this building is electric.",
+      "Timeout on the floor — both coaches making adjustments.",
+      "This is must-see basketball.",
+      "The {team} bench is fired up.",
+      "You couldn't script a better game than this.",
+      "The atmosphere here is incredible tonight.",
+      "The fans came to the right place tonight.",
+      "Both teams leaving it all on the floor."
+    ]
+  }
+}

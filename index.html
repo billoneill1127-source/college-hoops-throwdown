@@ -223,6 +223,7 @@ header { background: var(--primary); color: #fff; padding: 0 28px; position: sti
 .pbp-ev.ft    { color: #a5d6ff; } .pbp-ev.info  { color: #8b949e; font-style: italic; text-align: center; }
 .pbp-ev.run   { color: #ffa657; font-weight: bold; }
 .pbp-ev.milestone { color: #ffd700; font-weight: bold; }
+.pbp-ev.atmosphere { color: #6e7681; font-style: italic; }
 .pbp-ev.timeout { color: #e8c040; font-weight: bold; text-align: center; }
 .pbp-ev.sub { color: #94e2d5; font-style: italic; }
 
@@ -1167,17 +1168,41 @@ const GE_NARR={
     "The {team nickname} have the numbers...."
   ]
 };
-function ge_narrCtx(extra){
-  const hd=G.home||{},ad=G.visitor||{};
-  return Object.assign({'home team':GAME.home.name,'home team nickname':GAME.home.nickname||GAME.home.name,'home city':hd.city||GAME.home.name,'home coach':hd.head_coach||'Coach','visitor team':GAME.away.name,'visitor team nickname':GAME.away.nickname||GAME.away.name,'visitor city':ad.city||GAME.away.name,'visitor coach':ad.head_coach||'Coach'},extra);
+function narrate(eventType, ctx) {
+  const templates = window.CHT_ANNOUNCEMENTS?.templates;
+  if (!templates) return '';
+  let pool;
+  if (eventType.includes('.')) {
+    const [cat, key] = eventType.split('.');
+    pool = templates[cat]?.[key];
+  } else {
+    pool = templates[eventType];
+  }
+  if (!pool || !pool.length) return '';
+  const tmpl = pool[Math.floor(Math.random() * pool.length)];
+  return tmpl
+    .replace(/{player}/g,     String(ctx?.player     || ''))
+    .replace(/{team}/g,       String(ctx?.team       || ''))
+    .replace(/{opponent}/g,   String(ctx?.opponent   || ''))
+    .replace(/{score}/g,      String(ctx?.score      || ''))
+    .replace(/{assister}/g,   String(ctx?.assister   || ''))
+    .replace(/{ballhandler}/g,String(ctx?.ballhandler|| ''))
+    .replace(/{defender}/g,   String(ctx?.defender   || ''))
+    .replace(/{fouls}/g,      String(ctx?.fouls      || ''))
+    .replace(/{ftcount}/g,    String(ctx?.ftcount    || ''))
+    .replace(/{run}/g,        String(ctx?.run        || ''))
+    .replace(/{context}/g,    String(ctx?.context    || ''))
+    .replace(/{pts}/g,        String(ctx?.pts        || ''))
+    .replace(/{reb}/g,        String(ctx?.reb        || ''))
+    .replace(/{ast}/g,        String(ctx?.ast        || ''))
+    .replace(/{stat2val}/g,   String(ctx?.stat2val   || ''))
+    .replace(/{stat2name}/g,  String(ctx?.stat2name  || ''))
+    .trim();
 }
-function narrate(key,extra){
-  const pool=GE_NARR[key]; if(!pool)return '';
-  let s=pool[Math.floor(Math.random()*pool.length)];
-  const T=ge_narrCtx(extra||{});
-  for(const [k,v] of Object.entries(T)) s=s.split('{'+k+'}').join(v!=null?String(v):'');
-  return s;
-}
+fetch('announcements.json')
+  .then(r => r.json())
+  .then(data => { window.CHT_ANNOUNCEMENTS = data; })
+  .catch(e => console.warn('announcements.json failed to load:', e));
 const SPEED_SETTINGS={ slow:4000, normal:2500, fast:1200, turbo:400 };
 
 const BULB_PATTERNS={
@@ -1216,7 +1241,7 @@ function logEv(text,type,milestone){
 }
 
 function ge_buildTeam(td,isHome){
-  const elig=[...(td.players||[])].filter(p=>(p.minutes_per_game||0)>0&&p.fga_per_100!=null).sort((a,b)=>(b.minutes_per_game||0)-(a.minutes_per_game||0)).map(p=>({...p,three_pa_rate:(p.three_pa_per_100&&p.fga_per_100)?clamp(p.three_pa_per_100/p.fga_per_100,0,1):(GE_THREE_PA_DEFAULTS[p.position]||0.25),gamePF:0,halfSecs:0,totalGameSecs:0,halfTov:0,consec_misses:0,halfFGA:0,halfFTA:0,_carriedLoad:0,sitUntilH2:false,sitUntilNextTO:false}));
+  const elig=[...(td.players||[])].filter(p=>(p.minutes_per_game||0)>0&&p.fga_per_100!=null).sort((a,b)=>(b.minutes_per_game||0)-(a.minutes_per_game||0)).map(p=>({...p,three_pa_rate:(p.three_pa_per_100&&p.fga_per_100)?clamp(p.three_pa_per_100/p.fga_per_100,0,1):(GE_THREE_PA_DEFAULTS[p.position]||0.25),gamePF:0,halfSecs:0,totalGameSecs:0,halfTov:0,consec_misses:0,halfFGA:0,halfFTA:0,_carriedLoad:0,sitUntilH2:false,sitUntilNextTO:false,milestonesHit:new Set(),consecutiveMakes:0,consecutive3Makes:0}));
   return { name:td.name, nickname:td.nickname||'', isHome, primaryColor:td.primaryColor||'#888', head_coach:td.head_coach||'', possessions_per_game:td.possessions_per_game||70, offensive_rebound_pct:td.offensive_rebound_pct||0.28, defensive_rebound_pct:td.defensive_rebound_pct||0.72, assist_rate:td.assist_rate||0.54, team_fouls_per_game:td.team_fouls_per_game||18, home_fg_bonus:td.home_fg_bonus||0.02, lineup:elig.slice(0,5), bench:elig.slice(5), strategy_offense:null, strategy_defense:null, lastLoggedDefense:null, teamFouls:0, currentRun:0 };
 }
 
@@ -1384,7 +1409,7 @@ function ge_updateRun(isHome,pts){
   const sc=isHome?GAME.home:GAME.away,ot=isHome?GAME.away:GAME.home,prev=sc.currentRun;
   sc.currentRun+=pts; ot.currentRun=0;
   const d=isHome?1:-1;
-  for(const t of[8,10,12,14]){ if(prev<t&&sc.currentRun>=t){ GAME.momentum=clamp(GAME.momentum+d,-10,10); const scTeam=isHome?GAME.homeScore:GAME.awayScore,otTeam=isHome?GAME.awayScore:GAME.homeScore,diff=scTeam-otTeam; const context=diff===0?`${sc.name} has tied it up!`:diff>0?`${sc.name} leads ${scTeam}-${otTeam}`:`${sc.name} has cut this to ${Math.abs(diff)}`; logEv(`\u2501\u2501\u2501 ${sc.name} on a ${sc.currentRun}-0 RUN! ${context} \u2501\u2501\u2501`,'run'); logEv(narrate(sc.isHome?'run_home':'run_visitor',{}),'run'); } }
+  for(const t of[8,10,12,14]){ if(prev<t&&sc.currentRun>=t){ GAME.momentum=clamp(GAME.momentum+d,-10,10); const scTeam=isHome?GAME.homeScore:GAME.awayScore,otTeam=isHome?GAME.awayScore:GAME.homeScore,diff=scTeam-otTeam; const context=diff===0?`${sc.name} has tied it up!`:diff>0?`${sc.name} leads ${scTeam}-${otTeam}`:`${sc.name} has cut this to ${Math.abs(diff)}`; logEv(narrate('run_milestone',{team:sc.name,run:String(sc.currentRun),context}),'run'); const colorTxt=narrate('run_color',{team:sc.name,opponent:ot.name}); if(colorTxt)logEv(colorTxt,'run'); } }
   // CPU calls timeout if P1's team hits a 10-point run
   if(!GAME.cpuRunToDone&&prev<10&&sc.currentRun>=10){
     const p1IsHome=G.homeOp==='P1';
@@ -1455,7 +1480,7 @@ function ge_fts(shooter,sT,oT,count,suppressRunUpdate){
   for(let i=0;i<count;i++){
     const last=i===count-1,made=Math.random()<ge_sd(shooter.free_throw_pct,'free_throw_pct');
     GAME.stats[shooter.name].fta++;
-    if(made){ GAME.stats[shooter.name].ftm++; GAME.stats[shooter.name].pts++; if(sT.isHome)GAME.homeScore++;else GAME.awayScore++; if(!suppressRunUpdate)ge_updateRun(sT.isHome,1); if(sT.isHome)GAME.momentum=Math.max(0,GAME.momentum);else GAME.momentum=Math.min(0,GAME.momentum); logEv(`  FT ${i+1}/${count}: ${shooter.name} MADE (${GAME.homeScore}-${GAME.awayScore})`,'ft'); }
+    if(made){ GAME.stats[shooter.name].ftm++; GAME.stats[shooter.name].pts++; if(sT.isHome)GAME.homeScore++;else GAME.awayScore++; if(!suppressRunUpdate)ge_updateRun(sT.isHome,1); if(sT.isHome)GAME.momentum=Math.max(0,GAME.momentum);else GAME.momentum=Math.min(0,GAME.momentum); logEv(`  FT ${i+1}/${count}: ${shooter.name} MADE (${GAME.homeScore}-${GAME.awayScore})`,'ft'); ge_checkMilestones(shooter,sT,oT); }
     else{ logEv(`  FT ${i+1}/${count}: ${shooter.name} missed`,'ft'); }
     if(last){ if(made)ge_flip();else ge_ftRebound(sT,oT); }
   }
@@ -1480,8 +1505,8 @@ function ge_rebound(offT,defT,is3){
   const os=offT.lineup.reduce((s,p)=>s+ge_sd(p.offensive_rebounds_per_100,'offensive_rebounds_per_100'),0);
   const ds=defT.lineup.reduce((s,p)=>s+ge_sd(p.defensive_rebounds_per_100,'defensive_rebounds_per_100'),0);
   const prob=clamp((offT.offensive_rebound_pct+GE_MODS.offensive_rebound_pct_mod)*(0.70+0.30*((os/10.0)/(ds/18.0))),0.05,0.60);
-  if(Math.random()<prob){ const r=ge_assignReb(offT.lineup,'offensive',is3); GAME.stats[r.name].reb++; logEv(narrate('reb_off',{player:r.name,team:offT.name}),'reb'); ge_momEvt(offT.isHome,1); return true; }
-  else{ const r=ge_assignReb(defT.lineup,'defensive',is3); GAME.stats[r.name].reb++; GAME.fbChance=is3?0.10:0.05; GAME.lastStealer=null; logEv(narrate('reb_def',{player:r.name,team:defT.name}),'reb'); ge_flip(); return false; }
+  if(Math.random()<prob){ const r=ge_assignReb(offT.lineup,'offensive',is3); GAME.stats[r.name].reb++; logEv(narrate('orb',{player:r.name,team:offT.name}),'reb'); ge_checkMilestones(r,offT,defT); ge_momEvt(offT.isHome,1); return true; }
+  else{ const r=ge_assignReb(defT.lineup,'defensive',is3); GAME.stats[r.name].reb++; GAME.fbChance=is3?0.10:0.05; GAME.lastStealer=null; logEv(narrate('drb',{player:r.name,team:defT.name}),'reb'); ge_checkMilestones(r,defT,offT); ge_flip(); return false; }
 }
 
 function ge_assistCandidates(lineup,strat){
@@ -1516,9 +1541,9 @@ function ge_intentionalFoul(foulingTeam, fouledTeam){
 function ge_fastBreak(){
   const off=ge_off(),def=ge_def();
   const stealerName=GAME.lastStealer; GAME.lastStealer=null;
-  logEv(narrate('fastbreak',{team:off.name,'team nickname':off.nickname||off.name,opponent:def.name}),'run');
+  logEv(narrate('fastbreak',{team:off.name,opponent:def.name}),'run');
   // Turnover check (no steal check on fast break)
-  for(const p of off.lineup){ const ch=perPossChance(ge_sd(p.turnovers_per_100,'turnovers_per_100'),off.possessions_per_game)*0.55*GE_MODS.turnover_chance_mod*ge_fatigue(p).tov; if(Math.random()<ch){ GAME.stats[p.name].tov++; p.halfTov=(p.halfTov||0)+1; logEv(narrate('tov',{player:p.name,team:off.name,opponent:def.name}),'tov'); ge_tick(10); GAME.momentum=clamp(GAME.momentum+(off.isHome?-1:1),-10,10); ge_flip(); ge_firePendingMTO(); return false; } }
+  for(const p of off.lineup){ const ch=perPossChance(ge_sd(p.turnovers_per_100,'turnovers_per_100'),off.possessions_per_game)*0.55*GE_MODS.turnover_chance_mod*ge_fatigue(p).tov; if(Math.random()<ch){ GAME.stats[p.name].tov++; p.halfTov=(p.halfTov||0)+1; logEv(narrate('turnover',{player:p.name,team:off.name,opponent:def.name}),'tov'); ge_tick(10); GAME.momentum=clamp(GAME.momentum+(off.isHome?-1:1),-10,10); ge_flip(); ge_firePendingMTO(); return false; } }
   // Assist check — credit goes to stealer if present
   const stealerPlayer=stealerName?off.lineup.find(p=>p.name===stealerName):null;
   const assistCands=ge_assistCandidates(off.lineup,off.strategy_offense); let assistFired=false;
@@ -1543,17 +1568,61 @@ function ge_fastBreak(){
     shooter.halfFGA=(shooter.halfFGA||0)+1;
     shooter.consec_misses=0; ge_tick(cost);
     const momGain=dunk?3:2; GAME.momentum=clamp(GAME.momentum+(off.isHome?momGain:-momGain),-10,10);
-    ge_updateRun(off.isHome,pts);
     const sc=ge_scoreStr(off);
-    const narrKey=dunk?'make2_dunk':is3?'make3':actualAssister?'make2_ast':'make2';
+    const narrKey=dunk?'dunk':is3?'make3':actualAssister?'assist':'make2';
     logEv(narrate(narrKey,{player:shooter.name,team:off.name,score:sc,assister:actualAssister?actualAssister.name:''}),dunk?'dunk':is3?'three':'make');
+    ge_checkMilestones(shooter,off,def);
+    if(actualAssister)ge_checkMilestones(actualAssister,off,def);
+    ge_updateRun(off.isHome,pts);
     ge_flip(); ge_firePendingMTO(); return false;
   }
   GAME.stats[shooter.name].fga++;if(is3)GAME.stats[shooter.name].tpa++;
   shooter.halfFGA=(shooter.halfFGA||0)+1;
   shooter.consec_misses=(shooter.consec_misses||0)+1; ge_tick(cost);
-  logEv(narrate('miss',{player:shooter.name,team:off.name,opponent:def.name}),'miss');
+  logEv(narrate(is3?'miss3':'miss2',{player:shooter.name,team:off.name,opponent:def.name}),'miss');
   return ge_rebound(off,def,is3);
+}
+
+function ge_checkMilestones(p, team, opp) {
+  if (!GAME.stats[p.name]) return;
+  const s = GAME.stats[p.name];
+  const pts = s.pts || 0, reb = s.reb || 0, ast = s.ast || 0, blk = s.blk || 0;
+  const ms = p.milestonesHit || (p.milestonesHit = new Set());
+  for (const threshold of [10, 15, 20, 25, 30]) {
+    const key = `points_${threshold}`;
+    if (pts >= threshold && !ms.has(key)) {
+      ms.add(key);
+      const txt = narrate(`milestones.${key}`, { player: p.name, team: team.name });
+      if (txt) logEv(txt, 'milestone');
+    }
+  }
+  if (reb >= 10 && !ms.has('rebounds_10')) {
+    ms.add('rebounds_10');
+    const txt = narrate('milestones.rebounds_10', { player: p.name, team: team.name });
+    if (txt) logEv(txt, 'milestone');
+  }
+  if (ast >= 10 && !ms.has('assists_10')) {
+    ms.add('assists_10');
+    const txt = narrate('milestones.assists_10', { player: p.name, team: team.name });
+    if (txt) logEv(txt, 'milestone');
+  }
+  if (blk >= 4 && !ms.has('blocks_4')) {
+    ms.add('blocks_4');
+    const txt = narrate('milestones.blocks_4', { player: p.name, team: team.name });
+    if (txt) logEv(txt, 'milestone');
+  }
+  const cats = [{val:pts,name:'points'},{val:reb,name:'rebounds'},{val:ast,name:'assists'}];
+  const dd = cats.filter(c => c.val >= 10);
+  if (dd.length >= 2 && !ms.has('double_double')) {
+    ms.add('double_double');
+    const txt = narrate('milestones.double_double', { player: p.name, team: team.name, pts, stat2val: dd[1].val, stat2name: dd[1].name });
+    if (txt) logEv(txt, 'milestone');
+  }
+  if (dd.length >= 3 && !ms.has('triple_double')) {
+    ms.add('triple_double');
+    const txt = narrate('milestones.triple_double', { player: p.name, team: team.name, pts, reb, ast });
+    if (txt) logEv(txt, 'milestone');
+  }
 }
 
 function ge_poss(isOrb,depth){
@@ -1561,6 +1630,8 @@ function ge_poss(isOrb,depth){
   const off=ge_off(),def=ge_def(); GAME.totalPossessions++;
   const mods=Object.assign(GE_MODS, Strategy.getMods(off.strategy_offense,def.strategy_defense));
   if(!isOrb&&depth===0){
+    GAME.possessionCount=(GAME.possessionCount||0)+1;
+    if(GAME.possessionCount%4===0&&Math.random()<0.20){ const _atTeam=Math.random()<0.5?GAME.home:GAME.away; const _atTxt=narrate('atmosphere',{team:_atTeam.name}); if(_atTxt)logEv(_atTxt,'atmosphere'); }
     const fbC=GAME.fbChance||0; GAME.fbChance=0;
     if(fbC>0&&Math.random()<fbC){ return ge_fastBreak(); }
     GAME.lastStealer=null;
@@ -1596,8 +1667,8 @@ function ge_poss(isOrb,depth){
     }
     // Extra strategy checks (press, trap, etc.)
     const xPreFoul=(def.team_fouls_per_game/40)*0.15;
-    for(let i=0;i<mods.extra_steal_checks;i++){ for(const d of def.lineup){ const ch=perPossChance(ge_sd(d.steals_per_100,'steals_per_100'),def.possessions_per_game)*mods.steal_chance_mod*ge_fatigue(d).stl; if(Math.random()<ch){ const v=weightedRandom(off.lineup,off.lineup.map(p=>ge_sd(p.turnovers_per_100,'turnovers_per_100'))); GAME.stats[d.name].stl++; GAME.stats[v.name].tov++; v.halfTov=(v.halfTov||0)+1; GAME.fbChance=0.50; GAME.lastStealer=d.name; logEv(narrate('steal',{player:d.name,team:def.name,opponent:off.name,'opponent_player':v.name}),'steal'); ge_tick(10); ge_momEvt(def.isHome,1); ge_flip(); ge_firePendingMTO(); return false; } } }
-    for(let i=0;i<mods.extra_tov_checks;i++){ for(const p of off.lineup){ const ch=perPossChance(ge_sd(p.turnovers_per_100,'turnovers_per_100'),off.possessions_per_game)*0.55*mods.turnover_chance_mod*ge_fatigue(p).tov; if(Math.random()<ch){ GAME.stats[p.name].tov++; p.halfTov=(p.halfTov||0)+1; GAME.fbChance=0.20; GAME.lastStealer=null; logEv(narrate('tov',{player:p.name,team:off.name,opponent:def.name}),'tov'); ge_tick(10); ge_flip(); ge_firePendingMTO(); return false; } } }
+    for(let i=0;i<mods.extra_steal_checks;i++){ for(const d of def.lineup){ const ch=perPossChance(ge_sd(d.steals_per_100,'steals_per_100'),def.possessions_per_game)*mods.steal_chance_mod*ge_fatigue(d).stl; if(Math.random()<ch){ const v=weightedRandom(off.lineup,off.lineup.map(p=>ge_sd(p.turnovers_per_100,'turnovers_per_100'))); GAME.stats[d.name].stl++; GAME.stats[v.name].tov++; v.halfTov=(v.halfTov||0)+1; GAME.fbChance=0.50; GAME.lastStealer=d.name; logEv(narrate('steal',{player:d.name,team:def.name,opponent:off.name,ballhandler:v.name}),'steal'); ge_tick(10); ge_momEvt(def.isHome,1); ge_flip(); ge_firePendingMTO(); return false; } } }
+    for(let i=0;i<mods.extra_tov_checks;i++){ for(const p of off.lineup){ const ch=perPossChance(ge_sd(p.turnovers_per_100,'turnovers_per_100'),off.possessions_per_game)*0.55*mods.turnover_chance_mod*ge_fatigue(p).tov; if(Math.random()<ch){ GAME.stats[p.name].tov++; p.halfTov=(p.halfTov||0)+1; GAME.fbChance=0.20; GAME.lastStealer=null; logEv(narrate('turnover',{player:p.name,team:off.name,opponent:def.name}),'tov'); ge_tick(10); ge_flip(); ge_firePendingMTO(); return false; } } }
     for(let i=0;i<mods.extra_foul_checks;i++){ if(Math.random()<xPreFoul){
       const _fp=off.lineup[Math.floor(Math.random()*off.lineup.length)];
       const _df=weightedRandom(def.lineup,def.lineup.map(p=>ge_sd(p.personal_fouls_per_100,'personal_fouls_per_100')));
@@ -1622,8 +1693,8 @@ function ge_poss(isOrb,depth){
     if(depth<3)return ge_poss(isOrb,depth+1); return false;
   }
 
-  for(const d of def.lineup){ const ch=perPossChance(ge_sd(d.steals_per_100,'steals_per_100'),def.possessions_per_game)*mods.steal_chance_mod*ge_fatigue(d).stl; if(Math.random()<ch){ const v=weightedRandom(off.lineup,off.lineup.map(p=>ge_sd(p.turnovers_per_100,'turnovers_per_100'))); GAME.stats[d.name].stl++; GAME.stats[v.name].tov++; v.halfTov=(v.halfTov||0)+1; GAME.fbChance=0.50; GAME.lastStealer=d.name; logEv(narrate('steal',{player:d.name,team:def.name,opponent:off.name,'opponent_player':v.name}),'steal'); ge_tick(10); ge_momEvt(def.isHome,1); ge_flip(); ge_firePendingMTO(); return false; } }
-  for(const p of off.lineup){ const ch=perPossChance(ge_sd(p.turnovers_per_100,'turnovers_per_100'),off.possessions_per_game)*0.55*mods.turnover_chance_mod*ge_fatigue(p).tov; if(Math.random()<ch){ GAME.stats[p.name].tov++; p.halfTov=(p.halfTov||0)+1; GAME.fbChance=0.20; GAME.lastStealer=null; logEv(narrate('tov',{player:p.name,team:off.name,opponent:def.name}),'tov'); ge_tick(10); ge_flip(); ge_firePendingMTO(); return false; } }
+  for(const d of def.lineup){ const ch=perPossChance(ge_sd(d.steals_per_100,'steals_per_100'),def.possessions_per_game)*mods.steal_chance_mod*ge_fatigue(d).stl; if(Math.random()<ch){ const v=weightedRandom(off.lineup,off.lineup.map(p=>ge_sd(p.turnovers_per_100,'turnovers_per_100'))); GAME.stats[d.name].stl++; GAME.stats[v.name].tov++; v.halfTov=(v.halfTov||0)+1; GAME.fbChance=0.50; GAME.lastStealer=d.name; logEv(narrate('steal',{player:d.name,team:def.name,opponent:off.name,ballhandler:v.name}),'steal'); ge_tick(10); ge_momEvt(def.isHome,1); ge_flip(); ge_firePendingMTO(); return false; } }
+  for(const p of off.lineup){ const ch=perPossChance(ge_sd(p.turnovers_per_100,'turnovers_per_100'),off.possessions_per_game)*0.55*mods.turnover_chance_mod*ge_fatigue(p).tov; if(Math.random()<ch){ GAME.stats[p.name].tov++; p.halfTov=(p.halfTov||0)+1; GAME.fbChance=0.20; GAME.lastStealer=null; logEv(narrate('turnover',{player:p.name,team:off.name,opponent:def.name}),'tov'); ge_tick(10); ge_flip(); ge_firePendingMTO(); return false; } }
 
   // Coaching mode: detect P1 offensive possession
   const _p1IsHome=G.homeOp==='P1';
@@ -1649,7 +1720,7 @@ function ge_poss(isOrb,depth){
   const cost=isOrb?8:17;
   const fat=ge_fatigue(shooter);
   const blocker=ge_checkBlock(def.lineup,shooter,is3,def);
-  if(blocker){ GAME.stats[shooter.name].fga++; if(is3)GAME.stats[shooter.name].tpa++; GAME.stats[blocker.name].blk++; shooter.halfFGA=(shooter.halfFGA||0)+1; shooter.consec_misses=(shooter.consec_misses||0)+1; ge_tick(cost); logEv(`BLOCK: ${blocker.name} (${def.name}) blocks ${shooter.name} | ${GAME.homeScore}-${GAME.awayScore}`,'block'); ge_momEvt(def.isHome,1); return ge_rebound(off,def,is3); }
+  if(blocker){ GAME.stats[shooter.name].fga++; if(is3)GAME.stats[shooter.name].tpa++; GAME.stats[blocker.name].blk++; shooter.halfFGA=(shooter.halfFGA||0)+1; shooter.consec_misses=(shooter.consec_misses||0)+1; ge_tick(cost); logEv(`BLOCK: ${blocker.name} (${def.name}) blocks ${shooter.name} | ${GAME.homeScore}-${GAME.awayScore}`,'block'); ge_checkMilestones(blocker,def,off); ge_momEvt(def.isHome,1); return ge_rebound(off,def,is3); }
   let made;
   if(assister){ made=Math.random()<clamp((is3?ASSISTED_PCT_3:ASSISTED_PCT_2)+(is3?fat.three:fat.two),0.05,0.95); }
   else{ let pct=calcNAP(is3?ge_sd(shooter.three_point_pct,'three_point_pct'):ge_sd(shooter.two_point_pct,'two_point_pct'),off.assist_rate,is3); pct+=is3?mods.three_pt_pct_mod:mods.two_pt_pct_mod; if(off.isHome)pct+=off.home_fg_bonus; pct+=GameEngineSim.getMomentumMod(GAME.momentum,off.isHome,10); pct+=is3?fat.three:fat.two; made=Math.random()<clamp(pct,0.05,0.95); }
@@ -1668,24 +1739,29 @@ function ge_poss(isOrb,depth){
     if(foul.occurred){
       // 1. Basket announcement (normal, no and-one phrasing yet)
       const evt=dunk?'dunk':is3?'three':'make';
-      const narrKey=dunk?'make2_dunk':is3?'make3':assister?'make2_ast':'make2';
+      const narrKey=dunk?'dunk':is3?'make3':assister?'assist':'make2';
       logEv(narrate(narrKey,{player:shooter.name,team:off.name,score:sc,assister:assister?assister.name:''}),evt);
+      ge_checkMilestones(shooter,off,def);
+      if(assister)ge_checkMilestones(assister,off,def);
       // 2. Foul setup — chance for the and-one (before FTs)
-      logEv(`${shooter.name} draws the foul \u2014 ${is3?'a chance for the four-point play':'a chance for the and-one'}!`,'foul');
+      logEv(narrate(is3?'and_one_setup_3':'and_one_setup',{player:shooter.name,score:sc}),'foul');
       ge_momEvt(off.isHome,2); shooter.halfFTA=(shooter.halfFTA||0)+1;
       // 3. FT attempt — suppress internal run update so it fires after all scoring
       const _ftmBefore=GAME.stats[shooter.name].ftm||0;
       ge_fts(shooter,off,def,1,true);
       const _ftsMade=(GAME.stats[shooter.name].ftm||0)-_ftmBefore;
-      // 4. Celebration only if FT was made
-      if(_ftsMade>0) logEv(`${shooter.name} ${is3?'completes the four-point play':'completes the and-one'}!`,'make');
+      // 4. Celebration or miss line after FT
+      if(_ftsMade>0) logEv(narrate(is3?'and_one_complete_4':'and_one_complete',{player:shooter.name,score:ge_scoreStr(off)}),'make');
+      else logEv(narrate('and_one_miss',{player:shooter.name,score:ge_scoreStr(off)}),'miss');
       // 5. Single run update after all scoring (basket pts + any made FTs)
       ge_updateRun(off.isHome,pts+_ftsMade);
       ge_firePendingMTO();
     } else {
       const evt=dunk?'dunk':is3?'three':'make';
-      const narrKey=dunk?'make2_dunk':is3?'make3':assister?'make2_ast':'make2';
+      const narrKey=dunk?'dunk':is3?'make3':assister?'assist':'make2';
       logEv(narrate(narrKey,{player:shooter.name,team:off.name,score:sc,assister:assister?assister.name:''}),evt);
+      ge_checkMilestones(shooter,off,def);
+      if(assister)ge_checkMilestones(assister,off,def);
       ge_updateRun(off.isHome,pts);
       ge_flip();
     }
@@ -1697,7 +1773,7 @@ function ge_poss(isOrb,depth){
   shooter.consec_misses=(shooter.consec_misses||0)+1;
   const foul=ge_shootFoul(def.lineup,shooter,def); ge_tick(cost);
   if(foul.occurred){ GAME.stats[shooter.name].fga--; if(is3)GAME.stats[shooter.name].tpa--; const fc=is3?3:2; logEv(narrate('foul_shot',{player:shooter.name,defender:foul.fouler.name,team:off.name,ftcount:fc===3?'three':'two'}),'foul'); shooter.halfFGA=(shooter.halfFGA||0)-1; shooter.halfFTA=(shooter.halfFTA||0)+fc; ge_fts(shooter,off,def,fc); ge_firePendingMTO(); return false; }
-  logEv(narrate('miss',{player:shooter.name,team:off.name,opponent:def.name}),'miss');
+  logEv(narrate(is3?'miss3':'miss2',{player:shooter.name,team:off.name,opponent:def.name}),'miss');
   return ge_rebound(off,def,is3);
 }
 
@@ -1740,13 +1816,13 @@ function ge_runHalf(){ let orb=false; while(GAME.clock>0){orb=ge_poss(orb)||fals
 function startGame(){
   const homeData=G.home, awayData=G.visitor;
   eventQueue=[]; displayIdx=0; prevHS=0; prevAS=0;
-  GAME={ home:ge_buildTeam(homeData,true), away:ge_buildTeam(awayData,false), homeScore:0, awayScore:0, clock:1200, half:1, possession:Math.random()<0.5?'home':'away', momentum:0, homeTimeouts:3, awayTimeouts:3, mediaTimeouts:[720,480,240], pendingMediaTO:null, stats:{}, halfPossessions:0, totalPossessions:0, cpuReturnQueue:[], subAt15Done:false, subAt12Done:false, subAt8Done:false, fbChance:0, lastStealer:null, cpuRunToDone:false, cpuPressApplied:false, cpuDefChangeOnRunDone:false, coachingMode:G.coachingMode&&!G.watchMode, playCallQueued:null };
+  GAME={ home:ge_buildTeam(homeData,true), away:ge_buildTeam(awayData,false), homeScore:0, awayScore:0, clock:1200, half:1, possession:Math.random()<0.5?'home':'away', momentum:0, homeTimeouts:3, awayTimeouts:3, mediaTimeouts:[720,480,240], pendingMediaTO:null, stats:{}, halfPossessions:0, totalPossessions:0, possessionCount:0, cpuReturnQueue:[], subAt15Done:false, subAt12Done:false, subAt8Done:false, fbChance:0, lastStealer:null, cpuRunToDone:false, cpuPressApplied:false, cpuDefChangeOnRunDone:false, coachingMode:G.coachingMode&&!G.watchMode, playCallQueued:null };
 
   const p1IsHome = G.homeOp === 'P1';
   const p1Team = p1IsHome ? GAME.home : GAME.away;
   if(G.lineup && G.lineup.length===5){
-    const remapped=G.lineup.map(p=>({...p,three_pa_rate:(p.three_pa_per_100&&p.fga_per_100)?clamp(p.three_pa_per_100/p.fga_per_100,0,1):(GE_THREE_PA_DEFAULTS[p.position]||0.25),gamePF:0,halfSecs:0,totalGameSecs:0,halfTov:0,consec_misses:0,halfFGA:0,halfFTA:0,_carriedLoad:0,sitUntilH2:false,sitUntilNextTO:false}));
-    const fullRoster=[...(p1IsHome?homeData:awayData).players||[]].filter(p=>(p.minutes_per_game||0)>0&&p.fga_per_100!=null).sort((a,b)=>(b.minutes_per_game||0)-(a.minutes_per_game||0)).map(p=>({...p,three_pa_rate:(p.three_pa_per_100&&p.fga_per_100)?clamp(p.three_pa_per_100/p.fga_per_100,0,1):(GE_THREE_PA_DEFAULTS[p.position]||0.25),gamePF:0,halfSecs:0,totalGameSecs:0,halfTov:0,consec_misses:0,halfFGA:0,halfFTA:0,_carriedLoad:0,sitUntilH2:false,sitUntilNextTO:false}));
+    const remapped=G.lineup.map(p=>({...p,three_pa_rate:(p.three_pa_per_100&&p.fga_per_100)?clamp(p.three_pa_per_100/p.fga_per_100,0,1):(GE_THREE_PA_DEFAULTS[p.position]||0.25),gamePF:0,halfSecs:0,totalGameSecs:0,halfTov:0,consec_misses:0,halfFGA:0,halfFTA:0,_carriedLoad:0,sitUntilH2:false,sitUntilNextTO:false,milestonesHit:new Set(),consecutiveMakes:0,consecutive3Makes:0}));
+    const fullRoster=[...(p1IsHome?homeData:awayData).players||[]].filter(p=>(p.minutes_per_game||0)>0&&p.fga_per_100!=null).sort((a,b)=>(b.minutes_per_game||0)-(a.minutes_per_game||0)).map(p=>({...p,three_pa_rate:(p.three_pa_per_100&&p.fga_per_100)?clamp(p.three_pa_per_100/p.fga_per_100,0,1):(GE_THREE_PA_DEFAULTS[p.position]||0.25),gamePF:0,halfSecs:0,totalGameSecs:0,halfTov:0,consec_misses:0,halfFGA:0,halfFTA:0,_carriedLoad:0,sitUntilH2:false,sitUntilNextTO:false,milestonesHit:new Set(),consecutiveMakes:0,consecutive3Makes:0}));
     const selectedNames=new Set(G.lineup.map(p=>p.name));
     p1Team.lineup=remapped;
     p1Team.bench=fullRoster.filter(p=>!selectedNames.has(p.name));
