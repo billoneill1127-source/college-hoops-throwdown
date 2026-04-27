@@ -304,20 +304,17 @@ header { background: var(--primary); color: #fff; padding: 0 28px; position: sti
     <div class="home-hero-sub">2025–26 Season</div>
   </div>
   <div class="home-menu">
-    <a class="home-btn primary" href="season.html" style="text-decoration:none">
-      <span class="home-btn-icon">&#128197;</span> SEASON
-    </a>
-    <button class="home-btn" onclick="startSetupFlow()">
+    <button class="home-btn primary" onclick="startSetupFlow()">
       <span class="home-btn-icon">&#9654;</span> PLAY GAME
     </button>
-    <button class="home-btn" onclick="showScreen('teams')">
-      <span class="home-btn-icon">&#128203;</span> TEAMS &amp; ROSTERS
-    </button>
-    <a class="home-btn" href="stats.html" style="text-decoration:none">
-      <span class="home-btn-icon">&#128202;</span> STATS
+    <a class="home-btn" href="season.html" style="text-decoration:none">
+      <span class="home-btn-icon">&#128197;</span> SEASON
     </a>
     <button class="home-btn" onclick="showScreen('tournament');TournamentPage.init('screenTournament')">
       <span class="home-btn-icon">&#127942;</span> TOURNAMENT
+    </button>
+    <button class="home-btn" onclick="showScreen('teams')">
+      <span class="home-btn-icon">&#128203;</span> TEAMS &amp; ROSTERS
     </button>
     <button class="home-btn" onclick="showScreen('credits')">
       <span class="home-btn-icon">&#9733;</span> CREDITS
