@@ -501,6 +501,9 @@ function showScreen(name) {
     }
   }
 
+  const globalHeader = document.querySelector('header');
+  if (globalHeader) globalHeader.style.display = name === 'tournament' ? 'none' : '';
+
   window.scrollTo(0, 0);
 }
 

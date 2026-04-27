@@ -212,7 +212,7 @@ window.TournamentPage = (function () {
         '<div class="tp-page-header">' +
           '<div class="tp-page-header-brand">' +
             '<div class="tp-page-header-logo">\uD83C\uDFC0 <span>TOURNAMENT</span> MODE</div>' +
-            '<div class="tp-page-header-sub">2025\u201326 &nbsp;\u00B7&nbsp; v2.3</div>' +
+            '<div class="tp-page-header-sub">2025\u201326 &nbsp;\u00B7&nbsp; v2.4</div>' +
           '</div>' +
           '<div class="tp-page-header-info">' +
             '<a href="#" class="hdr-link" onclick="showScreen(\'home\');return false;">\u2190 Home</a>' +
