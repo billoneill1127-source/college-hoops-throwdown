@@ -231,7 +231,7 @@
 <body>
 
 <header>
-  <a class="back-btn" id="statsBackBtn" href="season.html">&#8592; Back</a>
+  <a class="back-btn" id="statsBackBtn" href="index.html">&#8592; Main Menu</a>
   <div class="header-brand">
     <div class="header-logo">College Hoops <span>Throwdown</span></div>
     <div class="header-sub">Stats Dashboard &nbsp;·&nbsp; v2.4</div>
@@ -996,12 +996,6 @@
       selEl.appendChild(opt);
     });
     currentSeason = defaultId;
-
-    // Set back button destination based on whether a season is active
-    const statsBackBtn = document.getElementById('statsBackBtn');
-    if (statsBackBtn) {
-      statsBackBtn.href = Store.get('season:active') ? 'season.html' : 'index.html';
-    }
 
     renderStandings();
   }
