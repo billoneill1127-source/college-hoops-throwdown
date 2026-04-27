@@ -1451,11 +1451,11 @@ function ge_ftRebound(shootT,oppT){
   else{ const r=ge_assignReb(oppT.lineup,'defensive',false); GAME.stats[r.name].reb++; logEv(`  FT DEF REB: ${r.name}`,'reb'); ge_flip(); }
 }
 
-function ge_fts(shooter,sT,oT,count){
+function ge_fts(shooter,sT,oT,count,suppressRunUpdate){
   for(let i=0;i<count;i++){
     const last=i===count-1,made=Math.random()<ge_sd(shooter.free_throw_pct,'free_throw_pct');
     GAME.stats[shooter.name].fta++;
-    if(made){ GAME.stats[shooter.name].ftm++; GAME.stats[shooter.name].pts++; if(sT.isHome)GAME.homeScore++;else GAME.awayScore++; ge_updateRun(sT.isHome,1); if(sT.isHome)GAME.momentum=Math.max(0,GAME.momentum);else GAME.momentum=Math.min(0,GAME.momentum); logEv(`  FT ${i+1}/${count}: ${shooter.name} MADE (${GAME.homeScore}-${GAME.awayScore})`,'ft'); }
+    if(made){ GAME.stats[shooter.name].ftm++; GAME.stats[shooter.name].pts++; if(sT.isHome)GAME.homeScore++;else GAME.awayScore++; if(!suppressRunUpdate)ge_updateRun(sT.isHome,1); if(sT.isHome)GAME.momentum=Math.max(0,GAME.momentum);else GAME.momentum=Math.min(0,GAME.momentum); logEv(`  FT ${i+1}/${count}: ${shooter.name} MADE (${GAME.homeScore}-${GAME.awayScore})`,'ft'); }
     else{ logEv(`  FT ${i+1}/${count}: ${shooter.name} missed`,'ft'); }
     if(last){ if(made)ge_flip();else ge_ftRebound(sT,oT); }
   }
@@ -1666,10 +1666,22 @@ function ge_poss(isOrb,depth){
     const sc=ge_scoreStr(off);
     const foul=ge_shootFoul(def.lineup,shooter,def);
     if(foul.occurred){
-      const andOneMsg=is3?`${shooter.name} completes the four-point play! ${sc}`:`${shooter.name} finishes through contact \u2014 AND ONE! ${sc}`;
-      logEv(andOneMsg,is3?'three':'make');
-      ge_updateRun(off.isHome,pts);
-      ge_momEvt(off.isHome,2); shooter.halfFTA=(shooter.halfFTA||0)+1; ge_fts(shooter,off,def,1); ge_firePendingMTO();
+      // 1. Basket announcement (normal, no and-one phrasing yet)
+      const evt=dunk?'dunk':is3?'three':'make';
+      const narrKey=dunk?'make2_dunk':is3?'make3':assister?'make2_ast':'make2';
+      logEv(narrate(narrKey,{player:shooter.name,team:off.name,score:sc,assister:assister?assister.name:''}),evt);
+      // 2. Foul setup — chance for the and-one (before FTs)
+      logEv(`${shooter.name} draws the foul \u2014 ${is3?'a chance for the four-point play':'a chance for the and-one'}!`,'foul');
+      ge_momEvt(off.isHome,2); shooter.halfFTA=(shooter.halfFTA||0)+1;
+      // 3. FT attempt — suppress internal run update so it fires after all scoring
+      const _ftmBefore=GAME.stats[shooter.name].ftm||0;
+      ge_fts(shooter,off,def,1,true);
+      const _ftsMade=(GAME.stats[shooter.name].ftm||0)-_ftmBefore;
+      // 4. Celebration only if FT was made
+      if(_ftsMade>0) logEv(`${shooter.name} ${is3?'completes the four-point play':'completes the and-one'}!`,'make');
+      // 5. Single run update after all scoring (basket pts + any made FTs)
+      ge_updateRun(off.isHome,pts+_ftsMade);
+      ge_firePendingMTO();
     } else {
       const evt=dunk?'dunk':is3?'three':'make';
       const narrKey=dunk?'make2_dunk':is3?'make3':assister?'make2_ast':'make2';
