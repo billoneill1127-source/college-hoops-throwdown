@@ -770,9 +770,7 @@ function renderLineupPane(foulOutPlayerName) {
 
   // Snapshot at current display position — use this for all in-game stat reads
   // to avoid reading end-of-simulation values off player objects.
-  const _curSnap = isInGame && displayIdx > 0
-    ? eventQueue[Math.min(displayIdx, eventQueue.length) - 1]?.snapshot
-    : null;
+  const _curSnap = isInGame ? lastPauseSnap : null;
 
   const isFO = p => isInGame && (_curSnap ? (_curSnap.playerFouls?.[p.name]||0) : (p.gamePF||0)) >= 5;
 
@@ -879,9 +877,7 @@ function renderLineupPane(foulOutPlayerName) {
       const _newBench=_fullPool.filter(p=>!_newLineup.includes(p));
       _gameTeam.lineup=_newLineup; _gameTeam.bench=_newBench;
       if(GAME.coachingMode){
-        let _snap=null;
-        for(let i=displayIdx-1;i>=0;i--){ if(eventQueue[i]&&eventQueue[i].snapshot){_snap=eventQueue[i].snapshot;break;} }
-        showStrategyOverlay(_snap,displayIdx,'timeout');
+        showStrategyOverlay(lastPauseSnap,null,'timeout');
       } else {
         resumeFromTimeout();
       }
@@ -926,9 +922,8 @@ function renderGameplanPane() {
   let liveHtml = '';
   if (G.gameInProgress && GAME) {
     const awayS = GAME.away, homeS = GAME.home;
-    const _curSnap = eventQueue.length > 0 ? eventQueue[Math.min(displayIdx, eventQueue.length) - 1]?.snapshot : null;
-    const score = awayS.name + ' ' + (_curSnap ? _curSnap.awayScore : GAME.awayScore) + ' \u2014 ' + homeS.name + ' ' + (_curSnap ? _curSnap.homeScore : GAME.homeScore);
-    const snapStats = _curSnap?.stats || GAME.stats;
+    const score = awayS.name + ' ' + GAME.awayScore + ' \u2014 ' + homeS.name + ' ' + GAME.homeScore;
+    const snapStats = GAME.stats;
     function statRows(lineup) {
       return lineup.map(p => {
         const s = snapStats[p.name] || {pts:0,reb:0,ast:0,pf:0};
@@ -1170,7 +1165,7 @@ const GE_NARR={
 };
 function narrate(eventType, ctx) {
   const templates = window.CHT_ANNOUNCEMENTS?.templates;
-  if (!templates) return '';
+  if (!templates) return null;
   let pool;
   if (eventType.includes('.')) {
     const [cat, key] = eventType.split('.');
@@ -1199,10 +1194,24 @@ function narrate(eventType, ctx) {
     .replace(/{stat2name}/g,  String(ctx?.stat2name  || ''))
     .trim();
 }
-fetch('announcements.json')
-  .then(r => r.json())
-  .then(data => { window.CHT_ANNOUNCEMENTS = data; })
-  .catch(e => console.warn('announcements.json failed to load:', e));
+(function loadAnnouncements() {
+  try {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', 'announcements.json', false); // false = synchronous
+    xhr.send();
+    if (xhr.status === 200) {
+      window.CHT_ANNOUNCEMENTS = JSON.parse(xhr.responseText);
+      console.log('[CHT] announcements.json loaded synchronously —',
+        Object.keys(window.CHT_ANNOUNCEMENTS.templates || {}).length, 'template keys');
+    } else {
+      console.warn('[CHT] announcements.json load failed, status:', xhr.status);
+      window.CHT_ANNOUNCEMENTS = { templates: {} };
+    }
+  } catch(e) {
+    console.warn('[CHT] announcements.json load error:', e);
+    window.CHT_ANNOUNCEMENTS = { templates: {} };
+  }
+})();
 const SPEED_SETTINGS={ slow:4000, normal:2500, fast:1200, turbo:400 };
 
 const BULB_PATTERNS={
@@ -1226,18 +1235,21 @@ function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
 function foulDesc(p,t){ return `${ordinal(p.gamePF)} personal, ${ordinal(t.teamFouls)} on ${t.name}`; }
 function shootFoulDesc(f,t,s,fd){ return `${cap(ordinal(f.gamePF))} foul on ${f.name}. ${cap(ordinal(t.teamFouls))} on ${t.name}. ${s.name} to shoot ${fd}.`; }
 
-let GAME=null, eventQueue=[], displayIdx=0, displayTimer=null, displaySpeed='normal', gamePaused=false;
+let GAME=null, displayTimer=null, displaySpeed='normal', gamePaused=false;
+let possBuffer=[], possBufferIdx=0, gameLog=[];
+let lastPauseSnap=null;
 let bsSnapStats=null, bsSnapPlayerState=null;
-let prevHS=0, prevAS=0;
 
 function captureSnap(){
   const allP=[...(GAME.home.allPlayers||[]),...(GAME.away.allPlayers||[])];
-  return { homeScore:GAME.homeScore, awayScore:GAME.awayScore, clock:GAME.clock, half:GAME.half, momentum:GAME.momentum, possession:GAME.possession, homeTeamFouls:GAME.home.teamFouls, awayTeamFouls:GAME.away.teamFouls, homeTimeouts:GAME.homeTimeouts, awayTimeouts:GAME.awayTimeouts, mediaTimeouts:[...GAME.mediaTimeouts], pendingMediaTO:GAME.pendingMediaTO, halfPossessions:GAME.halfPossessions, totalPossessions:GAME.totalPossessions, stats:JSON.parse(JSON.stringify(GAME.stats)), homeLineupNames:GAME.home.lineup.map(p=>p.name), awayLineupNames:GAME.away.lineup.map(p=>p.name), homeBenchNames:(GAME.home.bench||[]).map(p=>p.name), awayBenchNames:(GAME.away.bench||[]).map(p=>p.name), playerFouls:Object.fromEntries(allP.map(p=>[p.name,p.gamePF||0])), playerState:Object.fromEntries(allP.map(p=>[p.name,{halfSecs:p.halfSecs||0,totalGameSecs:p.totalGameSecs||0,halfTov:p.halfTov||0,consec_misses:p.consec_misses||0,halfFGA:p.halfFGA||0,halfFTA:p.halfFTA||0,_carriedLoad:p._carriedLoad||0,sitUntilH2:p.sitUntilH2||false,sitUntilNextTO:p.sitUntilNextTO||false}])), cpuReturnQueue:JSON.parse(JSON.stringify(GAME.cpuReturnQueue||[])), subAt15Done:GAME.subAt15Done||false, subAt12Done:GAME.subAt12Done||false, subAt8Done:GAME.subAt8Done||false, fbChance:GAME.fbChance||0, lastStealer:GAME.lastStealer||null, cpuRunToDone:GAME.cpuRunToDone||false, cpuPressApplied:GAME.cpuPressApplied||false, cpuDefChangeOnRunDone:GAME.cpuDefChangeOnRunDone||false, homeStratOff:GAME.home.strategy_offense, homeStratDef:GAME.home.strategy_defense, awayStratOff:GAME.away.strategy_offense, awayStratDef:GAME.away.strategy_defense, homeCurrentRun:GAME.home.currentRun||0, awayCurrentRun:GAME.away.currentRun||0, homeLastLoggedDef:GAME.home.lastLoggedDefense||null, awayLastLoggedDef:GAME.away.lastLoggedDefense||null };
+  return { homeScore:GAME.homeScore, awayScore:GAME.awayScore, clock:GAME.clock, half:GAME.half, momentum:GAME.momentum, possession:GAME.possession, homeTeamFouls:GAME.home.teamFouls, awayTeamFouls:GAME.away.teamFouls, homeTimeouts:GAME.homeTimeouts, awayTimeouts:GAME.awayTimeouts, mediaTimeouts:[...GAME.mediaTimeouts], pendingMediaTO:GAME.pendingMediaTO, halfPossessions:GAME.halfPossessions, totalPossessions:GAME.totalPossessions, stats:JSON.parse(JSON.stringify(GAME.stats)), homeLineupNames:GAME.home.lineup.map(p=>p.name), awayLineupNames:GAME.away.lineup.map(p=>p.name), homeBenchNames:(GAME.home.bench||[]).map(p=>p.name), awayBenchNames:(GAME.away.bench||[]).map(p=>p.name), playerFouls:Object.fromEntries(allP.map(p=>[p.name,p.gamePF||0])), playerState:Object.fromEntries(allP.map(p=>[p.name,{halfSecs:p.halfSecs||0,totalGameSecs:p.totalGameSecs||0,halfTov:p.halfTov||0,consec_misses:p.consec_misses||0,halfFGA:p.halfFGA||0,halfFTA:p.halfFTA||0,_carriedLoad:p._carriedLoad||0,sitUntilH2:p.sitUntilH2||false,sitUntilNextTO:p.sitUntilNextTO||false}])), cpuReturnQueue:JSON.parse(JSON.stringify(GAME.cpuReturnQueue||[])), subAt15Done:GAME.subAt15Done||false, subAt12Done:GAME.subAt12Done||false, subAt8Done:GAME.subAt8Done||false, fbChance:GAME.fbChance||0, lastStealer:GAME.lastStealer||null, cpuRunToDone:GAME.cpuRunToDone||false, cpuPressApplied:GAME.cpuPressApplied||false, cpuDefChangeOnRunDone:GAME.cpuDefChangeOnRunDone||false, homeStratOff:GAME.home.strategy_offense, homeStratDef:GAME.home.strategy_defense, awayStratOff:GAME.away.strategy_offense, awayStratDef:GAME.away.strategy_defense, homeCurrentRun:GAME.home.currentRun||0, awayCurrentRun:GAME.away.currentRun||0, homeLastLoggedDef:GAME.home.lastLoggedDefense||null, awayLastLoggedDef:GAME.away.lastLoggedDefense||null, homeRunMilestones:[...(GAME.runMilestonesHit?.home||[])], awayRunMilestones:[...(GAME.runMilestonesHit?.away||[])] };
 }
 
-function logEv(text,type,milestone){
+function logEv(text,type){
   const m=String(Math.floor(GAME.clock/60)).padStart(2,'0'),s=String(GAME.clock%60).padStart(2,'0');
-  eventQueue.push({ text:`[${m}:${s}] ${text}`, type:milestone?'milestone':(type||'ev'), snapshot:captureSnap() });
+  const ev={text:`[${m}:${s}] ${text}`,type:type||'ev',snapshot:{clock:GAME.clock,half:GAME.half}};
+  possBuffer.push(ev);
+  gameLog.push(ev);
 }
 
 function ge_buildTeam(td,isHome){
@@ -1260,6 +1272,7 @@ function restoreGameState(snap,newP1Lineup){
   GAME.home.currentRun=snap.homeCurrentRun||0; GAME.away.currentRun=snap.awayCurrentRun||0;
   GAME.home.lastLoggedDefense=snap.homeLastLoggedDef!==undefined?snap.homeLastLoggedDef:null;
   GAME.away.lastLoggedDefense=snap.awayLastLoggedDef!==undefined?snap.awayLastLoggedDef:null;
+  GAME.runMilestonesHit={home:new Set(snap.homeRunMilestones||[]),away:new Set(snap.awayRunMilestones||[])};
   const findH=name=>(GAME.home.allPlayers||[]).find(p=>p.name===name);
   const findA=name=>(GAME.away.allPlayers||[]).find(p=>p.name===name);
   GAME.home.lineup=(snap.homeLineupNames||[]).map(findH).filter(Boolean);
@@ -1274,11 +1287,7 @@ function restoreGameState(snap,newP1Lineup){
     for(const p of p1Team.lineup){ if(!GAME.stats[p.name])GAME.stats[p.name]={pts:0,reb:0,ast:0,stl:0,blk:0,tov:0,fga:0,fgm:0,tpa:0,tpm:0,fta:0,ftm:0,pf:0}; }
   }
 }
-function ge_continueGame(fromHalftime){
-  if(GAME.clock>0)ge_runHalf();
-  if(GAME.half===1){ if(!fromHalftime)eventQueue.push({text:null,type:'halftime',snapshot:captureSnap()}); ge_setupHalf(2);ge_runHalf(); }
-  let ot=0; while(GAME.homeScore===GAME.awayScore&&ot<5){ot++;ge_setupHalf('OT'+ot);ge_runHalf();}
-}
+
 function ge_off(){ return GAME.possession==='home'?GAME.home:GAME.away; }
 function ge_def(){ return GAME.possession==='home'?GAME.away:GAME.home; }
 function ge_flip(){ GAME.possession=GAME.possession==='home'?'away':'home'; }
@@ -1353,14 +1362,12 @@ function ge_applyCpuCoaching(cpuTeam){
     // Rest rotation at 15:00 (≤900s), 12:00 (≤720s), 8:00 (≤480s) remaining
     const restMarks=[{maxClock:900,flag:'subAt15Done'},{maxClock:720,flag:'subAt12Done'},{maxClock:480,flag:'subAt8Done'}];
     for(const mark of restMarks){
-      console.log(`[coaching] clock:${GAME.clock} mark:${mark.maxClock} flag:${mark.flag} done:${GAME[mark.flag]}`);
       if(GAME.clock<=mark.maxClock&&!GAME[mark.flag]){
         GAME[mark.flag]=true;
         if(cpuTeam.lineup.length>0){
           const highMin=cpuTeam.lineup.reduce((a,b)=>b.halfSecs>a.halfSecs?b:a);
           const sub=ge_cpuBestBench(cpuTeam,highMin.position);
-          console.log(`[coaching] attempting sub: out=${highMin.name} halfSecs=${highMin.halfSecs} in=${sub?.name||'null'}`);
-          if(sub&&ge_cpuDoSub(cpuTeam,highMin,sub)){ GAME.cpuReturnQueue.push({playerName:highMin.name,toosUntilReturn:1}); console.log(`[coaching] sub successful`); } else { console.log(`[coaching] sub FAILED — sub:${sub?.name||'null'}`); }
+          if(sub&&ge_cpuDoSub(cpuTeam,highMin,sub)){ GAME.cpuReturnQueue.push({playerName:highMin.name,toosUntilReturn:1}); }
         }
         break;
       }
@@ -1386,12 +1393,8 @@ function ge_cpuTeam(){ const p1IsHome=G.homeOp==='P1'; return p1IsHome?GAME.away
 function ge_firePendingMTO(){
   if(!GAME.pendingMediaTO)return;
   const t=GAME.pendingMediaTO;
-  GAME.pendingMediaTO=null;
   GAME.mediaTimeouts=GAME.mediaTimeouts.filter(x=>x!==t);
-  // Run coaching for CPU team(s)
-  if(G.homeOp!=='P1') ge_applyCpuCoaching(GAME.home);
-  if(G.visitorOp!=='P1') ge_applyCpuCoaching(GAME.away);
-  eventQueue.push({ text:null, type:'media_timeout', snapshot:captureSnap() });
+  // Leave GAME.pendingMediaTO set — showNext detects it after possBuffer drains
 }
 
 function ge_scoreStr(off){
@@ -1409,7 +1412,7 @@ function ge_updateRun(isHome,pts){
   const sc=isHome?GAME.home:GAME.away,ot=isHome?GAME.away:GAME.home,prev=sc.currentRun;
   sc.currentRun+=pts; ot.currentRun=0;
   const d=isHome?1:-1;
-  for(const t of[8,10,12,14]){ if(prev<t&&sc.currentRun>=t){ GAME.momentum=clamp(GAME.momentum+d,-10,10); const scTeam=isHome?GAME.homeScore:GAME.awayScore,otTeam=isHome?GAME.awayScore:GAME.homeScore,diff=scTeam-otTeam; const context=diff===0?`${sc.name} has tied it up!`:diff>0?`${sc.name} leads ${scTeam}-${otTeam}`:`${sc.name} has cut this to ${Math.abs(diff)}`; logEv(narrate('run_milestone',{team:sc.name,run:String(sc.currentRun),context}),'run'); const colorTxt=narrate('run_color',{team:sc.name,opponent:ot.name}); if(colorTxt)logEv(colorTxt,'run'); } }
+  for(const t of[8,10,12,14]){ if(prev<t&&sc.currentRun>=t){ GAME.momentum=clamp(GAME.momentum+d,-10,10); const milestoneKey=String(t); const teamMilestones=isHome?GAME.runMilestonesHit.home:GAME.runMilestonesHit.away; if(!teamMilestones.has(milestoneKey)){ teamMilestones.add(milestoneKey); const scTeam=isHome?GAME.homeScore:GAME.awayScore,otTeam=isHome?GAME.awayScore:GAME.homeScore,diff=scTeam-otTeam; const context=diff===0?`${sc.name} has tied it up!`:diff>0?`${sc.name} leads ${scTeam}-${otTeam}`:`${sc.name} has cut this to ${Math.abs(diff)}`; logEv(narrate('run_milestone',{team:sc.name,run:String(sc.currentRun),context}),'run'); const colorTxt=narrate('run_color',{team:sc.name,opponent:ot.name}); if(colorTxt)logEv(colorTxt,'run'); } } }
   // CPU calls timeout if P1's team hits a 10-point run
   if(!GAME.cpuRunToDone&&prev<10&&sc.currentRun>=10){
     const p1IsHome=G.homeOp==='P1';
@@ -1422,7 +1425,7 @@ function ge_updateRun(isHome,pts){
         GAME.momentum=clamp(GAME.momentum+(p1IsHome?-1:1),-10,10);
         logEv(`\u23F8 ${cpuT.name} calls TIMEOUT \u2014 stopping the run`,'timeout');
         ge_applyCpuCoaching(cpuT);
-        eventQueue.push({ text:null, type:'cpu_timeout', snapshot:captureSnap() });
+        GAME.pendingCpuTimeout=true;
       }
     }
   }
@@ -1451,11 +1454,15 @@ function ge_updateRun(isHome,pts){
 function ge_foulOut(player,team){
   if(player.gamePF<5)return;
   const idx=team.lineup.indexOf(player); if(idx===-1)return;
-  // For P1's team: push an event so P1 can choose the replacement interactively
   const _foP1IsHome=G.homeOp==='P1';
   if(team===(_foP1IsHome?GAME.home:GAME.away)){
-    eventQueue.push({text:null,type:'p1_foul_out',snapshot:captureSnap(),foulOutPlayer:player.name});
+    // P1's player — set flag, remove from lineup, skip auto-sub so P1 chooses
+    GAME.pendingP1FoulOut=player.name;
+    team.lineup.splice(idx,1);
+    logEv(`  FOUL OUT: ${player.name} has fouled out \u2014 select a replacement`,'foul');
+    return;
   }
+  // CPU team — auto-sub as before
   const ranked=team.bench.slice().sort((a,b)=>(b.minutes_per_game||0)-(a.minutes_per_game||0)||(b.ppg||0)-(a.ppg||0));
   const best=ranked.find(p=>p.position===player.position)||ranked[0]||null;
   const subIdx=best?team.bench.indexOf(best):-1;
@@ -1472,8 +1479,8 @@ function ge_shootFoul(defs,shooter,defT){
 }
 
 function ge_ftRebound(shootT,oppT){
-  if(Math.random()<(shootT.offensive_rebound_pct>(1-oppT.defensive_rebound_pct)?0.20:0.15)){ const r=ge_assignReb(shootT.lineup,'offensive',false); GAME.stats[r.name].reb++; logEv(`  FT OFF REB: ${r.name}`,'reb'); ge_momEvt(shootT.isHome,1); }
-  else{ const r=ge_assignReb(oppT.lineup,'defensive',false); GAME.stats[r.name].reb++; logEv(`  FT DEF REB: ${r.name}`,'reb'); ge_flip(); }
+  if(Math.random()<(shootT.offensive_rebound_pct>(1-oppT.defensive_rebound_pct)?0.20:0.15)){ const r=ge_assignReb(shootT.lineup,'offensive',false); GAME.stats[r.name].reb++; logEv(`  FT OFF REB: ${r.name}`,'reb'); ge_checkMilestones(r,shootT,oppT); ge_momEvt(shootT.isHome,1); }
+  else{ const r=ge_assignReb(oppT.lineup,'defensive',false); GAME.stats[r.name].reb++; logEv(`  FT DEF REB: ${r.name}`,'reb'); ge_checkMilestones(r,oppT,shootT); ge_flip(); }
 }
 
 function ge_fts(shooter,sT,oT,count,suppressRunUpdate){
@@ -1488,7 +1495,7 @@ function ge_fts(shooter,sT,oT,count,suppressRunUpdate){
 
 function ge_1and1(shooter,sT,oT){
   const made=Math.random()<ge_sd(shooter.free_throw_pct,'free_throw_pct'); GAME.stats[shooter.name].fta++;
-  if(made){ GAME.stats[shooter.name].ftm++; GAME.stats[shooter.name].pts++; if(sT.isHome)GAME.homeScore++;else GAME.awayScore++; ge_updateRun(sT.isHome,1); logEv(`  1-and-1 FT 1: ${shooter.name} MADE \u2014 shooting again`,'ft'); ge_fts(shooter,sT,oT,1); }
+  if(made){ GAME.stats[shooter.name].ftm++; GAME.stats[shooter.name].pts++; if(sT.isHome)GAME.homeScore++;else GAME.awayScore++; ge_updateRun(sT.isHome,1); logEv(`  1-and-1 FT 1: ${shooter.name} MADE \u2014 shooting again`,'ft'); ge_checkMilestones(shooter,sT,oT); ge_fts(shooter,sT,oT,1); }
   else{ logEv(`  1-and-1 FT 1: ${shooter.name} missed \u2014 no 2nd shot`,'ft'); ge_ftRebound(sT,oT); }
 }
 
@@ -1584,9 +1591,11 @@ function ge_fastBreak(){
 }
 
 function ge_checkMilestones(p, team, opp) {
-  if (!GAME.stats[p.name]) return;
-  const s = GAME.stats[p.name];
-  const pts = s.pts || 0, reb = s.reb || 0, ast = s.ast || 0, blk = s.blk || 0;
+  const st = GAME.stats?.[p.name] || {};
+  const pts = st.pts || 0;
+  const reb = st.reb || 0;
+  const ast = st.ast || 0;
+  const blk = st.blk || 0;
   const ms = p.milestonesHit || (p.milestonesHit = new Set());
   for (const threshold of [10, 15, 20, 25, 30]) {
     const key = `points_${threshold}`;
@@ -1598,16 +1607,19 @@ function ge_checkMilestones(p, team, opp) {
   }
   if (reb >= 10 && !ms.has('rebounds_10')) {
     ms.add('rebounds_10');
+    const key = 'rebounds_10';
     const txt = narrate('milestones.rebounds_10', { player: p.name, team: team.name });
     if (txt) logEv(txt, 'milestone');
   }
   if (ast >= 10 && !ms.has('assists_10')) {
     ms.add('assists_10');
+    const key = 'assists_10';
     const txt = narrate('milestones.assists_10', { player: p.name, team: team.name });
     if (txt) logEv(txt, 'milestone');
   }
   if (blk >= 4 && !ms.has('blocks_4')) {
     ms.add('blocks_4');
+    const key = 'blocks_4';
     const txt = narrate('milestones.blocks_4', { player: p.name, team: team.name });
     if (txt) logEv(txt, 'milestone');
   }
@@ -1635,7 +1647,7 @@ function ge_poss(isOrb,depth){
     const fbC=GAME.fbChance||0; GAME.fbChance=0;
     if(fbC>0&&Math.random()<fbC){ return ge_fastBreak(); }
     GAME.lastStealer=null;
-    const p1IsHome=G.homeOp==='P1'; const p1Mom=p1IsHome?GAME.momentum:-GAME.momentum; const cpuTos=p1IsHome?GAME.awayTimeouts:GAME.homeTimeouts; const cpuOffense=p1IsHome?(GAME.possession==='away'):(GAME.possession==='home'); if(!GAME.cpuRunToDone&&p1Mom>=8&&cpuTos>0&&cpuOffense){ GAME.cpuRunToDone=true; if(p1IsHome)GAME.awayTimeouts--;else GAME.homeTimeouts--; GAME.momentum=clamp(GAME.momentum+(p1IsHome?-1:1),-10,10); const cpuT=ge_cpuTeam(); logEv(`\u23F8 ${cpuT.name} calls TIMEOUT`,'timeout'); ge_applyCpuCoaching(cpuT); eventQueue.push({text:null,type:'cpu_timeout',snapshot:captureSnap()}); }
+    const p1IsHome=G.homeOp==='P1'; const p1Mom=p1IsHome?GAME.momentum:-GAME.momentum; const cpuTos=p1IsHome?GAME.awayTimeouts:GAME.homeTimeouts; const cpuOffense=p1IsHome?(GAME.possession==='away'):(GAME.possession==='home'); if(!GAME.cpuRunToDone&&p1Mom>=8&&cpuTos>0&&cpuOffense){ GAME.cpuRunToDone=true; if(p1IsHome)GAME.awayTimeouts--;else GAME.homeTimeouts--; GAME.momentum=clamp(GAME.momentum+(p1IsHome?-1:1),-10,10); const cpuT=ge_cpuTeam(); logEv(`\u23F8 ${cpuT.name} calls TIMEOUT`,'timeout'); ge_applyCpuCoaching(cpuT); GAME.pendingCpuTimeout=true; }
     // Late game logic — H2 final 2 minutes only
     if(GAME.half===2 && GAME.clock<=120){
       const p1Score=p1IsHome?GAME.homeScore:GAME.awayScore;
@@ -1645,7 +1657,7 @@ function ge_poss(isOrb,depth){
       const p1OnOffense=p1IsHome?(GAME.possession==='home'):(GAME.possession==='away');
       // P1 dialog: CPU has ball, P1 losing by 1-9 (skip if user just made a choice this possession)
       if(!GAME.lateGameChoiceDone && !p1OnOffense && p1Deficit>0 && p1Deficit<10){
-        eventQueue.push({text:null, type:'p1_late_game_choice', snapshot:captureSnap()});
+        GAME.pendingLateGameChoice=true;
       }
       GAME.lateGameChoiceDone = false;
       // CPU auto-press: P1 has ball, CPU losing by 1-9
@@ -1700,8 +1712,9 @@ function ge_poss(isOrb,depth){
   const _p1IsHome=G.homeOp==='P1';
   const _p1OnOff=_p1IsHome?(GAME.possession==='home'):(GAME.possession==='away');
   if(GAME.coachingMode&&!isOrb&&depth===0&&_p1OnOff&&GAME.playCallQueued===true){
-    GAME.playCallQueued='pushed'; // prevent re-trigger on subsequent possessions this sim
-    eventQueue.push({text:null,type:'p1_play_call',snapshot:captureSnap()});
+    GAME.playCallQueued='pending';
+    GAME.pendingPlayCall=true;
+    return false;
   }
 
   const cands=ge_assistCandidates(off.lineup,off.strategy_offense); let assister=null;
@@ -1811,12 +1824,11 @@ function ge_setupHalf(lbl){
   }
   logEv(`\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 ${isOT?lbl:lbl===1?'FIRST HALF':'SECOND HALF'} \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550`,'info');
 }
-function ge_runHalf(){ let orb=false; while(GAME.clock>0){orb=ge_poss(orb)||false;GAME.halfPossessions++;} logEv(`\u2550\u2550\u2550\u2550\u2550\u2550 End: ${GAME.home.name} ${GAME.homeScore}  ${GAME.away.name} ${GAME.awayScore} \u2550\u2550\u2550\u2550\u2550\u2550`,'info'); }
 
 function startGame(){
   const homeData=G.home, awayData=G.visitor;
-  eventQueue=[]; displayIdx=0; prevHS=0; prevAS=0;
-  GAME={ home:ge_buildTeam(homeData,true), away:ge_buildTeam(awayData,false), homeScore:0, awayScore:0, clock:1200, half:1, possession:Math.random()<0.5?'home':'away', momentum:0, homeTimeouts:3, awayTimeouts:3, mediaTimeouts:[720,480,240], pendingMediaTO:null, stats:{}, halfPossessions:0, totalPossessions:0, possessionCount:0, cpuReturnQueue:[], subAt15Done:false, subAt12Done:false, subAt8Done:false, fbChance:0, lastStealer:null, cpuRunToDone:false, cpuPressApplied:false, cpuDefChangeOnRunDone:false, coachingMode:G.coachingMode&&!G.watchMode, playCallQueued:null };
+  possBuffer=[]; possBufferIdx=0; gameLog=[]; lastPauseSnap=null; bsSnapStats=null; bsSnapPlayerState=null;
+  GAME={ home:ge_buildTeam(homeData,true), away:ge_buildTeam(awayData,false), homeScore:0, awayScore:0, clock:1200, half:1, possession:Math.random()<0.5?'home':'away', momentum:0, homeTimeouts:3, awayTimeouts:3, mediaTimeouts:[720,480,240], pendingMediaTO:null, stats:{}, halfPossessions:0, totalPossessions:0, possessionCount:0, runMilestonesHit:{home:new Set(),away:new Set()}, cpuReturnQueue:[], subAt15Done:false, subAt12Done:false, subAt8Done:false, fbChance:0, lastStealer:null, cpuRunToDone:false, cpuPressApplied:false, cpuDefChangeOnRunDone:false, coachingMode:G.coachingMode&&!G.watchMode, playCallQueued:null, orbCarried:false, pendingHalftime:false, pendingCpuTimeout:false, pendingP1FoulOut:null, pendingPlayCall:false, pendingLateGameChoice:false, h1HomeScore:0, h1AwayScore:0, h1Stats:null, h1PlayerState:null, regHomeScore:0, regAwayScore:0, otCount:0 };
 
   const p1IsHome = G.homeOp === 'P1';
   const p1Team = p1IsHome ? GAME.home : GAME.away;
@@ -1857,10 +1869,7 @@ function startGame(){
   BoxScore.init(GAME.home, GAME.away, _bsCtx, _bsSid, BoxScore.LOG_LEVELS.FULL,
     GAME.home.strategy_offense, GAME.home.strategy_defense,
     GAME.away.strategy_offense, GAME.away.strategy_defense);
-  ge_setupHalf(1);ge_runHalf();
-  eventQueue.push({ text:null, type:'halftime', snapshot:captureSnap() });
-  ge_setupHalf(2);ge_runHalf();
-  let ot=0; while(GAME.homeScore===GAME.awayScore&&ot<5){ot++;ge_setupHalf('OT'+ot);ge_runHalf();}
+  ge_setupHalf(1);
 
   G.gameInProgress=true;
   renderGameScreen();
@@ -1937,83 +1946,141 @@ function updateStatsTable(id,lineup,stats,playerState){
 }
 function addPbpLine(text,type){ const pbp=document.getElementById('pbpDisplay'); if(!pbp)return; const d=document.createElement('div'); d.className='pbp-ev '+(type||'ev'); d.textContent=(type==='milestone'?'\u2605 ':'')+text; pbp.insertBefore(d,pbp.firstChild); }
 
-function applySnap(snap){
-  updateBulbs('awayScore',snap.awayScore); updateBulbs('homeScore',snap.homeScore);
-  prevAS=snap.awayScore; prevHS=snap.homeScore;
-  updateClock(snap.clock,snap.half); updateMomentum(snap.momentum);
-  updateToPanel('away',snap.awayTimeouts,snap.awayTeamFouls,snap.homeTeamFouls); updateToPanel('home',snap.homeTimeouts,snap.homeTeamFouls,snap.awayTeamFouls);
-  const findH=name=>(GAME.home.allPlayers||[]).find(p=>p.name===name);
-  const findA=name=>(GAME.away.allPlayers||[]).find(p=>p.name===name);
-  if(snap.homeLineupNames) GAME.home.lineup=(snap.homeLineupNames).map(findH).filter(Boolean);
-  if(snap.awayLineupNames) GAME.away.lineup=(snap.awayLineupNames).map(findA).filter(Boolean);
-  updateStatsTable('awayStatsTable',GAME.away.lineup,snap.stats,snap.playerState);
-  updateStatsTable('homeStatsTable',GAME.home.lineup,snap.stats,snap.playerState);
-  const _SLBL={motion:'Motion',five_out:'Five Out',pick_and_roll:'Pick & Roll',pick_and_pop:'Pick & Pop',high_post:'High Post',low_post:'Low Post',man_to_man:'Man-to-Man','2_3_zone':'2-3 Zone','1_3_1_zone':'1-3-1 Zone',matchup_zone:'Matchup Zone',half_court_trap:'Half Court Trap',full_court_press:'Full Court Press'};
+
+function updateGameDisplay(){
+  if(!GAME)return;
+  updateBulbs('awayScore',GAME.awayScore); updateBulbs('homeScore',GAME.homeScore);
+  updateClock(GAME.clock,GAME.half); updateMomentum(GAME.momentum);
+  updateToPanel('away',GAME.awayTimeouts,GAME.away.teamFouls,GAME.home.teamFouls);
+  updateToPanel('home',GAME.homeTimeouts,GAME.home.teamFouls,GAME.away.teamFouls);
+  updateStatsTable('awayStatsTable',GAME.away.lineup,GAME.stats,null);
+  updateStatsTable('homeStatsTable',GAME.home.lineup,GAME.stats,null);
+  const _SLBL={motion:'Motion',five_out:'Five Out',pick_and_roll:'Pick & Roll',pick_and_pop:'Pick & Pop',high_post:'High Post',low_post:'Low Post',man_to_man:'Man-to-Man','2_3_zone':'2-3 Zone','1_3_1_zone':'1-3-1 Zone',matchup_zone:'Matchup Zone',half_court_trap:'Half Court Trap',full_court_press:'Full-Court Press'};
   const _lbl=k=>_SLBL[k]||(k||'').replace(/_/g,' ');
-  const asd=document.getElementById('awayStratSub'); if(asd)asd.textContent=snap.awayStratOff?'Off: '+_lbl(snap.awayStratOff)+'  |  Def: '+_lbl(snap.awayStratDef):'';
-  const hsd=document.getElementById('homeStratSub'); if(hsd)hsd.textContent=snap.homeStratOff?'Off: '+_lbl(snap.homeStratOff)+'  |  Def: '+_lbl(snap.homeStratDef):'';
-  const p1Home=G.homeOp==='P1', tos=p1Home?snap.homeTimeouts:snap.awayTimeouts;
+  const asd=document.getElementById('awayStratSub'); if(asd)asd.textContent=GAME.away.strategy_offense?'Off: '+_lbl(GAME.away.strategy_offense)+'  |  Def: '+_lbl(GAME.away.strategy_defense):'';
+  const hsd=document.getElementById('homeStratSub'); if(hsd)hsd.textContent=GAME.home.strategy_offense?'Off: '+_lbl(GAME.home.strategy_offense)+'  |  Def: '+_lbl(GAME.home.strategy_defense):'';
+  const p1Home=G.homeOp==='P1', tos=p1Home?GAME.homeTimeouts:GAME.awayTimeouts;
   const btn=document.getElementById('timeoutBtn'); if(btn)btn.disabled=tos<=0;
 }
-
 function setSpeed(speed){ displaySpeed=speed; document.querySelectorAll('.speed-btn').forEach(b=>b.classList.toggle('active',b.dataset.speed===speed)); if(displayTimer){clearInterval(displayTimer);if(!gamePaused)displayTimer=setInterval(showNext,SPEED_SETTINGS[speed]);} }
 function togglePause(){ gamePaused=!gamePaused; const btn=document.getElementById('pauseBtn'); if(gamePaused){clearInterval(displayTimer);displayTimer=null;if(btn)btn.textContent='\u25B6';}else{if(btn)btn.textContent='\u23F8';displayTimer=setInterval(showNext,SPEED_SETTINGS[displaySpeed]);} }
 
 function showNext(){
   if(gamePaused){ clearInterval(displayTimer); displayTimer=null; return; }
-  if(displayIdx>=eventQueue.length){clearInterval(displayTimer);displayTimer=null;G.gameInProgress=false;if(sessionStorage.getItem('tournament_return')==='true'){sessionStorage.setItem('tournament_home_score',GAME.homeScore);sessionStorage.setItem('tournament_away_score',GAME.awayScore);}const _savedGid=BoxScore.save(eventQueue);const bb=document.getElementById('boxScoreBtn');if(bb)bb.style.display='inline-block';if(G.pendingSeasonGame){const _pg=G.pendingSeasonGame;G.pendingSeasonGame=null;const _wid=GAME.homeScore>GAME.awayScore?_pg.homeTeamId:_pg.awayTeamId;if(window.SeasonEngine)SeasonEngine.recordResult(_pg.gameIndex,{homeScore:GAME.homeScore,awayScore:GAME.awayScore,winnerId:_wid,method:'played',gameId:_savedGid});console.log('[CHT] Season result recorded: game '+_pg.gameIndex+' '+_wid+' wins '+GAME.homeScore+'-'+GAME.awayScore);const _rb=document.createElement('a');_rb.href='season.html';_rb.textContent='\u2190 Return to Season';_rb.className='action-btn';_rb.style.cssText='display:inline-block;text-decoration:none;padding:9px 22px;font-size:.88rem;border-radius:8px;margin-top:6px;';const _qd=document.querySelector('.sb-quit');if(_qd)_qd.appendChild(_rb);}return;}
-  const ev=eventQueue[displayIdx++];
-  if(ev.type==='halftime'){
-    applySnap(ev.snapshot);
-    if(G.watchMode) return;
-    gamePaused=true; clearInterval(displayTimer); displayTimer=null;
-    showHalftimeModal();
+
+  // 1. Drain one event from the current possession buffer
+  if(possBufferIdx<possBuffer.length){
+    const ev=possBuffer[possBufferIdx++];
+updateGameDisplay();
+    addPbpLine(ev.text,ev.type);
     return;
   }
-  if(ev.type==='media_timeout'){
-    applySnap(ev.snapshot);
-    if(G.watchMode){ addPbpLine('[TV TIMEOUT]','timeout'); return; }
-    gamePaused=true; clearInterval(displayTimer); displayTimer=null;
-    addPbpLine('[TV TIMEOUT]','timeout');
-    setTimeout(()=>{ renderLineupPane(); showScreen('lineup'); },2000);
+
+  // 2. possBuffer exhausted — capture state for pause handlers
+  lastPauseSnap=captureSnap();
+
+  // 3. Check interrupt flags (set by ge_poss / ge_firePendingMTO / ge_foulOut / ge_updateRun)
+  if(GAME.pendingP1FoulOut){
+    const foPlayer=GAME.pendingP1FoulOut;
+    GAME.pendingP1FoulOut=null;
+    addPbpLine('\u26A0 '+foPlayer+' has fouled out. Select a replacement.','foul');
+    if(!G.watchMode){
+      gamePaused=true; clearInterval(displayTimer); displayTimer=null;
+      const _foH=G.homeOp==='P1'; const _foT=_foH?GAME.home:GAME.away;
+      G.lineup=_foT.lineup.slice();
+      setTimeout(()=>{ renderLineupPane(foPlayer); showScreen('lineup'); },500);
+      return;
+    }
+  }
+
+  if(GAME.pendingPlayCall){
+    GAME.pendingPlayCall=false;
+    if(!G.watchMode){
+      const _cpb=document.getElementById('callPlayBtn');
+      if(_cpb){_cpb.textContent='CALL PLAY';_cpb.classList.remove('queued');}
+      gamePaused=true; clearInterval(displayTimer); displayTimer=null;
+      showStrategyOverlay(lastPauseSnap,null,'play_call');
+      return;
+    } else { GAME.playCallQueued=null; }
+  }
+
+  if(GAME.pendingMediaTO){
+    if(G.homeOp!=='P1') ge_applyCpuCoaching(GAME.home);
+    if(G.visitorOp!=='P1') ge_applyCpuCoaching(GAME.away);
+    GAME.pendingMediaTO=null;
+    if(G.watchMode){ addPbpLine('[TV TIMEOUT]','timeout'); }
+    else{
+      gamePaused=true; clearInterval(displayTimer); displayTimer=null;
+      addPbpLine('[TV TIMEOUT]','timeout');
+      setTimeout(()=>{ renderLineupPane(); showScreen('lineup'); },2000);
+      return;
+    }
+  }
+
+  if(GAME.pendingCpuTimeout){
+    GAME.pendingCpuTimeout=false;
+    if(!G.watchMode){
+      gamePaused=true; clearInterval(displayTimer); displayTimer=null;
+      setTimeout(()=>{ renderLineupPane(); showScreen('lineup'); },1000);
+      return;
+    }
+  }
+
+  if(GAME.pendingLateGameChoice){
+    GAME.pendingLateGameChoice=false;
+    if(!G.watchMode){
+      gamePaused=true; clearInterval(displayTimer); displayTimer=null;
+      showLateGameDialog(lastPauseSnap);
+      return;
+    }
+  }
+
+  // 4. Check halftime / game end
+  if(GAME.clock<=0){
+    // Emit end-of-half line directly (not via logEv to avoid re-triggering)
+    const _em=String(0).padStart(2,'0'), _es=String(0).padStart(2,'0');
+    const _endTxt=`[${_em}:${_es}] \u2550\u2550\u2550\u2550\u2550\u2550 End: ${GAME.home.name} ${GAME.homeScore}  ${GAME.away.name} ${GAME.awayScore} \u2550\u2550\u2550\u2550\u2550\u2550`;
+    updateGameDisplay();
+    addPbpLine(_endTxt,'info');
+    gameLog.push({text:_endTxt,type:'info',snapshot:{clock:0,half:GAME.half}});
+
+    if(GAME.half===1){
+      // Store halftime state
+      GAME.h1HomeScore=GAME.homeScore; GAME.h1AwayScore=GAME.awayScore;
+      const _allP=[...(GAME.home.allPlayers||[]),...(GAME.away.allPlayers||[])];
+      GAME.h1Stats=JSON.parse(JSON.stringify(GAME.stats));
+      GAME.h1PlayerState=Object.fromEntries(_allP.map(p=>[p.name,{totalGameSecs:p.totalGameSecs||0,halfSecs:p.halfSecs||0,halfFGA:p.halfFGA||0,halfFTA:p.halfFTA||0,_carriedLoad:p._carriedLoad||0}]));
+      bsSnapStats=GAME.h1Stats; bsSnapPlayerState=GAME.h1PlayerState;
+      possBuffer=[]; possBufferIdx=0;
+      if(G.watchMode){ ge_setupHalf(2); GAME.orbCarried=false; return; }
+      GAME.pendingHalftime=true;
+      gamePaused=true; clearInterval(displayTimer); displayTimer=null;
+      showHalftimeModal();
+      return;
+    }
+
+    // Half 2 or OT ended
+    if(GAME.half===2) { GAME.regHomeScore=GAME.homeScore; GAME.regAwayScore=GAME.awayScore; }
+    if(GAME.homeScore!==GAME.awayScore||(GAME.otCount||0)>=5){
+      // Game over
+      clearInterval(displayTimer); displayTimer=null; G.gameInProgress=false;
+      if(sessionStorage.getItem('tournament_return')==='true'){sessionStorage.setItem('tournament_home_score',GAME.homeScore);sessionStorage.setItem('tournament_away_score',GAME.awayScore);}
+      gameLog.push({text:null,type:'_terminal',snapshot:captureSnap()});
+      const _savedGid=BoxScore.save(gameLog);
+      const bb=document.getElementById('boxScoreBtn'); if(bb)bb.style.display='inline-block';
+      if(G.pendingSeasonGame){const _pg=G.pendingSeasonGame;G.pendingSeasonGame=null;const _wid=GAME.homeScore>GAME.awayScore?_pg.homeTeamId:_pg.awayTeamId;if(window.SeasonEngine)SeasonEngine.recordResult(_pg.gameIndex,{homeScore:GAME.homeScore,awayScore:GAME.awayScore,winnerId:_wid,method:'played',gameId:_savedGid});console.log('[CHT] Season result recorded: game '+_pg.gameIndex+' '+_wid+' wins '+GAME.homeScore+'-'+GAME.awayScore);const _rb=document.createElement('a');_rb.href='season.html';_rb.textContent='\u2190 Return to Season';_rb.className='action-btn';_rb.style.cssText='display:inline-block;text-decoration:none;padding:9px 22px;font-size:.88rem;border-radius:8px;margin-top:6px;';const _qd=document.querySelector('.sb-quit');if(_qd)_qd.appendChild(_rb);}
+      return;
+    }
+    // Tied — setup OT
+    GAME.otCount=(GAME.otCount||0)+1;
+    ge_setupHalf('OT'+GAME.otCount); GAME.orbCarried=false;
     return;
   }
-  if(ev.type==='cpu_timeout'){
-    applySnap(ev.snapshot);
-    if(G.watchMode) return;
-    gamePaused=true; clearInterval(displayTimer); displayTimer=null;
-    setTimeout(()=>{ renderLineupPane(); showScreen('lineup'); },1000);
-    return;
-  }
-  if(ev.type==='p1_late_game_choice'){
-    applySnap(ev.snapshot);
-    if(G.watchMode) return;
-    gamePaused=true; clearInterval(displayTimer); displayTimer=null;
-    showLateGameDialog(ev.snapshot);
-    return;
-  }
-  if(ev.type==='p1_play_call'){
-    applySnap(ev.snapshot);
-    if(G.watchMode) return;
-    // Reset Call Play button
-    const _cpb=document.getElementById('callPlayBtn');
-    if(_cpb){_cpb.textContent='CALL PLAY';_cpb.classList.remove('queued');}
-    gamePaused=true; clearInterval(displayTimer); displayTimer=null;
-    showStrategyOverlay(ev.snapshot,displayIdx,'play_call');
-    return;
-  }
-  if(ev.type==='p1_foul_out'){
-    applySnap(ev.snapshot);
-    addPbpLine('\u26A0 '+ev.foulOutPlayer+' has fouled out. Select a replacement.','foul');
-    if(G.watchMode) return;
-    gamePaused=true; clearInterval(displayTimer); displayTimer=null;
-    const _foH=G.homeOp==='P1';
-    const _foT=_foH?GAME.home:GAME.away;
-    G.lineup=_foT.lineup.filter(p=>p.name!==ev.foulOutPlayer);
-    setTimeout(()=>{ renderLineupPane(ev.foulOutPlayer); showScreen('lineup'); },500);
-    return;
-  }
-  applySnap(ev.snapshot); addPbpLine(ev.text,ev.type);
+
+  // 5. Run next possession
+  possBuffer=[]; possBufferIdx=0;
+  GAME.orbCarried=ge_poss(GAME.orbCarried)||false;
+  GAME.halfPossessions++;
 }
 
 function showHalftimeModal(){ showBoxScore(true); }
@@ -2028,21 +2095,17 @@ function showLateGameDialog(snap){
   const resumeSim=()=>{ gamePaused=false; if(displayTimer)clearInterval(displayTimer); displayTimer=setInterval(showNext,SPEED_SETTINGS[displaySpeed]); };
   const applyStrategy=(defType)=>{
     document.getElementById('lateGameOverlay').remove();
-    restoreGameState(snap);
     const p1T=p1IsHome?GAME.home:GAME.away;
     p1T.strategy_defense=defType;
     BoxScore.logStrategyChange(snap.clock, snap.half, GAME.home.strategy_offense, GAME.home.strategy_defense, GAME.away.strategy_offense, GAME.away.strategy_defense, snap.homeScore, snap.awayScore);
-    eventQueue.splice(displayIdx);
-    GAME.lateGameChoiceDone = true;
-    ge_continueGame(false);
+    GAME.lateGameChoiceDone=true;
+    possBuffer=[]; possBufferIdx=0;
     resumeSim();
   };
   const applyFoul=()=>{
     document.getElementById('lateGameOverlay').remove();
-    restoreGameState(snap);
-    eventQueue.splice(displayIdx);
+    possBuffer=[]; possBufferIdx=0;
     ge_intentionalFoul(ge_def(), ge_off());
-    ge_continueGame(false);
     resumeSim();
   };
   const ov=document.createElement('div'); ov.id='lateGameOverlay';
@@ -2187,7 +2250,8 @@ function showStrategyOverlay(snap, fromDisplayIdx, context){
     if(context==='timeout'){
       resumeFromTimeout();
     } else if(context==='play_call'){
-      GAME.playCallQueued=false;
+      GAME.playCallQueued=null;
+      possBuffer=[]; possBufferIdx=0;
       gamePaused=false; displayTimer=setInterval(showNext,SPEED_SETTINGS[displaySpeed]);
     }
     // pregame: just close, no action
@@ -2212,15 +2276,12 @@ function showStrategyOverlay(snap, fromDisplayIdx, context){
       if(shooterName&&GAME.coachingMode) GAME.playCallQueued={shooterName,force3:false};
       resumeFromTimeout();
     } else { // play_call
-      restoreGameState(snap);
-      displayIdx=fromDisplayIdx;
       const p1T2=p1IsHome?GAME.home:GAME.away;
       const offChg=selOff!==p1T2.strategy_offense, defChg=selDef!==p1T2.strategy_defense;
       p1T2.strategy_offense=selOff; p1T2.strategy_defense=selDef;
-      if(offChg||defChg) BoxScore.logStrategyChange(snap.clock,snap.half,GAME.home.strategy_offense,GAME.home.strategy_defense,GAME.away.strategy_offense,GAME.away.strategy_defense,snap.homeScore,snap.awayScore);
+      if((offChg||defChg)&&snap) BoxScore.logStrategyChange(snap.clock,snap.half,GAME.home.strategy_offense,GAME.home.strategy_defense,GAME.away.strategy_offense,GAME.away.strategy_defense,snap.homeScore,snap.awayScore);
       GAME.playCallQueued=shooterName?{shooterName,force3:false}:null;
-      eventQueue.splice(displayIdx);
-      ge_continueGame(false);
+      possBuffer=[]; possBufferIdx=0;
       gamePaused=false; displayTimer=setInterval(showNext,SPEED_SETTINGS[displaySpeed]);
     }
   });
@@ -2228,19 +2289,14 @@ function showStrategyOverlay(snap, fromDisplayIdx, context){
 
 function triggerPlayCall(){
   if(!GAME||!GAME.coachingMode||G.watchMode) return;
-  // If the auto-trigger event is pending in the queue, absorb it and open the overlay now
-  if(GAME.playCallQueued==='pushed'){
-    for(let i=displayIdx;i<eventQueue.length;i++){
-      if(eventQueue[i].type==='p1_play_call'){ eventQueue.splice(i,1); break; }
-    }
-    GAME.playCallQueued=false;
+  if(GAME.pendingPlayCall){
+    // Already auto-paused — overlay was already shown by showNext; ignore re-trigger
+    return;
   }
-  if(GAME.playCallQueued) return; // still blocked (sim-phase, not yet pushed)
-  let snap=null;
-  for(let i=displayIdx-1;i>=0;i--){ if(eventQueue[i]&&eventQueue[i].snapshot){snap=eventQueue[i].snapshot;break;} }
-  if(!snap) return;
+  if(GAME.playCallQueued===true||GAME.playCallQueued==='pending') return; // waiting for first P1 possession
+  if(!lastPauseSnap) return;
   gamePaused=true; clearInterval(displayTimer); displayTimer=null;
-  showStrategyOverlay(snap,displayIdx,'play_call');
+  showStrategyOverlay(lastPauseSnap,null,'play_call');
 }
 
 function bsBuildTeamTable(t, src, stats, pstate){
@@ -2277,15 +2333,13 @@ function showBsTab(side){
 function printBoxScore(){
   const stats=bsSnapStats||GAME.stats;
   const pstate=bsSnapPlayerState||{};
-  const htEv=eventQueue.find(ev=>ev.type==='halftime');
-  const h1H=htEv?htEv.snapshot.homeScore:0, h1A=htEv?htEv.snapshot.awayScore:0;
+  const h1H=GAME.h1HomeScore||0, h1A=GAME.h1AwayScore||0;
   const isHT=!!bsSnapStats;
   let scoreRows='';
   if(isHT){
     scoreRows=`<tr><th>Team</th><th>1H</th></tr><tr><td>${esc(GAME.away.name)}</td><td>${h1A}</td></tr><tr><td>${esc(GAME.home.name)}</td><td>${h1H}</td></tr>`;
   } else {
-    let regH=GAME.homeScore,regA=GAME.awayScore;
-    for(let i=eventQueue.length-1;i>=0;i--){ const sn=eventQueue[i].snapshot; if(sn&&sn.half===2){regH=sn.homeScore;regA=sn.awayScore;break;} }
+    const regH=GAME.regHomeScore||GAME.homeScore,regA=GAME.regAwayScore||GAME.awayScore;
     const h2H=regH-h1H,h2A=regA-h1A,otH=GAME.homeScore-regH,otA=GAME.awayScore-regA,hasOT=otH+otA>0;
     const otCol=hasOT?'<th>OT</th>':''; const otA_=hasOT?`<td>${otA}</td>`:''; const otH_=hasOT?`<td>${otH}</td>`:'';
     scoreRows=`<tr><th>Team</th><th>1H</th><th>2H</th>${otCol}<th>Final</th></tr><tr><td>${esc(GAME.away.name)}</td><td>${h1A}</td><td>${h2A}</td>${otA_}<td><b>${GAME.awayScore}</b></td></tr><tr><td>${esc(GAME.home.name)}</td><td>${h1H}</td><td>${h2H}</td>${otH_}<td><b>${GAME.homeScore}</b></td></tr>`;
@@ -2311,16 +2365,13 @@ function printBoxScore(){
   w.document.close();
 }
 function showBoxScore(isHalftime){
-  const htEv=eventQueue.find(ev=>ev.type==='halftime');
-  if(isHalftime&&htEv){ bsSnapStats=htEv.snapshot.stats; bsSnapPlayerState=htEv.snapshot.playerState; }
-  else { bsSnapStats=null; bsSnapPlayerState=null; }
-  const h1H=htEv?htEv.snapshot.homeScore:0, h1A=htEv?htEv.snapshot.awayScore:0;
+  if(!isHalftime){ bsSnapStats=null; bsSnapPlayerState=null; }
+  const h1H=GAME.h1HomeScore||0, h1A=GAME.h1AwayScore||0;
   let scoreHtml;
   if(isHalftime){
     scoreHtml=`<div style="text-align:center;padding:14px 16px 4px;border-bottom:1px solid var(--border)"><div style="font-size:.75rem;font-weight:700;letter-spacing:2px;color:#8b949e;text-transform:uppercase;margin-bottom:6px">Halftime</div><div style="display:flex;justify-content:center;align-items:center;gap:20px"><div style="text-align:center"><div style="font-size:.75rem;font-weight:700;color:${esc(GAME.away.primaryColor)};text-transform:uppercase;letter-spacing:1px">${esc(GAME.away.name)}</div><div style="font-size:3.5rem;font-weight:800;font-family:Consolas,monospace;color:#0d2240;line-height:1">${h1A}</div></div><div style="font-size:1.5rem;color:#444;padding-bottom:20px">–</div><div style="text-align:center"><div style="font-size:.75rem;font-weight:700;color:${esc(GAME.home.primaryColor)};text-transform:uppercase;letter-spacing:1px">${esc(GAME.home.name)}</div><div style="font-size:3.5rem;font-weight:800;font-family:Consolas,monospace;color:#0d2240;line-height:1">${h1H}</div></div></div></div>`;
   } else {
-    let regH=GAME.homeScore, regA=GAME.awayScore;
-    for(let i=eventQueue.length-1;i>=0;i--){ const sn=eventQueue[i].snapshot; if(sn&&sn.half===2){regH=sn.homeScore;regA=sn.awayScore;break;} }
+    const regH=GAME.regHomeScore||GAME.homeScore, regA=GAME.regAwayScore||GAME.awayScore;
     const otH=GAME.homeScore-regH, otA=GAME.awayScore-regA, hasOT=otH+otA>0;
     const h2H=regH-h1H, h2A=regA-h1A;
     const otCol=hasOT?`<th style="text-align:center;padding:4px 10px">OT</th>`:'';
@@ -2349,7 +2400,7 @@ function showBoxScore(isHalftime){
   ov.style.display='flex';
   showBsTab('away');
 }
-function startDisplay(){ displayIdx=0; gamePaused=false; if(displayTimer)clearInterval(displayTimer); displayTimer=setInterval(showNext,SPEED_SETTINGS[displaySpeed]); }
+function startDisplay(){ gamePaused=false; if(displayTimer)clearInterval(displayTimer); displayTimer=setInterval(showNext,SPEED_SETTINGS[displaySpeed]); }
 
 function quitGame(){
   clearInterval(displayTimer); displayTimer=null; gamePaused=false;
@@ -2376,27 +2427,34 @@ function callTimeout(){
 }
 
 function resumeFromTimeout(){
-  if(displayIdx>0&&G.lineup.length===5){
+  if(GAME.pendingHalftime){
+    GAME.pendingHalftime=false;
+    ge_setupHalf(2);
+    GAME.orbCarried=false;
+  }
+  if(G.lineup.length===5){
     const p1IsHome=G.homeOp==='P1'; const p1Team=p1IsHome?GAME.home:GAME.away;
-    // Compare against snapshot lineup — GAME.home/away.lineup may have been pre-synced from G.lineup
-    const snap=eventQueue[displayIdx-1]?.snapshot;
-    const snapLN=new Set(snap?(p1IsHome?snap.homeLineupNames:snap.awayLineupNames):[]);
+    const snapLN=new Set(lastPauseSnap?(p1IsHome?lastPauseSnap.homeLineupNames:lastPauseSnap.awayLineupNames):[]);
     const lineupChanged=G.lineup.some(p=>!snapLN.has(p.name))||snapLN.size!==G.lineup.length;
     const newOff=normalizeStrat(G.offStrategy||'motion'), newDef=normalizeStrat(G.defStrategy||'man_to_man');
     const stratChanged=newOff!==p1Team.strategy_offense||newDef!==p1Team.strategy_defense;
     if(lineupChanged||stratChanged){
-      restoreGameState(snap,lineupChanged?G.lineup:undefined);
+      if(lineupChanged){
+        const allP=p1Team.allPlayers||[];
+        const fl=Object.fromEntries(allP.map(p=>[p.name,p.gamePF||0]));
+        const selNames=new Set(G.lineup.map(p=>p.name));
+        p1Team.lineup=G.lineup.map(p=>allP.find(q=>q.name===p.name)).filter(Boolean);
+        p1Team.bench=allP.filter(p=>!selNames.has(p.name)&&(fl[p.name]||0)<5);
+        for(const p of p1Team.lineup){if(!GAME.stats[p.name])GAME.stats[p.name]={pts:0,reb:0,ast:0,stl:0,blk:0,tov:0,fga:0,fgm:0,tpa:0,tpm:0,fta:0,ftm:0,pf:0};}
+      }
       p1Team.strategy_offense=newOff; p1Team.strategy_defense=newDef;
-      BoxScore.logStrategyChange(snap.clock, snap.half, GAME.home.strategy_offense, GAME.home.strategy_defense, GAME.away.strategy_offense, GAME.away.strategy_defense, snap.homeScore, snap.awayScore);
-      eventQueue.splice(displayIdx);
-      ge_continueGame(snap.half===1&&snap.clock===0);
+      if(lastPauseSnap) BoxScore.logStrategyChange(lastPauseSnap.clock,lastPauseSnap.half,GAME.home.strategy_offense,GAME.home.strategy_defense,GAME.away.strategy_offense,GAME.away.strategy_defense,GAME.homeScore,GAME.awayScore);
     }
   }
-  // Clear any stale play-call targeting not consumed during resim
   if(GAME&&GAME.playCallQueued&&typeof GAME.playCallQueued==='object') GAME.playCallQueued=null;
   showScreen('game');
   gamePaused=false;
-  if(displayIdx<eventQueue.length){ displayTimer=setInterval(showNext,SPEED_SETTINGS[displaySpeed]); }
+  displayTimer=setInterval(showNext,SPEED_SETTINGS[displaySpeed]);
 }
 
 // ── BOOT ──────────────────────────────────────────────────────
