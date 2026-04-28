@@ -282,7 +282,7 @@ header { background: var(--primary); color: #fff; padding: 0 28px; position: sti
 <header>
   <button class="back-btn" id="backBtn" style="display:none" onclick="handleBack()">&#8592; Back</button>
   <div class="header-brand">
-    <div class="header-sub">2025–26 Season &nbsp;·&nbsp; v2.4</div>
+    <div class="header-sub">2025–26 Season &nbsp;·&nbsp; v3.0</div>
     <div class="header-logo">College Hoops <span>Throwdown</span></div>
   </div>
 </header>
@@ -339,6 +339,9 @@ header { background: var(--primary); color: #fff; padding: 0 28px; position: sti
     <p>Inspired by THE ULTIMATE COLLEGE BASKETBALL GAME (1984)</p>
 
     <h3 style="margin-top:1.2em">Version History</h3>
+
+    <p><strong>v3.0</strong><br>
+    Possession-by-possession game engine. The game no longer pre-simulates the entire game before display — each possession is resolved live as the play-by-play advances. Halftime, timeouts, foul-outs, play calls, and late-game choices are handled as live interrupts rather than pre-placed sentinels. P1 foul-out substitutions now let the player choose their own replacement instead of auto-subbing. Significant performance improvement: captureSnap() is called only at pause points instead of on every single game event.</p>
 
     <p><strong>v2.4</strong><br>
     Announcement engine overhaul. And-one plays now produce a single combined basket+foul announcement instead of two separate lines. Run milestone announcements include score context (leading, tied, or cutting the deficit). Run announcements now always follow the basket line in the play-by-play. Run counter saved and restored in snapshots, reset at halftime; thresholds raised to 8/10/12/14. Press/trap fouls no longer route through the intentional foul path. Duplicate CPU defense-change announcements suppressed via snapshot-restored lastLoggedDefense and point-of-change logging. In-game substitution screen reads stats from the current display-position snapshot instead of end-of-simulation player object values, fixing stale foul/minute counts.</p>
