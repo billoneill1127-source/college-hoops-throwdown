@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How to Play — College Hoops Throwdown</title>
+<style>
+:root {
+  --primary: #0d2240;
+  --accent: #e8600a;
+  --grey: #8a9bb0;
+  --surface: #f0f4f8;
+  --card-bg: #fff;
+  --text: #0d2240;
+  --text-muted: #6b7a99;
+  --border: #dde3ee;
+  --shadow: 0 2px 8px rgba(13,34,64,.10);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--surface); color: var(--text); min-height: 100vh; }
+
+/* ── Header ── */
+header { background: var(--primary); color: #fff; padding: 0 28px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 14px rgba(0,0,0,.35); display: flex; align-items: center; gap: 14px; height: 58px; }
+.back-btn { background: none; border: 1px solid rgba(255,255,255,.28); color: rgba(255,255,255,.8); padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: .82rem; font-weight: 600; transition: all .15s; white-space: nowrap; flex-shrink: 0; text-decoration: none; display: inline-block; }
+.back-btn:hover { background: rgba(255,255,255,.12); color: #fff; }
+.header-brand { flex: 1; }
+.header-logo { font-size: 1.3rem; font-weight: 800; letter-spacing: -.5px; }
+.header-logo span { color: var(--accent); }
+.header-sub { font-size: .62rem; color: rgba(255,255,255,.4); text-transform: uppercase; letter-spacing: .9px; margin-top: 1px; }
+
+/* ── Page ── */
+.page { max-width: 760px; margin: 0 auto; padding: 36px 24px 60px; }
+.page-title { font-size: 1.7rem; font-weight: 900; color: var(--primary); letter-spacing: -.5px; margin-bottom: 28px; }
+
+/* ── Section cards ── */
+.section-card { background: var(--card-bg); border-radius: 12px; box-shadow: var(--shadow); border-left: 5px solid var(--accent); padding: 24px 28px; margin-bottom: 20px; }
+.section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.section-icon { font-size: 1.4rem; flex-shrink: 0; }
+.section-title { font-size: 1.1rem; font-weight: 800; color: var(--primary); letter-spacing: -.2px; }
+
+/* ── Content typography ── */
+.section-card p { font-size: .88rem; line-height: 1.7; color: var(--text-muted); margin-bottom: 10px; }
+.section-card p:last-child { margin-bottom: 0; }
+.section-card h3 { font-size: .92rem; font-weight: 700; color: var(--text); margin: 18px 0 8px; }
+.section-card h3:first-of-type { margin-top: 4px; }
+.section-card ul { list-style: none; padding: 0; margin: 0 0 10px; }
+.section-card ul li { font-size: .88rem; line-height: 1.65; color: var(--text-muted); padding: 3px 0 3px 18px; position: relative; }
+.section-card ul li::before { content: '–'; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+.section-card ul li:last-child { margin-bottom: 0; }
+
+/* ── Option blocks (Play Mode options) ── */
+.option-block { background: var(--surface); border-radius: 8px; padding: 14px 18px; margin-bottom: 10px; border: 1px solid var(--border); }
+.option-block:last-of-type { margin-bottom: 0; }
+.option-title { font-size: .88rem; font-weight: 700; color: var(--primary); margin-bottom: 5px; }
+.option-body { font-size: .85rem; line-height: 1.65; color: var(--text-muted); }
+
+/* ── Controls grid ── */
+.controls-grid { display: grid; grid-template-columns: auto 1fr; gap: 5px 14px; align-items: baseline; margin: 10px 0; }
+.ctrl-key { font-size: .88rem; font-weight: 700; color: var(--primary); white-space: nowrap; }
+.ctrl-desc { font-size: .85rem; color: var(--text-muted); line-height: 1.5; }
+
+/* ── Pill tags (plays/schemes) ── */
+.pill-row { display: flex; flex-wrap: wrap; gap: 7px; margin: 8px 0; }
+.pill { display: inline-block; background: rgba(13,34,64,.07); border: 1px solid var(--border); border-radius: 20px; padding: 3px 12px; font-size: .78rem; font-weight: 600; color: var(--primary); }
+
+/* ── Responsive ── */
+@media (max-width: 500px) {
+  .page { padding: 24px 16px 48px; }
+  .section-card { padding: 18px 18px; }
+  .page-title { font-size: 1.4rem; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <a class="back-btn" href="index.html">&#8592; Back</a>
+  <div class="header-brand">
+    <div class="header-sub">2025–26 Season &nbsp;·&nbsp; v3.1</div>
+    <div class="header-logo">College Hoops <span>Throwdown</span></div>
+  </div>
+</header>
+
+<div class="page">
+  <div class="page-title">How to Play</div>
+
+  <!-- ── Section 1: Play Game ── -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-icon">▶</div>
+      <div class="section-title">Play Game</div>
+    </div>
+    <p>Pick any two teams and play a live game. There are three ways to play:</p>
+
+    <div class="option-block">
+      <div class="option-title">Option 1 — Watch Mode</div>
+      <div class="option-body">Set both teams to CPU. Sit back and watch the CPU coach both sides. Use the speed controls to fast-forward or slow things down. Great for scouting matchups or just enjoying the simulation.</div>
+    </div>
+    <div class="option-block">
+      <div class="option-title">Option 2 — Play Mode</div>
+      <div class="option-body">Set one team to P1 (you) and leave the other as CPU. You are in control of your team without a full coaching strategy — you can still call timeouts and manage substitutions during the game, but offensive and defensive schemes are handled automatically.</div>
+    </div>
+    <div class="option-block">
+      <div class="option-title">Option 3 — Coaching Mode</div>
+      <div class="option-body">Set one team to P1 and check the Coaching Mode box. This is the full experience:</div>
+    </div>
+    <ul style="margin: 6px 0 18px">
+      <li>Set your starting lineup before tip-off</li>
+      <li>Choose your offensive and defensive strategy</li>
+      <li>Call specific plays during the game using the Call Play button</li>
+      <li>Manage substitutions and strategy during timeouts</li>
+      <li>React to the game as it unfolds — adjust your defense, rest tired players, and make the right calls down the stretch</li>
+    </ul>
+
+    <h3>Game Controls</h3>
+    <div class="controls-grid">
+      <span class="ctrl-key">▶</span>      <span class="ctrl-desc">Step through one event at a time</span>
+      <span class="ctrl-key">▶▶</span>     <span class="ctrl-desc">Play continuously at normal speed</span>
+      <span class="ctrl-key">▶▶▶</span>    <span class="ctrl-desc">Fast forward</span>
+      <span class="ctrl-key">⚡</span>      <span class="ctrl-desc">Instant finish</span>
+      <span class="ctrl-key">⏸</span>      <span class="ctrl-desc">Pause</span>
+    </div>
+
+  </div>
+
+  <!-- ── Section 2: Season ── -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-icon">📅</div>
+      <div class="section-title">Season</div>
+    </div>
+    <p>Guide your team through a 30-game college basketball season.</p>
+
+    <h3>Getting Started</h3>
+    <ul>
+      <li>Click Season from the main menu</li>
+      <li>Select your team — you become their coach for the entire season</li>
+      <li>Your schedule is generated automatically with home and away games against conference and non-conference opponents</li>
+    </ul>
+
+    <h3>During the Season</h3>
+    <ul>
+      <li>Each game on your schedule can be Played (Coaching Mode) or Simulated instantly</li>
+      <li>Track your record and results game by game</li>
+      <li>Conference standings update automatically after every result</li>
+    </ul>
+
+    <h3>Stats Tracking</h3>
+    <ul>
+      <li>Full team and player statistics are tracked throughout the season for every team in your conference</li>
+      <li>Monitor points, rebounds, assists, shooting percentages, and more</li>
+      <li>Use the stats to inform your game planning and substitution decisions</li>
+    </ul>
+  </div>
+
+  <!-- ── Section 3: Tournament ── -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-icon">🏆</div>
+      <div class="section-title">Tournament</div>
+    </div>
+    <p>Build a bracket and crown a champion.</p>
+
+    <h3>Getting Started</h3>
+    <ul>
+      <li>Click Tournament from the main menu</li>
+      <li>Select the teams to fill your bracket</li>
+      <li>Teams are seeded based on their ratings</li>
+    </ul>
+
+    <h3>During the Tournament</h3>
+    <ul>
+      <li>Each matchup can be Played or Simulated</li>
+      <li>Winners advance automatically — lose and your run is over</li>
+      <li>Simulate entire rounds at once with Simulate All</li>
+      <li>The bracket updates after each round until a champion is crowned</li>
+    </ul>
+  </div>
+
+  <!-- ── Section 4: Tips ── -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-icon">💡</div>
+      <div class="section-title">Tips</div>
+    </div>
+    <ul>
+      <li>Fatigue matters — rotate your bench during timeouts to keep your starters fresh</li>
+      <li>Momentum swings happen fast — call a timeout to stop a run before it gets out of hand</li>
+      <li>Match your defensive scheme to the opponent — zone defenses can disrupt teams that rely on the paint, while full court press works best when you need to create turnovers late</li>
+      <li>In Coaching Mode, your play call gives a designated player a better chance at a shot — use it to get the ball to your hot hand</li>
+      <li>Player stats shown during timeouts reflect the current game — use them to decide who needs a rest</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>
