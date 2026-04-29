@@ -2,12 +2,14 @@
   "version": "1.0",
   "templates": {
     "make2": [
-      "{player} finishes at the rim — {score}",
-      "Strong move inside by {player} — {score}",
+      "{player} finishes at the rim for the {nickname} — {score}",
+      "Strong move inside by {player}.  It's now a {diff} point game. — {score}",
       "{player} off the dribble — gets the bucket. {score}",
       "Smooth off the backboard — {player} with two. {score}",
       "{player} pump fakes, gets the bucket. {score}",
-      "{player} with the runner in the lane — good! {score}"
+      "{player} with the runner in the lane — good! {score}",
+      "{player} from mid-range.  It's now {score}",
+      "Great take by {player}.  {score}.  {coach} has his guys attacking the basket tonight."
     ],
     "make3": [
       "Cold-blooded from downtown — {player}! {score}",
@@ -15,19 +17,27 @@
       "Corner three by {player} — no hesitation, all net. {score}",
       "SPLASH! {player} from three! {score}",
       "{player} pulls up from deep — GOOD! {score}",
-      "From way downtown — {player} with the triple! {score}"
+      "From way downtown — {player} with the triple! {score}",
+      "{player} fires from downtown {city}....GOOD for three! {score}",
+      "{player} knocks down a three.  {score}.  {coach} is loving what's he's seeing from his guys.",
+      "{coach} didn't like that quick shot, but it's all net from three for {player}!  {score}"
     ],
     "dunk": [
       "Nobody stopping {player} at the rim — DUNKS it! {score}",
       "{player} throws it DOWN! {score}",
-      "{player} with the slam! {score}",
-      "HAMMER! {player} finishes with authority! {score}"
+      "{player} with the slam!  The {nickname} fans in {city} are on their feet! {score}",
+      "HAMMER! {player} finishes with authority! {score}",
+      "{player} with no regard for human safety! {score}",
+      "Look out!  {player} nearly breaks the backboard!  It's {score}!",
+      "They'll feel that one all across {city}!  Huge dunk for {player} and its {score}."
     ],
     "assist": [
       "{assister} finds {player} cutting — easy bucket! {score}",
-      "Pretty feed inside, {player} lays it up and in. {score}",
+      "Pretty feed inside, {player} lays it up and in. {score}.  The {nickname} doing a great job sharing the rock.",
       "{assister} with the dime — {player} finishes! {score}",
-      "Beautiful pass by {assister} — {player} converts. {score}"
+      "Beautiful pass by {assister} — {player} converts. {score}",
+      "Oh!  No look from {assister} to {player}.  {opponent} got lost on that one.  {score}",
+      "{assister} running the show for the {nickname}.  Hits {player} for the easy score. {score}"
     ],
     "miss2": [
       "{player} tries the mid-range — rimmed out.",
@@ -35,50 +45,67 @@
       "{player} drives, lays it up — can't finish. Miss.",
       "Forced look by {player} — misses badly.",
       "No good — {player} couldn't convert.",
-      "{player} with the runner in the lane — it rolls off. Miss."
+      "{player} with the runner in the lane — it rolls off. Miss.",
+      "{player} pulls up in the mid-range.  Rimming....no!"
     ],
     "miss3": [
       "{player} fires from three — it's short, no good.",
       "{player} contested — can't knock it down.",
       "{player} pulls up from the arc — off the back iron.",
-      "Not this time — {player} misses from deep."
+      "Not this time — {player} misses from deep.",
+      "Pull up from long range....nothing but air. {player} might need to wait for a better look.",
+      "{player} pulls from WAY downtown.  Not close."
     ],
     "steal": [
       "Deflected! {player} with the steal — {team} in transition!",
       "{player} jumping the passing lane — turnover {opponent}!",
       "{player} with quick hands — strips {ballhandler}, {team} ball!",
-      "{player} anticipates the pass — {team} steals it!"
+      "{player} anticipates the pass — {team} steals it!",
+      "{ballhandler} has his lunch stolen by {player}.  Going the other way...",
+      "{player} is so quick!  Snuck into the passing lane and {team} has it.",
+      "{player} steals {ballhandler}'s lunch money.  {nickname} ball.",
+      "{ballhandler} crosses over....{player} with the pick for {team} and we are headed the other way."
     ],
     "block": [
       "BLOCKED! {player} sends it back!",
-      "{player} with the rejection!",
+      "{shooter} rises up...{player} with the rejection!",
       "Swatted away by {player}!",
-      "{player} says not in my house!"
+      "{player} tells {shooter} not in my house!",
+      "Little floater in the lane for {shooter}...NOPE!  Blocked by {player}!",
+      "{shooter} forgot who he was going against.  {player} sends it back where it came from."
     ],
     "turnover": [
       "{player} coughs it up — {opponent} ball.",
       "Careless with the ball — {player} turns it over.",
       "{player} loses the handle — {opponent} ball.",
       "Errant pass by {player} — {opponent} gives it away.",
-      "{player} telegraphs the pass — right to the defense."
+      "{player} telegraphs the pass — right to the defense.",
+      "{team} can't get a shot off in time.  Turnover on the violation.",
+      "Great defense by {opponent}!  {team} turns it over to the shot clock.",
+      "Miscommunication by {team}.  {player} throws it out of bounds.",
+      "The {nickname} are really sloppy right now.  Another turnover!"
     ],
     "orb": [
       "Second chance — {player} with the offensive board!",
       "{player} crashes the glass and keeps it alive for {team}!",
       "{player} with the tip — still alive! {team} keeps the possession.",
-      "{player} outworks everyone for the offensive rebound!"
+      "{player} outworks the {opp_nickname} for the offensive rebound!",
+      "{player} flies in for the board and the {nickname} will get another possession."
     ],
     "drb": [
       "{player} secures the defensive board. {team} ball.",
       "{player} with the long rebound — {team} pushing.",
       "{player} boxes out and corrals it — {team} ball.",
-      "Defensive glass by {player}. {team} going the other way."
+      "Defensive glass by {player}. {team} going the other way.",
+      "Great box out by {player}.  {team} has it.",
+      "{player} goes right through several {opp_nickname} to grab the board."
     ],
     "fastbreak": [
-      "Here come the {team}!",
+      "Look out {city}, here comes {team}!",
       "{team} on the run — watch out!",
       "The {team} have the numbers....",
-      "{team} in transition — pushing the pace!"
+      "{team} in transition — pushing the pace!",
+      "The {nickname} are on the run!"
     ],
     "foul_shot": [
       "Foul on {defender}! {player} going to the line for {ftcount}.",
@@ -99,7 +126,8 @@
     ],
     "and_one_complete": [
       "{player} completes the and-one! {score}",
-      "And the free throw is good — the full three-point play! {score}"
+      "And the free throw is good — the full three-point play! {score}",
+      "{player} hits the freebie and completes the three-point play."
     ],
     "and_one_complete_4": [
       "{player} completes the four-point play! {score}",
@@ -110,7 +138,11 @@
       "Free throw rimmed out — {player} leaves one on the board. {score}"
     ],
     "run_milestone": [
-      "━━━ {team} on a {run}-0 RUN! {context} ━━━"
+      "━━━ {team} on a {run}-0 RUN! {context} ━━━",
+      "━━━ The run is up to {run}-0! {context} ━━━",
+      "━━━ The {nickname} are on a {run}-0 run! {context} ━━━",
+      "━━━ The {nickname} have scored {run} unanswered! {context} ━━━",
+      "━━━ The {nickname} are pouring it on in {city}.  That's {run} straight! {context} ━━━"
     ],
     "run_color": [
       "{team} can't miss right now. {opponent} needs to dig deep.",
@@ -118,20 +150,25 @@
       "{team} is doing a great job taking the crowd out of this game.",
       "The {opponent} bench needs a timeout.",
       "{opponent} desperately needs a stop.",
-      "{team} has seized all the momentum here."
+      "{team} has seized all the momentum here.  {opp_coach} doesn't seem to have an answer!",
+      "{opp_coach} might want to think about a timeout!",
+      "The {nickname} are about to run {opponent} right out of {city}!"
     ],
     "milestones": {
       "points_10": [
         "Double digits for {player} — {team} feeding their hot hand.",
-        "{player} has 10 points on the night."
+        "{player} has {pts} points on the night.",
+        "{player} is up to ten points."
       ],
       "points_15": [
-        "{player} is up to 15 — someone needs to find an answer.",
+        "{player} is up to {pts} — someone needs to find an answer.",
         "Fifteen for {player} and counting."
       ],
       "points_20": [
         "{player} is cooking — 20 points!",
-        "Twenty for {player} — someone has to stop this player."
+        "Twenty for {player} — someone has to stop this player.",
+        "{player} has 20!  Leading the way for {team} tonight.",
+        "That's {pts} for {player}.  He's having a night!"
       ],
       "points_25": [
         "{player} with 25 — a special performance tonight.",
@@ -139,15 +176,18 @@
       ],
       "points_30": [
         "Thirty points for {player} — absolutely dominant.",
-        "{player} drops 30 — put this one in the highlight reel."
+        "{player} drops 30 — put this one in the highlight reel.",
+        "THIRTY!  {player} is carrying {team} on his back!"
       ],
       "rebounds_10": [
-        "{player} with 10 boards — dominant on the glass tonight.",
-        "Double figures on the glass for {player}."
+        "{player} with 10 boards — dominant on the glass for the {nickname} tonight.",
+        "Double figures on the glass for {player}.",
+        "{player} is a beast on the boards tonight.  He's got 10."
       ],
       "assists_10": [
         "Ten assists for {player} — a masterclass in playmaking.",
-        "{player} with double digits in assists — special night."
+        "{player} with double digits in assists — special night.",
+        "{player} really running the show for {team} tonight.  That's {ast} assists!"
       ],
       "blocks_4": [
         "{player} is a wall — 4 blocks tonight.",
@@ -159,22 +199,29 @@
       ],
       "triple_double": [
         "{player} with a triple-double! {pts} points, {reb} rebounds, {ast} assists — remarkable.",
-        "Triple-double for {player} — one of the great individual performances you'll see."
+        "Triple-double for {player} — one of the great individual performances you'll see.",
+        "Triple-doubles are rare in college basketball.  {player} is doing it all tonight!"
       ],
       "hot_streak_3": [],
       "hot_streak_3pt": []
     },
     "atmosphere": [
-      "The crowd is into this one.",
+      "All of {city} is into this one.",
       "Both benches on their feet.",
-      "The energy in this building is electric.",
-      "Timeout on the floor — both coaches making adjustments.",
-      "This is must-see basketball.",
+      "The energy in {city} is electric.",
+      "In his time with {team} {coach} has been through some tough ones.  Nothing {opponent} can throw at them is going to rattle the {nickname}.",
+      "It's getting a little chippy out there.  The referees might want to calm things down.",
       "The {team} bench is fired up.",
-      "You couldn't script a better game than this.",
+      "There's a bit of a post-season atmosphere in {city} tonight.  The {nickname} and {opp_nickname} are leaving it out there.",
       "The atmosphere here is incredible tonight.",
       "The fans came to the right place tonight.",
-      "Both teams leaving it all on the floor."
+      "Both teams leaving it all on the floor.  Regardless of the outcome {opp_coach} and {coach} have to be happy with their team's efforts.",
+      "{nickname} and {opp_nickname}.  It doesn't get much better than this.",
+      "This building has seen a lot of games....and this is one of them.",
+      "You know, this isn't the first meeting between {coach} and {opp_coach}.  They go back a long way and have both been through a few wars.  It will be hard for either of them to pull out a trick the other hasn't seen.",
+      "When {team} and {opponent} get together, you can always count on a hard-fought game.",
+      "I am starting to think {team} and the {opp_nickname} just don't like each other very much.",
+      "{opp_coach} is trying to fire up his team.  He needs his {opp_nickname} to raise their level of intensity."
     ]
   }
 }

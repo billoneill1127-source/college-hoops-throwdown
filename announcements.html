@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CHT — Announcement Editor</title>
+  <style>
+    :root {
+      --bg:       #0d1117;
+      --bg2:      #161b22;
+      --bg3:      #21262d;
+      --border:   #30363d;
+      --text:     #c9d1d9;
+      --muted:    #8b949e;
+      --accent:   #238636;
+      --accent-h: #2ea043;
+      --blue:     #1f6feb;
+      --danger:   #f85149;
+      --warning:  #d29922;
+      --purple:   #8957e5;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Top bar ── */
+    #topbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    #topbar h1 {
+      font-size: .95rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-right: auto;
+      letter-spacing: .3px;
+    }
+    #topbar h1 span { color: var(--muted); font-weight: 400; font-size: .8rem; }
+    #sourceLabel {
+      font-size: .72rem;
+      color: var(--muted);
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 3px 9px;
+    }
+    #diffNotice {
+      font-size: .72rem;
+      color: var(--warning);
+      background: rgba(210,153,34,.1);
+      border: 1px solid rgba(210,153,34,.3);
+      border-radius: 5px;
+      padding: 3px 9px;
+      display: none;
+    }
+    .tb-btn {
+      font-size: .78rem;
+      font-weight: 600;
+      padding: 5px 14px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    .tb-btn:hover { opacity: .85; }
+    .tb-btn.save  { background: var(--accent);  color: #fff; }
+    .tb-btn.exp   { background: var(--blue);    color: #fff; }
+    .tb-btn.imp   { background: var(--bg3);     color: var(--text); border: 1px solid var(--border); }
+    .tb-btn.reset { background: transparent;    color: var(--danger); border: 1px solid var(--danger); }
+    #importInput { display: none; }
+
+    /* ── Layout ── */
+    #layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: 210px;
+      flex-shrink: 0;
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 8px 0 16px;
+    }
+    .sb-group {
+      padding: 14px 12px 4px;
+      font-size: .65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--muted);
+    }
+    .sb-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 14px;
+      font-size: .8rem;
+      cursor: pointer;
+      border-radius: 0;
+      color: var(--text);
+      transition: background .1s;
+      border-left: 3px solid transparent;
+    }
+    .sb-item:hover { background: var(--bg3); }
+    .sb-item.active {
+      background: rgba(35,134,54,.12);
+      border-left-color: var(--accent);
+      color: #fff;
+      font-weight: 600;
+    }
+    .sb-item .badge {
+      margin-left: auto;
+      font-size: .65rem;
+      color: var(--muted);
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 1px 6px;
+      min-width: 20px;
+      text-align: center;
+    }
+
+    /* ── Main panel ── */
+    #main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 24px 40px;
+    }
+    #panelHeader {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    #panelHeader h2 {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+    #panelHeader .cat-path {
+      font-size: .72rem;
+      color: var(--muted);
+    }
+
+    /* Token reference */
+    #tokenRef {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 8px 12px;
+      margin-bottom: 18px;
+      font-size: .72rem;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+    #tokenRef strong { color: var(--text); font-size: .73rem; display: block; margin-bottom: 3px; }
+    .tok {
+      display: inline-block;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: .7rem;
+      color: #79c0ff;
+      margin: 1px 2px;
+      cursor: pointer;
+      transition: background .1s, border-color .1s;
+    }
+    .tok:hover { background: #1f3a5f; border-color: #58a6ff; }
+
+    /* Template items */
+    .tpl-item {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+    }
+    .tpl-controls {
+      display: flex;
+      gap: 7px;
+      margin-bottom: 7px;
+      align-items: center;
+    }
+    .tpl-num {
+      font-size: .68rem;
+      color: var(--muted);
+      font-weight: 600;
+      min-width: 22px;
+    }
+    .tpl-controls .spacer { flex: 1; }
+    .tpl-btn {
+      font-size: .72rem;
+      padding: 3px 10px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: var(--bg3);
+      color: var(--text);
+      cursor: pointer;
+      transition: background .12s;
+    }
+    .tpl-btn:hover { background: #2d333b; }
+    .tpl-btn.del { color: var(--danger); border-color: rgba(248,81,73,.3); }
+    .tpl-btn.del:hover { background: rgba(248,81,73,.1); }
+    .tpl-btn.prev { color: #79c0ff; border-color: rgba(121,192,255,.3); }
+    .tpl-btn.prev:hover { background: rgba(121,192,255,.07); }
+    textarea.tpl-text {
+      width: 100%;
+      min-height: 54px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--text);
+      font-size: .82rem;
+      font-family: inherit;
+      padding: 7px 10px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+    textarea.tpl-text:focus {
+      outline: none;
+      border-color: var(--blue);
+    }
+    .preview-box {
+      margin-top: 7px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 7px 10px;
+      font-size: .82rem;
+      color: #e6edf3;
+      font-style: italic;
+      line-height: 1.5;
+      display: none;
+    }
+    .preview-box.visible { display: block; }
+
+    /* Add button */
+    #addBtn {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: 14px;
+      background: var(--bg2);
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 10px 16px;
+      color: var(--muted);
+      font-size: .82rem;
+      cursor: pointer;
+      width: 100%;
+      transition: border-color .15s, color .15s;
+    }
+    #addBtn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Empty state */
+    #emptyState {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 60%;
+      gap: 10px;
+      color: var(--muted);
+      font-size: .9rem;
+    }
+    #emptyState .big { font-size: 2.5rem; }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--accent);
+      color: #fff;
+      font-size: .82rem;
+      font-weight: 600;
+      padding: 9px 18px;
+      border-radius: 8px;
+      opacity: 0;
+      transition: opacity .2s;
+      pointer-events: none;
+      z-index: 999;
+    }
+    #toast.show { opacity: 1; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div id="topbar">
+  <h1>🏀 CHT Announcement Editor <span>— dev utility</span></h1>
+  <div id="sourceLabel">loading…</div>
+  <div id="diffNotice">⚠ localStorage differs from file</div>
+  <button class="tb-btn save"  onclick="saveToLocalStorage()">💾 Save</button>
+  <button class="tb-btn exp"   onclick="exportJSON()">⬇ Export JSON</button>
+  <button class="tb-btn imp"   onclick="document.getElementById('importInput').click()">⬆ Import JSON</button>
+  <input  type="file" id="importInput" accept=".json" onchange="importJSON(event)">
+  <button class="tb-btn reset" onclick="resetToOriginal()">↺ Reset</button>
+</div>
+
+<!-- Layout -->
+<div id="layout">
+  <div id="sidebar" id="sidebar"></div>
+  <div id="main">
+    <div id="emptyState">
+      <div class="big">📋</div>
+      <div>Select a category to edit</div>
+    </div>
+    <div id="editorPane" style="display:none">
+      <div id="panelHeader">
+        <h2 id="panelTitle"></h2>
+        <span class="cat-path" id="panelPath"></span>
+      </div>
+      <div id="tokenRef">
+        <strong>Available tokens</strong>
+      </div>
+      <div id="templateList"></div>
+      <button id="addBtn" onclick="addTemplate()">+ Add Template</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const LS_KEY = 'CHT_ANNOUNCEMENTS_EDITED';
+
+const PLAY_EVENT_KEYS = [
+  'make2','make3','dunk','assist','miss2','miss3',
+  'steal','block','turnover','orb','drb',
+  'fastbreak','foul_shot',
+  'and_one_setup','and_one_setup_3',
+  'and_one_complete','and_one_complete_4','and_one_miss',
+  'run_milestone','run_color',
+  'defense_establish','defense_change',
+];
+
+const CATEGORY_TOKENS = {
+  make2:             ['{player}','{team}','{nickname}','{score}','{assister}','{opponent}','{opp_nickname}','{coach}','{city}'],
+  make3:             ['{player}','{team}','{nickname}','{score}','{assister}','{opponent}','{opp_nickname}','{coach}','{city}'],
+  dunk:              ['{player}','{team}','{nickname}','{score}','{assister}','{opponent}','{opp_nickname}','{coach}','{city}'],
+  miss2:             ['{player}','{team}','{nickname}','{opponent}','{opp_nickname}','{city}'],
+  miss3:             ['{player}','{team}','{nickname}','{opponent}','{opp_nickname}','{city}'],
+  steal:             ['{player}','{team}','{nickname}','{opponent}','{opp_nickname}','{ballhandler}','{coach}','{opp_coach}','{city}'],
+  block:             ['{player}','{shooter}','{team}','{nickname}','{opponent}','{opp_nickname}','{city}'],
+  turnover:          ['{player}','{team}','{nickname}','{opponent}','{opp_nickname}','{city}'],
+  orb:               ['{player}','{team}','{nickname}','{opponent}','{opp_nickname}','{city}'],
+  drb:               ['{player}','{team}','{nickname}','{opponent}','{opp_nickname}','{city}'],
+  assist:            ['{player}','{team}','{nickname}','{score}','{assister}','{opponent}','{opp_nickname}','{city}'],
+  fastbreak:         ['{team}','{nickname}','{opponent}','{opp_nickname}','{city}'],
+  foul:              ['{player}','{team}','{nickname}','{fouls}','{opponent}','{opp_nickname}'],
+  foul_shot:         ['{player}','{defender}','{team}','{nickname}','{opp_nickname}','{ftcount}','{city}'],
+  and_one_setup:     ['{player}','{score}','{team}','{nickname}','{opponent}','{opp_nickname}','{city}'],
+  and_one_setup_3:   ['{player}','{score}','{team}','{nickname}','{opponent}','{opp_nickname}','{city}'],
+  and_one_complete:  ['{player}','{score}','{team}','{nickname}'],
+  and_one_complete_4:['{player}','{score}','{team}','{nickname}'],
+  and_one_miss:      ['{player}','{score}','{team}','{nickname}'],
+  run_milestone:     ['{team}','{nickname}','{run}','{context}','{city}'],
+  run_color:         ['{team}','{nickname}','{opponent}','{opp_nickname}','{coach}','{opp_coach}','{city}'],
+  defense_establish: ['{team}','{nickname}','{coach}','{defense}','{city}'],
+  defense_change:    ['{team}','{nickname}','{coach}','{defense}','{city}'],
+  atmosphere:        ['{team}','{nickname}','{opponent}','{opp_nickname}','{coach}','{opp_coach}','{city}'],
+  'milestones.points_10':    ['{player}','{team}','{nickname}','{pts}','{opponent}','{opp_nickname}','{city}'],
+  'milestones.points_15':    ['{player}','{team}','{nickname}','{pts}','{opponent}','{opp_nickname}','{city}'],
+  'milestones.points_20':    ['{player}','{team}','{nickname}','{pts}','{opponent}','{opp_nickname}','{city}'],
+  'milestones.points_25':    ['{player}','{team}','{nickname}','{pts}','{opponent}','{opp_nickname}','{city}'],
+  'milestones.points_30':    ['{player}','{team}','{nickname}','{pts}','{opponent}','{opp_nickname}','{city}'],
+  'milestones.rebounds_10':  ['{player}','{team}','{nickname}','{reb}','{opponent}','{opp_nickname}','{city}'],
+  'milestones.assists_10':   ['{player}','{team}','{nickname}','{ast}','{opponent}','{opp_nickname}','{city}'],
+  'milestones.blocks_4':     ['{player}','{team}','{nickname}','{blk}','{opponent}','{opp_nickname}','{city}'],
+  'milestones.double_double':['{player}','{team}','{nickname}','{pts}','{stat2val}','{stat2name}','{opponent}','{opp_nickname}','{city}'],
+  'milestones.triple_double':['{player}','{team}','{nickname}','{pts}','{reb}','{ast}','{opponent}','{opp_nickname}','{city}'],
+};
+
+const SAMPLE = {
+  player:    'Marcus Johnson',
+  team:      'Illinois',  nickname:  'Illini',    city:      'Champaign',
+  opponent:  'Michigan',  opp_nickname:'Wolverines',
+  score:     '67-64 Illinois',
+  assister:  'Keaton Wagler',
+  ballhandler:'Kylan Boswell',
+  defender:  'DJ Williams',
+  shooter:   'Hunter Dickinson',
+  coach:     'Brad Underwood',
+  opp_coach: 'Juwan Howard',
+  defense:   '2-3 Zone',
+  fouls:     'third',
+  ftcount:   'two',
+  run:       '10',
+  context:   'Illinois leads 67-58',
+  diff:      '5',
+  pts:       '22',
+  reb:       '11',
+  ast:       '8',
+  blk:       '4',
+  stat2val:  '11',
+  stat2name: 'rebounds',
+};
+
+// ── State ─────────────────────────────────────────────────────────────────────
+
+let currentData = null;   // full announcements.json structure (may be edited)
+let originalData = null;  // fetched from file (never mutated)
+let activeCat   = null;   // { key, section } — section: 'play'|'milestone'|'atmosphere'
+let _lastFocusedTa = null; // last textarea that had focus — used for token insertion
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+
+async function init() {
+  let lsData = null;
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) lsData = JSON.parse(raw);
+  } catch(e) { lsData = null; }
+
+  let fileData = null;
+  try {
+    const res = await fetch('announcements.json');
+    fileData = await res.json();
+  } catch(e) { /* file fetch failed */ }
+
+  originalData = fileData;
+
+  if (lsData) {
+    currentData = lsData;
+    setSourceLabel('localStorage', lsData);
+    if (fileData) {
+      const lsStr  = JSON.stringify(lsData?.templates  || {});
+      const fileStr= JSON.stringify(fileData?.templates || {});
+      if (lsStr !== fileStr) {
+        document.getElementById('diffNotice').style.display = 'block';
+      }
+    }
+  } else if (fileData) {
+    currentData = JSON.parse(JSON.stringify(fileData));
+    setSourceLabel('announcements.json', fileData);
+  } else {
+    setSourceLabel('error — could not load', null);
+    return;
+  }
+
+  buildSidebar();
+}
+
+function setSourceLabel(src, data) {
+  const el = document.getElementById('sourceLabel');
+  const v = data?.version ? ' v'+data.version : '';
+  el.textContent = '📂 ' + src + v;
+}
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
+
+function buildSidebar() {
+  const sb = document.getElementById('sidebar');
+  sb.innerHTML = '';
+
+  // Play events
+  const playGroup = makeGroup('Play Events');
+  sb.appendChild(playGroup);
+  for (const key of PLAY_EVENT_KEYS) {
+    if (!currentData.templates.hasOwnProperty(key)) continue;
+    const arr = currentData.templates[key];
+    sb.appendChild(makeSbItem(key, 'play', arr ? arr.length : 0));
+  }
+
+  // Milestones
+  const msObj = currentData.templates.milestones || {};
+  const msKeys = Object.keys(msObj);
+  if (msKeys.length) {
+    sb.appendChild(makeGroup('Milestones'));
+    for (const key of msKeys) {
+      const arr = msObj[key];
+      sb.appendChild(makeSbItem(key, 'milestone', arr ? arr.length : 0));
+    }
+  }
+
+  // Atmosphere
+  if (currentData.templates.hasOwnProperty('atmosphere')) {
+    sb.appendChild(makeGroup('Atmosphere'));
+    const arr = currentData.templates.atmosphere;
+    sb.appendChild(makeSbItem('atmosphere', 'atmosphere', arr ? arr.length : 0));
+  }
+}
+
+function makeGroup(label) {
+  const d = document.createElement('div');
+  d.className = 'sb-group';
+  d.textContent = label;
+  return d;
+}
+
+function makeSbItem(key, section, count) {
+  const d = document.createElement('div');
+  d.className = 'sb-item';
+  d.dataset.key = key;
+  d.dataset.section = section;
+  const label = key.replace(/_/g, ' ');
+  d.innerHTML = `<span>${label}</span><span class="badge">${count}</span>`;
+  d.onclick = () => selectCategory(key, section, d);
+  return d;
+}
+
+// ── Category selection ────────────────────────────────────────────────────────
+
+function selectCategory(key, section, el) {
+  // Flush any unsaved edits from current category into currentData
+  if (activeCat) flushEdits();
+
+  // Update sidebar active state
+  document.querySelectorAll('.sb-item').forEach(x => x.classList.remove('active'));
+  el.classList.add('active');
+
+  activeCat = { key, section };
+
+  renderEditor();
+}
+
+function getTemplateArray() {
+  if (!activeCat) return [];
+  const { key, section } = activeCat;
+  if (section === 'milestone') return currentData.templates.milestones[key] || [];
+  if (section === 'atmosphere') return currentData.templates.atmosphere || [];
+  return currentData.templates[key] || [];
+}
+
+function setTemplateArray(arr) {
+  if (!activeCat) return;
+  const { key, section } = activeCat;
+  if (section === 'milestone') { currentData.templates.milestones[key] = arr; }
+  else if (section === 'atmosphere') { currentData.templates.atmosphere = arr; }
+  else { currentData.templates[key] = arr; }
+}
+
+function flushEdits() {
+  const textareas = document.querySelectorAll('#templateList textarea.tpl-text');
+  const values = Array.from(textareas).map(t => t.value).filter(v => v.trim() !== '');
+  setTemplateArray(values);
+  updateSidebarBadge();
+}
+
+function updateSidebarBadge() {
+  if (!activeCat) return;
+  const el = document.querySelector(`.sb-item[data-key="${activeCat.key}"][data-section="${activeCat.section}"]`);
+  if (el) {
+    const badge = el.querySelector('.badge');
+    if (badge) badge.textContent = getTemplateArray().length;
+  }
+}
+
+// ── Editor rendering ──────────────────────────────────────────────────────────
+
+function renderEditor() {
+  document.getElementById('emptyState').style.display = 'none';
+  const pane = document.getElementById('editorPane');
+  pane.style.display = 'block';
+
+  const { key, section } = activeCat;
+  document.getElementById('panelTitle').textContent = key.replace(/_/g, ' ');
+  const pathStr = section === 'milestone'
+    ? `templates.milestones.${key}`
+    : section === 'atmosphere'
+    ? `templates.atmosphere`
+    : `templates.${key}`;
+  document.getElementById('panelPath').textContent = pathStr;
+
+  renderTokenRef(key, section);
+
+  const list = document.getElementById('templateList');
+  list.innerHTML = '';
+
+  const arr = getTemplateArray();
+  arr.forEach((text, i) => list.appendChild(makeTplItem(text, i)));
+}
+
+function makeTplItem(text, idx) {
+  const item = document.createElement('div');
+  item.className = 'tpl-item';
+
+  const controls = document.createElement('div');
+  controls.className = 'tpl-controls';
+
+  const num = document.createElement('span');
+  num.className = 'tpl-num';
+  num.textContent = `#${idx + 1}`;
+
+  const spacer = document.createElement('span');
+  spacer.className = 'spacer';
+
+  const prevBtn = document.createElement('button');
+  prevBtn.className = 'tpl-btn prev';
+  prevBtn.textContent = 'Preview';
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'tpl-btn del';
+  delBtn.textContent = 'Delete';
+
+  controls.appendChild(num);
+  controls.appendChild(spacer);
+  controls.appendChild(prevBtn);
+  controls.appendChild(delBtn);
+
+  const ta = document.createElement('textarea');
+  ta.className = 'tpl-text';
+  ta.value = text;
+  ta.rows = Math.max(2, Math.ceil(text.length / 72));
+  ta.addEventListener('focus', () => { _lastFocusedTa = ta; });
+
+  const previewBox = document.createElement('div');
+  previewBox.className = 'preview-box';
+
+  prevBtn.onclick = () => {
+    const resolved = resolveTokens(ta.value);
+    previewBox.textContent = resolved;
+    previewBox.classList.toggle('visible');
+  };
+
+  delBtn.onclick = () => {
+    flushEdits();
+    const arr = getTemplateArray();
+    arr.splice(idx, 1);
+    setTemplateArray(arr);
+    updateSidebarBadge();
+    renderEditor();
+  };
+
+  item.appendChild(controls);
+  item.appendChild(ta);
+  item.appendChild(previewBox);
+  return item;
+}
+
+function addTemplate() {
+  flushEdits();
+  const arr = getTemplateArray();
+  arr.push('');
+  setTemplateArray(arr);
+  updateSidebarBadge();
+  renderEditor();
+  // Focus the new textarea
+  const tas = document.querySelectorAll('#templateList textarea.tpl-text');
+  if (tas.length) tas[tas.length - 1].focus();
+}
+
+// ── Token reference panel ─────────────────────────────────────────────────────
+
+function renderTokenRef(key, section) {
+  const ref = document.getElementById('tokenRef');
+  const lookupKey = section === 'milestone' ? 'milestones.' + key : key;
+  const tokens = CATEGORY_TOKENS[lookupKey] || [];
+  let html = '<strong>Available tokens</strong> <span style="font-size:.65rem;color:var(--muted)">(click to insert)</span>';
+  if (tokens.length) {
+    for (const tok of tokens) {
+      html += ` <span class="tok" onclick="insertToken('${tok}')">${tok}</span>`;
+    }
+  } else {
+    html += ' <span style="color:var(--muted);font-size:.7rem">— no token map defined for this category</span>';
+  }
+  ref.innerHTML = html;
+}
+
+function insertToken(token) {
+  if (!_lastFocusedTa) return;
+  const ta = _lastFocusedTa;
+  const start = ta.selectionStart ?? ta.value.length;
+  const end   = ta.selectionEnd   ?? ta.value.length;
+  ta.value = ta.value.slice(0, start) + token + ta.value.slice(end);
+  ta.selectionStart = ta.selectionEnd = start + token.length;
+  ta.focus();
+}
+
+// ── Token resolution ──────────────────────────────────────────────────────────
+
+function resolveTokens(tpl) {
+  return tpl.replace(/\{(\w+)\}/g, (match, key) => {
+    return SAMPLE.hasOwnProperty(key) ? SAMPLE[key] : match;
+  });
+}
+
+// ── Save to localStorage ──────────────────────────────────────────────────────
+
+function saveToLocalStorage() {
+  if (activeCat) flushEdits();
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(currentData));
+    showToast('✓ Saved to localStorage');
+  } catch(e) {
+    showToast('✗ Save failed: ' + e.message);
+  }
+}
+
+// ── Export JSON ───────────────────────────────────────────────────────────────
+
+function exportJSON() {
+  if (activeCat) flushEdits();
+  const json = JSON.stringify(currentData, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'announcements.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('⬇ Exported announcements.json');
+}
+
+// ── Import JSON ───────────────────────────────────────────────────────────────
+
+function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if (!parsed.templates) throw new Error('Missing "templates" key — not a valid announcements file');
+      currentData = parsed;
+      activeCat = null;
+      document.querySelectorAll('.sb-item').forEach(x => x.classList.remove('active'));
+      document.getElementById('emptyState').style.display = '';
+      document.getElementById('editorPane').style.display = 'none';
+      buildSidebar();
+      setSourceLabel('imported: ' + file.name, parsed);
+      showToast('⬆ Imported ' + file.name);
+    } catch(err) {
+      showToast('✗ Import failed: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ── Reset to original ─────────────────────────────────────────────────────────
+
+function resetToOriginal() {
+  if (!confirm('Clear all edits and reload from announcements.json?')) return;
+  localStorage.removeItem(LS_KEY);
+  document.getElementById('diffNotice').style.display = 'none';
+  if (originalData) {
+    currentData = JSON.parse(JSON.stringify(originalData));
+    activeCat = null;
+    document.querySelectorAll('.sb-item').forEach(x => x.classList.remove('active'));
+    document.getElementById('emptyState').style.display = '';
+    document.getElementById('editorPane').style.display = 'none';
+    buildSidebar();
+    setSourceLabel('announcements.json', originalData);
+    showToast('↺ Reset to original file');
+  } else {
+    location.reload();
+  }
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+
+let _toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+
+init();
+</script>
+</body>
+</html>
