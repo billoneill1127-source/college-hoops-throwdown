@@ -362,10 +362,15 @@ const PLAY_EVENT_KEYS = [
   'defense_establish','defense_change',
 ];
 
+const SITUATION_KEYS = [
+  'situation_big_lead','situation_big_lead_20','situation_comeback',
+  'situation_tie','situation_close_late','situation_last_minute','situation_overtime',
+];
+
 const CATEGORY_TOKENS = {
-  make2:             ['{player}','{team}','{nickname}','{score}','{assister}','{opponent}','{opp_nickname}','{coach}','{city}'],
-  make3:             ['{player}','{team}','{nickname}','{score}','{assister}','{opponent}','{opp_nickname}','{coach}','{city}'],
-  dunk:              ['{player}','{team}','{nickname}','{score}','{assister}','{opponent}','{opp_nickname}','{coach}','{city}'],
+  make2:             ['{player}','{team}','{nickname}','{score}','{assister}','{opponent}','{opp_nickname}','{coach}','{city}','{leading}','{leading_nick}','{trailing}','{trailing_nick}','{diff}'],
+  make3:             ['{player}','{team}','{nickname}','{score}','{assister}','{opponent}','{opp_nickname}','{coach}','{city}','{leading}','{leading_nick}','{trailing}','{trailing_nick}','{diff}'],
+  dunk:              ['{player}','{team}','{nickname}','{score}','{assister}','{opponent}','{opp_nickname}','{coach}','{city}','{leading}','{leading_nick}','{trailing}','{trailing_nick}','{diff}'],
   miss2:             ['{player}','{team}','{nickname}','{opponent}','{opp_nickname}','{city}'],
   miss3:             ['{player}','{team}','{nickname}','{opponent}','{opp_nickname}','{city}'],
   steal:             ['{player}','{team}','{nickname}','{opponent}','{opp_nickname}','{ballhandler}','{coach}','{opp_coach}','{city}'],
@@ -373,7 +378,7 @@ const CATEGORY_TOKENS = {
   turnover:          ['{player}','{team}','{nickname}','{opponent}','{opp_nickname}','{city}'],
   orb:               ['{player}','{team}','{nickname}','{opponent}','{opp_nickname}','{city}'],
   drb:               ['{player}','{team}','{nickname}','{opponent}','{opp_nickname}','{city}'],
-  assist:            ['{player}','{team}','{nickname}','{score}','{assister}','{opponent}','{opp_nickname}','{city}'],
+  assist:            ['{player}','{team}','{nickname}','{score}','{assister}','{opponent}','{opp_nickname}','{city}','{leading}','{leading_nick}','{trailing}','{trailing_nick}','{diff}'],
   fastbreak:         ['{team}','{nickname}','{opponent}','{opp_nickname}','{city}'],
   foul:              ['{player}','{team}','{nickname}','{fouls}','{opponent}','{opp_nickname}'],
   foul_shot:         ['{player}','{defender}','{team}','{nickname}','{opp_nickname}','{ftcount}','{city}'],
@@ -382,10 +387,17 @@ const CATEGORY_TOKENS = {
   and_one_complete:  ['{player}','{score}','{team}','{nickname}'],
   and_one_complete_4:['{player}','{score}','{team}','{nickname}'],
   and_one_miss:      ['{player}','{score}','{team}','{nickname}'],
-  run_milestone:     ['{team}','{nickname}','{run}','{context}','{city}'],
-  run_color:         ['{team}','{nickname}','{opponent}','{opp_nickname}','{coach}','{opp_coach}','{city}'],
+  run_milestone:     ['{team}','{nickname}','{run}','{context}','{city}','{diff}'],
+  run_color:         ['{team}','{nickname}','{opponent}','{opp_nickname}','{coach}','{opp_coach}','{city}','{leading}','{leading_nick}','{trailing}','{trailing_nick}','{diff}'],
   defense_establish: ['{team}','{nickname}','{coach}','{defense}','{city}'],
   defense_change:    ['{team}','{nickname}','{coach}','{defense}','{city}'],
+  situation_big_lead:    ['{leading}','{leading_nick}','{trailing}','{trailing_nick}','{diff}','{score}','{city}'],
+  situation_big_lead_20: ['{leading}','{leading_nick}','{trailing}','{trailing_nick}','{diff}','{score}','{city}'],
+  situation_comeback:    ['{trailing}','{trailing_nick}','{leading}','{diff}','{score}','{city}'],
+  situation_tie:         ['{team}','{score}','{city}'],
+  situation_close_late:  ['{leading}','{trailing}','{diff}','{score}','{city}'],
+  situation_last_minute: ['{leading}','{trailing}','{diff}','{score}','{city}'],
+  situation_overtime:    ['{score}','{city}'],
   atmosphere:        ['{team}','{nickname}','{opponent}','{opp_nickname}','{coach}','{opp_coach}','{city}'],
   'milestones.points_10':    ['{player}','{team}','{nickname}','{pts}','{opponent}','{opp_nickname}','{city}'],
   'milestones.points_15':    ['{player}','{team}','{nickname}','{pts}','{opponent}','{opp_nickname}','{city}'],
@@ -422,6 +434,11 @@ const SAMPLE = {
   blk:       '4',
   stat2val:  '11',
   stat2name: 'rebounds',
+  leading:      'Illinois',
+  leading_nick: 'Illini',
+  trailing:     'Michigan',
+  trailing_nick:'Wolverines',
+  diff:         7,
 };
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -498,6 +515,16 @@ function buildSidebar() {
     for (const key of msKeys) {
       const arr = msObj[key];
       sb.appendChild(makeSbItem(key, 'milestone', arr ? arr.length : 0));
+    }
+  }
+
+  // Game Situations
+  const sitKeys = SITUATION_KEYS.filter(k => currentData.templates.hasOwnProperty(k));
+  if (sitKeys.length) {
+    sb.appendChild(makeGroup('Game Situations'));
+    for (const key of sitKeys) {
+      const arr = currentData.templates[key];
+      sb.appendChild(makeSbItem(key, 'play', arr ? arr.length : 0));
     }
   }
 

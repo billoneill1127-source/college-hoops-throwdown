@@ -6,7 +6,7 @@
       "Strong move inside by {player}.  It's now a {diff} point game. — {score}",
       "{player} off the dribble — gets the bucket. {score}",
       "Smooth off the backboard — {player} with two. {score}",
-      "{player} pump fakes, gets the bucket. {score}",
+      "{player} pump fakes, gets the bucket.  The {leading} lead is now {diff}.  {score}",
       "{player} with the runner in the lane — good! {score}",
       "{player} from mid-range.  It's now {score}",
       "Great take by {player}.  {score}.  {coach} has his guys attacking the basket tonight."
@@ -205,6 +205,62 @@
       "hot_streak_3": [],
       "hot_streak_3pt": []
     },
+    "situation_big_lead": [
+      "{leading} starting to pull away — up {diff}.",
+      "This one could get ugly — {leading} leads by {diff}.",
+      "{trailing} needs to find an answer quickly — down {diff}.",
+      "The {leading_nick} in complete control, up {diff}.",
+      "The {trailing} fans here are starting to look to the exits.  {leading} up {diff}."
+    ],
+    "situation_big_lead_20": [
+      "It is a blowout in {city} — {leading} up {diff}.",
+      "{leading} has put this one away — up {diff}.",
+      "Garbage time approaching — {leading} leads by {diff}.",
+      "The {trailing_nick} need a miracle — down {diff}.",
+      "The {trailing_nick} fans here were expecting more out of their team tonight.  {leading} has blown it out to {diff}.",
+      "Starting to hear some boos from the {trailing_nick} faithful in attendance.  Everyone here in {city} expected to see more fight."
+    ],
+    "situation_comeback": [
+      "{trailing} has cut this to {diff} — this game is not over.",
+      "The {trailing_nick} are making a run — down just {diff}.",
+      "Don't count out {trailing} — they have trimmed this to {diff}.",
+      "{trailing} refusing to go away — {diff}-point game now."
+    ],
+    "situation_tie": [
+      "We are all tied up — {score}. Anybody's game.",
+      "Deadlocked at {score} — this one is going down to the wire.",
+      "{team} has tied it up — {score}. What a game.",
+      "All square at {score} — buckle up."
+    ],
+    "situation_close_late": [
+      "Under three minutes and {diff} points separate these teams — hold on tight.",
+      "Crunch time in {city} — {leading} leads {score} but nothing is decided.",
+      "This is what college basketball is all about — {score} with under three to go.",
+      "Every possession matters now — {score} with the clock winding down."
+    ],
+    "situation_last_minute": [
+      "Under a minute — {score}. This is anybody's game.",
+      "Forty seconds of basketball left and {diff} points on the line — {score}.",
+      "Late game drama in {city} — {score} with under a minute to play.",
+      "{leading} clinging to a {diff}-point lead — {trailing} needs a stop and a basket."
+    ],
+    "situation_overtime": [
+      "We are going to overtime in {city}! Tied at {score}.",
+      "Nobody wins in regulation — overtime basketball in {city}!",
+      "Forty more minutes was not enough — overtime! {score}.",
+      "The {city} crowd is on their feet — we are headed to overtime!"
+    ],
+    "defense_establish": [
+      "{coach} sets up the {nickname} in the {defense}.",
+      "The {nickname} will run the {defense} tonight under {coach}.",
+      "{team} lining up in the {defense} to start."
+    ],
+    "defense_change": [
+      "{coach} switches the {nickname} to the {defense}.",
+      "Adjustment from {coach} — the {nickname} going to the {defense}.",
+      "{team} changing it up — {defense} from here.",
+      "{coach} has seen enough.  The {nickname} switching to the {defense}."
+    ],
     "atmosphere": [
       "All of {city} is into this one.",
       "Both benches on their feet.",

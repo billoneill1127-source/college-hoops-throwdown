@@ -224,6 +224,7 @@ header { background: var(--primary); color: #fff; padding: 0 28px; position: sti
 .pbp-ev.run   { color: #ffa657; font-weight: bold; }
 .pbp-ev.milestone { color: #ffd700; font-weight: bold; }
 .pbp-ev.atmosphere { color: #6e7681; font-style: italic; }
+.pbp-ev.situation  { color: #e8a838; font-style: italic; font-weight: 500; }
 .pbp-ev.timeout { color: #e8c040; font-weight: bold; text-align: center; }
 .pbp-ev.sub { color: #94e2d5; font-style: italic; }
 
@@ -282,7 +283,7 @@ header { background: var(--primary); color: #fff; padding: 0 28px; position: sti
 <header>
   <button class="back-btn" id="backBtn" style="display:none" onclick="handleBack()">&#8592; Back</button>
   <div class="header-brand">
-    <div class="header-sub">2025–26 Season &nbsp;·&nbsp; v3.1</div>
+    <div class="header-sub">2025–26 Season &nbsp;·&nbsp; v3.2</div>
     <div class="header-logo">College Hoops <span>Throwdown</span></div>
   </div>
 </header>
@@ -1181,32 +1182,52 @@ function narrate(eventType, ctx) {
   }
   if (!pool || !pool.length) return '';
   const tmpl = pool[Math.floor(Math.random() * pool.length)];
+
+  // Auto-enrich with live game context — explicit ctx values always take priority
+  const enriched = Object.assign({}, ctx);
+  if (typeof GAME !== 'undefined' && GAME && GAME.homeScore !== undefined) {
+    const hScore = GAME.homeScore, aScore = GAME.awayScore;
+    const _diff = hScore - aScore, _absDiff = Math.abs(_diff);
+    const _leading  = _diff > 0 ? GAME.home : (_diff < 0 ? GAME.away : null);
+    const _trailing = _diff > 0 ? GAME.away : (_diff < 0 ? GAME.home : null);
+    if (!enriched.leading)       enriched.leading       = _leading  ? _leading.name                       : '';
+    if (!enriched.leading_nick)  enriched.leading_nick  = _leading  ? (_leading.nickname  ||_leading.name) : '';
+    if (!enriched.trailing)      enriched.trailing      = _trailing ? _trailing.name                      : '';
+    if (!enriched.trailing_nick) enriched.trailing_nick = _trailing ? (_trailing.nickname||_trailing.name): '';
+    if (enriched.diff        === undefined) enriched.diff  = _absDiff;
+    if (!enriched.city)          enriched.city           = GAME.home.city || '';
+  }
+
   return tmpl
-    .replace(/{player}/g,     String(ctx?.player     || ''))
-    .replace(/{team}/g,       String(ctx?.team       || ''))
-    .replace(/{opponent}/g,   String(ctx?.opponent   || ''))
-    .replace(/{score}/g,      String(ctx?.score      || ''))
-    .replace(/{assister}/g,   String(ctx?.assister   || ''))
-    .replace(/{ballhandler}/g,String(ctx?.ballhandler|| ''))
-    .replace(/{defender}/g,   String(ctx?.defender   || ''))
-    .replace(/{fouls}/g,      String(ctx?.fouls      || ''))
-    .replace(/{ftcount}/g,    String(ctx?.ftcount    || ''))
-    .replace(/{run}/g,        String(ctx?.run        || ''))
-    .replace(/{context}/g,    String(ctx?.context    || ''))
-    .replace(/{pts}/g,        String(ctx?.pts        || ''))
-    .replace(/{reb}/g,        String(ctx?.reb        || ''))
-    .replace(/{ast}/g,        String(ctx?.ast        || ''))
-    .replace(/{stat2val}/g,   String(ctx?.stat2val   || ''))
-    .replace(/{stat2name}/g,  String(ctx?.stat2name  || ''))
-    .replace(/{nickname}/g,     ctx?.nickname     || '')
-    .replace(/{opp_nickname}/g, ctx?.opp_nickname || '')
-    .replace(/{city}/g,         ctx?.city         || '')
-    .replace(/{coach}/g,        ctx?.coach        || '')
-    .replace(/{opp_coach}/g,    ctx?.opp_coach    || '')
-    .replace(/{shooter}/g,      ctx?.shooter      || '')
-    .replace(/{blk}/g,          ctx?.blk          || '')
-    .replace(/{defense}/g,      ctx?.defense      || '')
-    .replace(/{diff}/g,         ctx?.diff         || '')
+    .replace(/{player}/g,        String(enriched.player        || ''))
+    .replace(/{team}/g,          String(enriched.team          || ''))
+    .replace(/{opponent}/g,      String(enriched.opponent      || ''))
+    .replace(/{score}/g,         String(enriched.score         || ''))
+    .replace(/{assister}/g,      String(enriched.assister      || ''))
+    .replace(/{ballhandler}/g,   String(enriched.ballhandler   || ''))
+    .replace(/{defender}/g,      String(enriched.defender      || ''))
+    .replace(/{fouls}/g,         String(enriched.fouls         || ''))
+    .replace(/{ftcount}/g,       String(enriched.ftcount       || ''))
+    .replace(/{run}/g,           String(enriched.run           || ''))
+    .replace(/{context}/g,       String(enriched.context       || ''))
+    .replace(/{pts}/g,           String(enriched.pts           || ''))
+    .replace(/{reb}/g,           String(enriched.reb           || ''))
+    .replace(/{ast}/g,           String(enriched.ast           || ''))
+    .replace(/{stat2val}/g,      String(enriched.stat2val      || ''))
+    .replace(/{stat2name}/g,     String(enriched.stat2name     || ''))
+    .replace(/{nickname}/g,      enriched.nickname             || '')
+    .replace(/{opp_nickname}/g,  enriched.opp_nickname         || '')
+    .replace(/{city}/g,          enriched.city                 || '')
+    .replace(/{coach}/g,         enriched.coach                || '')
+    .replace(/{opp_coach}/g,     enriched.opp_coach            || '')
+    .replace(/{shooter}/g,       enriched.shooter              || '')
+    .replace(/{blk}/g,           enriched.blk                  || '')
+    .replace(/{defense}/g,       enriched.defense              || '')
+    .replace(/{diff}/g,          String(enriched.diff          ?? ''))
+    .replace(/{leading}/g,       enriched.leading              || '')
+    .replace(/{leading_nick}/g,  enriched.leading_nick         || '')
+    .replace(/{trailing}/g,      enriched.trailing             || '')
+    .replace(/{trailing_nick}/g, enriched.trailing_nick        || '')
     .trim();
 }
 (function loadAnnouncements() {
@@ -1402,8 +1423,90 @@ function ge_applyCpuCoaching(cpuTeam){
       if(sub&&ge_cpuDoSub(cpuTeam,p,sub)){ p.sitUntilNextTO=true; GAME.cpuReturnQueue.push({playerName:p.name,toosUntilReturn:1}); }
     }
   }
+  ge_applyCpuDefenseCheck(cpuTeam);
+}
+function ge_applyCpuDefenseCheck(cpuTeam){
+  if(!cpuTeam||cpuTeam.strategy_defense==='full_court_press')return;
+  const p1Team=cpuTeam===GAME.home?GAME.away:GAME.home;
+  const newDef=Strategy.cpuPickDefense(cpuTeam,p1Team,GAME);
+  if(newDef!==cpuTeam.strategy_defense){
+    cpuTeam.strategy_defense=newDef;
+    const defLabel=DEF_LABELS[newDef]||newDef;
+    const coach=cpuTeam.head_coach||cpuTeam.name;
+    logEv(narrate('defense_change',{team:cpuTeam.name,nickname:cpuTeam.nickname||cpuTeam.name,city:GAME.home.city||'',coach,defense:defLabel}),'info');
+    cpuTeam.lastLoggedDefense=cpuTeam.strategy_defense;
+  }
 }
 function ge_cpuTeam(){ const p1IsHome=G.homeOp==='P1'; return p1IsHome?GAME.away:GAME.home; }
+
+function ge_checkSituation(){
+  if(!GAME||!GAME.situationFlags)return[];
+  const lines=[];
+  const sf=GAME.situationFlags;
+  const hScore=GAME.homeScore, aScore=GAME.awayScore;
+  const diff=hScore-aScore, absDiff=Math.abs(diff);
+  const clock=GAME.clock, half=GAME.half;
+  const leading=diff>0?GAME.home:GAME.away;
+  const trailing=diff>0?GAME.away:GAME.home;
+  const leadingNick=leading.nickname||leading.name;
+  const trailingNick=trailing.nickname||trailing.name;
+  const score=ge_scoreStr(leading);
+
+  if(diff>0)sf.peakHomeAdv=Math.max(sf.peakHomeAdv,diff);
+  if(diff<0)sf.peakAwayAdv=Math.max(sf.peakAwayAdv,-diff);
+
+  if(diff>=15&&!sf.bigLead15Home){
+    sf.bigLead15Home=true;
+    const txt=narrate('situation_big_lead',{leading:leading.name,leading_nick:leadingNick,trailing:trailing.name,trailing_nick:trailingNick,diff:absDiff,score,city:GAME.home.city||''});
+    if(txt)lines.push({text:txt,type:'situation'});
+  }
+  if(diff<=-15&&!sf.bigLead15Away){
+    sf.bigLead15Away=true;
+    const txt=narrate('situation_big_lead',{leading:leading.name,leading_nick:leadingNick,trailing:trailing.name,trailing_nick:trailingNick,diff:absDiff,score,city:GAME.home.city||''});
+    if(txt)lines.push({text:txt,type:'situation'});
+  }
+  if(diff>=20&&!sf.bigLead20Home){
+    sf.bigLead20Home=true;
+    const txt=narrate('situation_big_lead_20',{leading:leading.name,leading_nick:leadingNick,trailing:trailing.name,trailing_nick:trailingNick,diff:absDiff,score,city:GAME.home.city||''});
+    if(txt)lines.push({text:txt,type:'situation'});
+  }
+  if(diff<=-20&&!sf.bigLead20Away){
+    sf.bigLead20Away=true;
+    const txt=narrate('situation_big_lead_20',{leading:leading.name,leading_nick:leadingNick,trailing:trailing.name,trailing_nick:trailingNick,diff:absDiff,score,city:GAME.home.city||''});
+    if(txt)lines.push({text:txt,type:'situation'});
+  }
+  if(sf.peakAwayAdv>=15&&diff>=-8&&diff<0&&!sf.comebackHome){
+    sf.comebackHome=true;
+    const txt=narrate('situation_comeback',{trailing:trailing.name,trailing_nick:trailingNick,leading:leading.name,diff:absDiff,score,city:GAME.home.city||''});
+    if(txt)lines.push({text:txt,type:'situation'});
+  }
+  if(sf.peakHomeAdv>=15&&diff<=8&&diff>0&&!sf.comebackAway){
+    sf.comebackAway=true;
+    const txt=narrate('situation_comeback',{trailing:trailing.name,trailing_nick:trailingNick,leading:leading.name,diff:absDiff,score,city:GAME.home.city||''});
+    if(txt)lines.push({text:txt,type:'situation'});
+  }
+  if(diff===0&&(sf.peakHomeAdv>=5||sf.peakAwayAdv>=5)&&!sf.tieAfterLead){
+    sf.tieAfterLead=true;
+    const txt=narrate('situation_tie',{team:GAME.home.name,score:`${hScore}-${aScore}`,city:GAME.home.city||'',diff:0});
+    if(txt)lines.push({text:txt,type:'situation'});
+  }
+  if(half>=2&&clock<=180&&absDiff<=5&&!sf.closeLateFired){
+    sf.closeLateFired=true;
+    const txt=narrate('situation_close_late',{leading:leading.name,trailing:trailing.name,diff:absDiff,score,city:GAME.home.city||''});
+    if(txt)lines.push({text:txt,type:'situation'});
+  }
+  if(half>=2&&clock<=60&&absDiff<=3&&!sf.lastMinuteFired){
+    sf.lastMinuteFired=true;
+    const txt=narrate('situation_last_minute',{leading:leading.name,trailing:trailing.name,diff:absDiff,score,city:GAME.home.city||''});
+    if(txt)lines.push({text:txt,type:'situation'});
+  }
+  if(half>2&&!sf.otFired){
+    sf.otFired=true;
+    const txt=narrate('situation_overtime',{score:`${hScore}-${aScore}`,city:GAME.home.city||''});
+    if(txt)lines.push({text:txt,type:'situation'});
+  }
+  return lines;
+}
 
 function ge_firePendingMTO(){
   if(!GAME.pendingMediaTO)return;
@@ -1441,26 +1544,6 @@ function ge_updateRun(isHome,pts){
         logEv(`\u23F8 ${cpuT.name} calls TIMEOUT \u2014 stopping the run`,'timeout');
         ge_applyCpuCoaching(cpuT);
         GAME.pendingCpuTimeout=true;
-      }
-    }
-  }
-  // CPU changes defense (50% chance) when P1 hits an 8-point run — once per half
-  if(!GAME.cpuDefChangeOnRunDone&&prev<8&&sc.currentRun>=8){
-    const p1IsHome=G.homeOp==='P1';
-    if(isHome===p1IsHome){
-      GAME.cpuDefChangeOnRunDone=true;
-      if(Math.random()<0.5){
-        const cpuT=ge_cpuTeam();
-        const prevDef=cpuT.strategy_defense;
-        const defOptions=['man_to_man','2_3_zone','1_3_1_zone','matchup_zone','half_court_trap'];
-        const available=defOptions.filter(d=>d!==prevDef);
-        cpuT.strategy_defense=available[Math.floor(Math.random()*available.length)];
-        if(cpuT.strategy_defense!==prevDef){
-          const defLabel=DEF_LABELS[cpuT.strategy_defense]||cpuT.strategy_defense;
-          const coach=cpuT.head_coach||`${cpuT.name} coaching staff`;
-          logEv(narrate('defense_change',{team:cpuT.name,nickname:cpuT.nickname||cpuT.name,city:GAME.home.city||'',coach,defense:defLabel}),'info');
-          cpuT.lastLoggedDefense=cpuT.strategy_defense;
-        }
       }
     }
   }
@@ -1831,7 +1914,7 @@ function ge_setupHalf(lbl){
       if(G.visitorOp!=='P1') cpuTeams.push(GAME.away);
       for(const cpuT of cpuTeams){
         for(let i=cpuT.bench.length-1;i>=0;i--){ const p=cpuT.bench[i]; if(p.sitUntilH2){ p.sitUntilH2=false; if(cpuT.lineup.length>0){ const worst=cpuT.lineup.reduce((a,b)=>b.totalGameSecs>a.totalGameSecs?b:a); ge_cpuDoSub(cpuT,worst,p); } } }
-        Strategy.cpuChoose(cpuT, true, GAME);
+        ge_applyCpuDefenseCheck(cpuT);
       }
       GAME.cpuReturnQueue=[];
       GAME.subAt15Done=false; GAME.subAt12Done=false; GAME.subAt8Done=false;
@@ -1843,7 +1926,7 @@ function ge_setupHalf(lbl){
 function startGame(){
   const homeData=G.home, awayData=G.visitor;
   possBuffer=[]; possBufferIdx=0; gameLog=[]; lastPauseSnap=null; bsSnapStats=null; bsSnapPlayerState=null;
-  GAME={ home:ge_buildTeam(homeData,true), away:ge_buildTeam(awayData,false), homeScore:0, awayScore:0, clock:1200, half:1, possession:Math.random()<0.5?'home':'away', momentum:0, homeTimeouts:3, awayTimeouts:3, mediaTimeouts:[720,480,240], pendingMediaTO:null, stats:{}, halfPossessions:0, totalPossessions:0, possessionCount:0, runMilestonesHit:{home:new Set(),away:new Set()}, cpuReturnQueue:[], subAt15Done:false, subAt12Done:false, subAt8Done:false, fbChance:0, lastStealer:null, cpuRunToDone:false, cpuPressApplied:false, cpuDefChangeOnRunDone:false, coachingMode:G.coachingMode&&!G.watchMode, playCallQueued:null, orbCarried:false, pendingHalftime:false, pendingCpuTimeout:false, pendingP1FoulOut:null, pendingPlayCall:false, pendingLateGameChoice:false, h1HomeScore:0, h1AwayScore:0, h1Stats:null, h1PlayerState:null, regHomeScore:0, regAwayScore:0, otCount:0 };
+  GAME={ home:ge_buildTeam(homeData,true), away:ge_buildTeam(awayData,false), homeScore:0, awayScore:0, clock:1200, half:1, possession:Math.random()<0.5?'home':'away', momentum:0, homeTimeouts:3, awayTimeouts:3, mediaTimeouts:[720,480,240], pendingMediaTO:null, stats:{}, halfPossessions:0, totalPossessions:0, possessionCount:0, runMilestonesHit:{home:new Set(),away:new Set()}, cpuReturnQueue:[], subAt15Done:false, subAt12Done:false, subAt8Done:false, fbChance:0, lastStealer:null, cpuRunToDone:false, cpuPressApplied:false, cpuDefChangeOnRunDone:false, coachingMode:G.coachingMode&&!G.watchMode, playCallQueued:null, orbCarried:false, pendingHalftime:false, pendingCpuTimeout:false, pendingP1FoulOut:null, pendingPlayCall:false, pendingLateGameChoice:false, h1HomeScore:0, h1AwayScore:0, h1Stats:null, h1PlayerState:null, regHomeScore:0, regAwayScore:0, otCount:0, situationFlags:{bigLead15Home:false,bigLead15Away:false,bigLead20Home:false,bigLead20Away:false,comebackHome:false,comebackAway:false,tieAfterLead:false,closeLateFired:false,lastMinuteFired:false,otFired:false,peakHomeAdv:0,peakAwayAdv:0} };
 
   const p1IsHome = G.homeOp === 'P1';
   const p1Team = p1IsHome ? GAME.home : GAME.away;
@@ -1867,17 +1950,24 @@ function startGame(){
   // Set initial strategies via Strategy module
   const cpuTeam=p1IsHome?GAME.away:GAME.home;
   if(G.watchMode){
-    // CPU vs CPU — random strategies for variety
+    // CPU vs CPU — random offense for variety; table-driven defense below
     Strategy.randomAssign(GAME.home);
     Strategy.randomAssign(GAME.away);
   } else {
-    // Normal game — CPU gets roster-based selection, P1 keeps UI selection
-    Strategy.cpuChoose(cpuTeam, false, GAME);
+    // Normal game — CPU gets roster-based offense; defense set below
+    Strategy.cpuChoose(cpuTeam, GAME);
   }
 
   GAME.home.allPlayers=[...GAME.home.lineup,...GAME.home.bench]; GAME.away.allPlayers=[...GAME.away.lineup,...GAME.away.bench];
   for(const p of[...GAME.home.lineup,...GAME.home.bench,...GAME.away.lineup,...GAME.away.bench]){
     if(!GAME.stats[p.name])GAME.stats[p.name]={pts:0,reb:0,ast:0,stl:0,blk:0,tov:0,fga:0,fgm:0,tpa:0,tpm:0,fta:0,ftm:0,pf:0};
+  }
+  // Assign initial CPU defense via table-driven picker
+  if(G.watchMode){
+    GAME.home.strategy_defense=Strategy.cpuPickDefense(GAME.home,GAME.away,GAME);
+    GAME.away.strategy_defense=Strategy.cpuPickDefense(GAME.away,GAME.home,GAME);
+  } else {
+    cpuTeam.strategy_defense=Strategy.cpuPickDefense(cpuTeam,p1Team,GAME);
   }
   const _bsCtx = G.pendingSeasonGame ? 'season' : 'exhibition';
   const _bsSid = G.pendingSeasonGame ? G.pendingSeasonGame.seasonId : null;
@@ -1993,6 +2083,16 @@ updateGameDisplay();
 
   // 2. possBuffer exhausted — capture state for pause handlers
   lastPauseSnap=captureSnap();
+
+  // 2a. Inject situation banter between possessions
+  if(possBuffer.length>0){
+    const sitLines=ge_checkSituation();
+    if(sitLines.length>0){
+      possBuffer=sitLines;
+      possBufferIdx=0;
+      return;
+    }
+  }
 
   // 3. Check interrupt flags (set by ge_poss / ge_firePendingMTO / ge_foulOut / ge_updateRun)
   if(GAME.pendingP1FoulOut){
