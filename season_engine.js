@@ -19,6 +19,40 @@ window.SeasonEngine = (() => {
     'Feb 28', 'Mar 5',
   ];
 
+  // ── Conference tournament seeding ────────────────────────────────────────────
+  //
+  // Maps conference name → { region, seeds[] }
+  // seeds[i] is the NCAA seed awarded to the team that finished (i+1)th in conf.
+  // ACC and Big East share the East region (ACC seeds 1,4,5,8,9,12 —
+  // Big East seeds 2,3,6,7,10,11); the other major conferences each own their region.
+  // Conferences not listed here receive 2 at-large bids (no pre-assigned slot).
+
+  const CONFERENCE_TOURNAMENT_SEEDS = {
+    'ACC':      { region: 'East',      seeds: [1, 4, 5, 8, 9, 12] },
+    'Big East': { region: 'East',      seeds: [2, 3, 6, 7, 10, 11] },
+    'Big Ten':  { region: 'Midwest',   seeds: [1, 4, 5, 8, 9, 12] },
+    'Big 12':   { region: 'West',      seeds: [1, 4, 5, 8, 9, 12] },
+    'SEC':      { region: 'Southeast', seeds: [1, 4, 5, 8, 9, 12] },
+  };
+
+  // Returns an array of bid objects for teams in `standings` that earned a
+  // tournament invitation. Each object: { teamId, teamName, conference, seed, region }.
+  // seed/region are null for at-large bids (conferences not in the table).
+  function getConferenceTournamentBids(conference, standings) {
+    const config = CONFERENCE_TOURNAMENT_SEEDS[conference];
+    if (!config) {
+      // Small / independent conference: top 2 teams earn at-large bids
+      return standings.slice(0, 2).map(row => ({
+        teamId: row.teamId, teamName: row.teamName,
+        conference, seed: null, region: null,
+      }));
+    }
+    return standings.slice(0, config.seeds.length).map((row, i) => ({
+      teamId: row.teamId, teamName: row.teamName,
+      conference, seed: config.seeds[i], region: config.region,
+    }));
+  }
+
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
   function shuffle(arr) {
@@ -815,6 +849,7 @@ window.SeasonEngine = (() => {
     getStandings,
     getUserRecord,
     complete,
+    getConferenceTournamentBids,
   };
 
 })();

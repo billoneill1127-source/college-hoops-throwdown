@@ -354,6 +354,94 @@ window.Tournament = (function () {
     );
   }
 
+  /**
+   * Generate a tournament bracket seeded from a completed season.
+   * @param {string}   p1TeamId       — the player's team id
+   * @param {Array}    conferenceBids — bid objects from SeasonEngine.getConferenceTournamentBids()
+   *                                    Each: { teamId, seed, region } (seed/region may be null for at-large)
+   * @returns {object} tournament state (also persisted to localStorage)
+   */
+  function generateFromSeason(p1TeamId, conferenceBids) {
+    const ALL_SEEDS = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16];
+
+    // Place pre-seeded conference bids (those with seed + region assigned)
+    const occupied   = {};   // key `Region:seed` → teamId
+    const placedIds  = new Set();
+
+    for (const bid of conferenceBids) {
+      if (bid.region && bid.seed) {
+        const key = bid.region + ':' + bid.seed;
+        if (!occupied[key]) {
+          occupied[key] = bid.teamId;
+          placedIds.add(bid.teamId);
+        }
+      }
+      // at-large bids (null seed/region) fall through to the filler pool below
+    }
+
+    // Build empty-slot list sorted seed-ascending then region-order
+    const emptySlots = [];
+    for (let s = 1; s <= 16; s++) {
+      for (const region of REGIONS) {
+        if (!occupied[region + ':' + s]) emptySlots.push({ region, seed: s });
+      }
+    }
+
+    // Fill empty slots with top-rated unplaced teams (includes at-large conf bids)
+    const filler = (window.TEAMS || [])
+      .filter(t => t.net_rating != null && !placedIds.has(t.id))
+      .sort((a, b) => b.net_rating - a.net_rating);
+
+    for (let i = 0; i < emptySlots.length && i < filler.length; i++) {
+      const slot = emptySlots[i];
+      occupied[slot.region + ':' + slot.seed] = filler[i].id;
+    }
+
+    // Build seededField in standard format
+    const seededField = [];
+    for (const region of REGIONS) {
+      for (const seed of ALL_SEEDS) {
+        const teamId = occupied[region + ':' + seed];
+        if (teamId) {
+          const team = (window.TEAMS || []).find(t => t.id === teamId);
+          seededField.push({ teamId, seed, region, conference: team ? team.conference : null });
+        }
+      }
+    }
+
+    // Safety: guarantee p1 team is in the bracket
+    if (!seededField.find(e => e.teamId === p1TeamId)) {
+      const p1Team   = (window.TEAMS || []).find(t => t.id === p1TeamId);
+      const weakest  = seededField
+        .filter(e => e.seed >= 14)
+        .sort((a, b) => {
+          const ra = (window.TEAMS || []).find(t => t.id === a.teamId);
+          const rb = (window.TEAMS || []).find(t => t.id === b.teamId);
+          return (ra ? ra.net_rating || -99 : -99) - (rb ? rb.net_rating || -99 : -99);
+        })[0];
+      if (weakest) {
+        weakest.teamId     = p1TeamId;
+        weakest.conference = p1Team ? p1Team.conference : null;
+      }
+    }
+
+    const userEntry = seededField.find(e => e.teamId === p1TeamId);
+    const state = {
+      id:           'tournament-' + Date.now(),
+      userTeamId:   p1TeamId,
+      userRegion:   userEntry ? userEntry.region : null,
+      userSeed:     userEntry ? userEntry.seed   : null,
+      seededField,
+      games:        buildRound1Games(seededField, p1TeamId),
+      currentRound: 1,
+      status:       'active',
+      fromSeason:   true,
+    };
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    return state;
+  }
+
   /** Remove tournament state from localStorage. */
   function clear() {
     localStorage.removeItem(STORAGE_KEY);
@@ -361,6 +449,7 @@ window.Tournament = (function () {
 
   return {
     generate,
+    generateFromSeason,
     load,
     save,
     getTeam,

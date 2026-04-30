@@ -2084,8 +2084,8 @@ updateGameDisplay();
   // 2. possBuffer exhausted — capture state for pause handlers
   lastPauseSnap=captureSnap();
 
-  // 2a. Inject situation banter between possessions
-  if(possBuffer.length>0){
+  // 2a. Inject situation banter between possessions — runs after every possession
+  if(possBufferIdx>=possBuffer.length){
     const sitLines=ge_checkSituation();
     if(sitLines.length>0){
       possBuffer=sitLines;
@@ -2595,6 +2595,26 @@ function initApp() {
       }
       console.warn('[CHT] Pending game team lookup failed — homeTeamName:', _pg.homeTeamName, 'awayTeamName:', _pg.awayTeamName);
     }
+
+    // Season-ending tournament launch
+    if (sessionStorage.getItem('season_tournament') === 'true') {
+      sessionStorage.removeItem('season_tournament');
+      const _p1Id  = sessionStorage.getItem('season_tournament_p1') || '';
+      const _seaId = sessionStorage.getItem('season_tournament_season_id') || '';
+      sessionStorage.removeItem('season_tournament_p1');
+      sessionStorage.removeItem('season_tournament_season_id');
+      const _meta  = Store.get('season:' + _seaId + ':meta') || {};
+      const _conf  = _meta.userConference || '';
+      const _rows  = Store.get('season:' + _seaId + ':final_standings') || [];
+      const _bids  = typeof SeasonEngine !== 'undefined'
+        ? SeasonEngine.getConferenceTournamentBids(_conf, _rows)
+        : [];
+      Tournament.generateFromSeason(_p1Id, _bids);
+      showScreen('tournament');
+      TournamentPage.init('screenTournament');
+      return;
+    }
+
     showScreen('home');
   })();
 }
