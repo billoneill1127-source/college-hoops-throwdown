@@ -287,7 +287,7 @@ window.TournamentBracket = (function () {
 
   // ── Render Final Four tab ─────────────────────────────────────────────────
   // Layout:
-  //   top half   — East winner vs Southeast winner (left-to-right)
+  //   top half   — East winner vs South winner (left-to-right)
   //   bottom half — Midwest winner vs West winner (right-to-left)
   //   center     — Championship game
 
@@ -316,7 +316,7 @@ window.TournamentBracket = (function () {
     </div>
     <div class="tb-ff-connector tb-ff-connector--right"></div>
     <div class="tb-ff-labels">
-      <div class="tb-ff-rlabel">Southeast</div>
+      <div class="tb-ff-rlabel">South</div>
       <div class="tb-ff-rlabel tb-ff-rlabel--sub">Regional Winner</div>
     </div>
   </div>
@@ -687,7 +687,7 @@ window.TournamentBracket = (function () {
 
     injectStyles();
 
-    const TABS = ['East', 'Southeast', 'Midwest', 'West', 'Final Four'];
+    const TABS = ['East', 'South', 'Midwest', 'West', 'Final Four'];
 
     // Tab bar
     let tabsHTML = '<div class="tb-tabs">';

@@ -27,17 +27,24 @@ window.SeasonEngine = (() => {
   // Big East seeds 2,3,6,7,10,11); the other major conferences each own their region.
   // Conferences not listed here receive 2 at-large bids (no pre-assigned slot).
 
+  // Conference champion region and per-finish-rank seed assignments.
+  // Duplicate seeds (e.g. Big Ten's two 5s) go to different regions via the
+  // cycle in getConferenceTournamentBids.
   const CONFERENCE_TOURNAMENT_SEEDS = {
-    'ACC':      { region: 'East',      seeds: [1, 4, 5, 8, 9, 12] },
-    'Big East': { region: 'East',      seeds: [2, 3, 6, 7, 10, 11] },
-    'Big Ten':  { region: 'Midwest',   seeds: [1, 4, 5, 8, 9, 12] },
-    'Big 12':   { region: 'West',      seeds: [1, 4, 5, 8, 9, 12] },
-    'SEC':      { region: 'Southeast', seeds: [1, 4, 5, 8, 9, 12] },
+    'ACC':      { region: 'East',    seeds: [1, 3, 5, 6, 7, 8, 9] },
+    'Big Ten':  { region: 'Midwest', seeds: [1, 2, 4, 5, 5, 6, 7, 8, 8] },
+    'Big East': { region: 'East',    seeds: [1, 3, 6, 8, 9] },
+    'Big 12':   { region: 'South',   seeds: [1, 3, 4, 6, 7, 7, 8, 9] },
+    'SEC':      { region: 'West',    seeds: [1, 3, 5, 6, 7, 8, 9] },
   };
 
   // Returns an array of bid objects for teams in `standings` that earned a
   // tournament invitation. Each object: { teamId, teamName, conference, seed, region }.
   // seed/region are null for at-large bids (conferences not in the table).
+  //
+  // Region cycle: conference champion → homeRegion. Subsequent bids cycle through
+  // [homeRegion, <other 3 in canonical East→Midwest→South→West order>] so that
+  // teams with duplicate seed numbers land in different regions.
   function getConferenceTournamentBids(conference, standings) {
     const config = CONFERENCE_TOURNAMENT_SEEDS[conference];
     if (!config) {
@@ -47,9 +54,17 @@ window.SeasonEngine = (() => {
         conference, seed: null, region: null,
       }));
     }
+
+    // Build region cycle: homeRegion first, then the other three in canonical order.
+    const CANONICAL = ['East', 'Midwest', 'South', 'West'];
+    const cycleRegions = [config.region, ...CANONICAL.filter(r => r !== config.region)];
+
     return standings.slice(0, config.seeds.length).map((row, i) => ({
-      teamId: row.teamId, teamName: row.teamName,
-      conference, seed: config.seeds[i], region: config.region,
+      teamId:   row.teamId,
+      teamName: row.teamName,
+      conference,
+      seed:     config.seeds[i],
+      region:   cycleRegions[i % 4],
     }));
   }
 

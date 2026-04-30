@@ -333,7 +333,7 @@ window.TournamentPage = (function () {
 
     // Generate next round games
     if (completed < 4) {
-      for (const region of ['East', 'Southeast', 'Midwest', 'West']) {
+      for (const region of ['East', 'South', 'Midwest', 'West']) {
         Tournament.generateNextRound(_state, region);
         _state = Tournament.load();
       }
@@ -597,7 +597,7 @@ window.TournamentPage = (function () {
     // by a previous sim batch are found by the ready-game check.
     let safety = 0;
     while (safety++ < 20) {
-      for (const region of ['East', 'Southeast', 'Midwest', 'West']) {
+      for (const region of ['East', 'South', 'Midwest', 'West']) {
         Tournament.generateNextRound(_state, region);
         _state = Tournament.load();
       }

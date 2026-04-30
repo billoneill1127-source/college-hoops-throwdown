@@ -8,7 +8,7 @@ window.Tournament = (function () {
   'use strict';
 
   const STORAGE_KEY = 'tournament:current';
-  const REGIONS = ['East', 'Southeast', 'Midwest', 'West'];
+  const REGIONS = ['East', 'South', 'Midwest', 'West'];
 
   // Round 1 bracket order: [higher seed, lower seed]
   // Produces the standard top-to-bottom bracket pairing.
@@ -272,7 +272,7 @@ window.Tournament = (function () {
 
   /**
    * Generate the two Final Four matchups (round 5) once all four regional
-   * finals (round 4) are complete. Pairings: East vs West, Southeast vs Midwest.
+   * finals (round 4) are complete. Pairings: East vs West, South vs Midwest.
    */
   function generateFinalFour(state) {
     // All four regional finals must be complete
@@ -282,7 +282,7 @@ window.Tournament = (function () {
     }
     if (state.games.some(g => g.round === 5)) return state; // already generated
 
-    const pairs = [['East', 'West'], ['Southeast', 'Midwest']];
+    const pairs = [['East', 'West'], ['South', 'Midwest']];
     pairs.forEach(([r1, r2], idx) => {
       const w1 = state.games.find(g => g.region === r1 && g.round === 4).winnerId;
       const w2 = state.games.find(g => g.region === r2 && g.round === 4).winnerId;
