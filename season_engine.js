@@ -353,6 +353,14 @@ window.SeasonEngine = (() => {
       return null;
     }
 
+    // Clear all stale season data before starting new season
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('season:')) keysToRemove.push(key);
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+
     const seasonId = 's_' + Date.now();
     const season = {
       seasonId,

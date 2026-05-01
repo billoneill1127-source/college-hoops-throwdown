@@ -41,20 +41,6 @@
     .header-sub { font-size: .62rem; color: rgba(255,255,255,.4); text-transform: uppercase; letter-spacing: .9px; margin-top: 1px; }
 
     /* ── Top bar ── */
-    #topBar {
-      background: #fff; border-bottom: 1px solid var(--border);
-      padding: 10px 28px; display: flex; align-items: center;
-      gap: 16px; position: sticky; top: 58px; z-index: 90;
-      box-shadow: 0 1px 4px rgba(13,34,64,.06);
-    }
-    #topBar label { font-size: .82rem; font-weight: 600; color: var(--text-muted); }
-    .ctrl-select {
-      padding: 6px 10px; border: 1px solid var(--border);
-      border-radius: 6px; font-size: .85rem; color: var(--text);
-      background: var(--surface); cursor: pointer; outline: none;
-      transition: border-color .15s;
-    }
-    .ctrl-select:focus { border-color: var(--accent); }
 
     /* ── No data ── */
     #noData {
@@ -210,8 +196,7 @@
     /* Responsive */
     @media (max-width: 640px) {
       header { padding: 0 14px; }
-      #topBar { padding: 10px 14px; }
-      #tabBar { padding: 14px 14px 0; gap: 4px; }
+#tabBar { padding: 14px 14px 0; gap: 4px; }
       .tab-btn { padding: 8px 12px; font-size: .75rem; }
       #tabContent { padding: 16px 14px 40px; }
     }
@@ -238,10 +223,6 @@
   </div>
 </header>
 
-<div id="topBar">
-  <label for="seasonSelect">Season:</label>
-  <select id="seasonSelect" class="ctrl-select"></select>
-</div>
 
 <div id="noData" style="display:none;">
   <div class="nd-icon">&#127944;</div>
@@ -399,17 +380,6 @@
     if (v == null) return '—';
     const s = v.toFixed(3);
     return s.startsWith('0.') ? s.slice(1) : s;
-  }
-
-  // ── Season helpers ───────────────────────────────────────────────────────────
-  function getSeasonIds() {
-    const keys = Object.keys(localStorage).filter(k => k.startsWith('game:'));
-    const ids = new Set();
-    for (const k of keys) {
-      const p = k.split(':');
-      if (p[1]) ids.add(p[1]);
-    }
-    return [...ids].sort().reverse();
   }
 
   // ── Conference helpers ───────────────────────────────────────────────────────
@@ -958,44 +928,31 @@
     else if (tab === 'strategy')    renderStrategyTab();
   }
 
-  // ── Season change ────────────────────────────────────────────────────────────
-  document.getElementById('seasonSelect').addEventListener('change', function () {
-    currentSeason = this.value;
-    playerMetaCache = null;
-    renderActiveTab();
-  });
-
   // ── Init ─────────────────────────────────────────────────────────────────────
   function init() {
-    const seasons = getSeasonIds();
+    // Use the active season if one exists; otherwise the most recent completed season
+    const activeSeason = Store.get('season:active');
+    if (activeSeason) {
+      currentSeason = activeSeason.seasonId;
+    } else {
+      let lastSeason = null;
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('season:') && k.endsWith(':meta')) {
+          const s = Store.get(k);
+          if (s && s.status === 'complete') {
+            if (!lastSeason || s.seasonId > lastSeason.seasonId) lastSeason = s;
+          }
+        }
+      }
+      if (lastSeason) currentSeason = lastSeason.seasonId;
+    }
 
-    if (seasons.length === 0) {
-      document.getElementById('topBar').style.display = 'none';
+    if (!currentSeason) {
       document.getElementById('mainContent').style.display = 'none';
       document.getElementById('noData').style.display = 'flex';
       return;
     }
-
-    // Populate season dropdown with human-readable labels
-    const selEl = document.getElementById('seasonSelect');
-    // Prefer the first non-exhibition season as default; fall back to seasons[0]
-    const defaultId = seasons.find(s => s !== 'exhibition') || seasons[0];
-    seasons.forEach(s => {
-      const meta  = Store.get('season:' + s + ':meta');
-      let label;
-      if (meta) {
-        label = (meta.userTeamName || s) + ' \u2014 ' + (meta.season || s) +
-                (meta.status === 'complete' ? ' \u2713' : '');
-      } else {
-        label = s === 'exhibition' ? 'Exhibition Games' : s;
-      }
-      const opt = document.createElement('option');
-      opt.value = s;
-      opt.textContent = label;
-      if (s === defaultId) opt.selected = true;
-      selEl.appendChild(opt);
-    });
-    currentSeason = defaultId;
 
     renderStandings();
   }
