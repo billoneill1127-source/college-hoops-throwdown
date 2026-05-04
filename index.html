@@ -2305,6 +2305,18 @@ function showStrategyOverlay(snap, fromDisplayIdx, context){
   const confirmMap={pregame:'Start Game \u25B6',timeout:'\u2713 Apply &amp; Resume',play_call:'\u25B6 Run This Play'};
   const skipMap={pregame:'Cancel',timeout:'Resume (no changes)',play_call:'Play On'};
 
+  // Opponent strategy info (live games only)
+  let oppStratHtml = '';
+  if(context !== 'pregame' && GAME){
+    const cpuT = p1IsHome ? GAME.away : GAME.home;
+    const oppOffLabel = (OFF_STRATS.find(([k])=>k===cpuT.strategy_offense)||['','Motion'])[1];
+    const oppDefLabel = (DEF_STRATS.find(([k])=>k===cpuT.strategy_defense)||['','Man-to-Man'])[1];
+    oppStratHtml = `<div style="margin-top:14px;padding:8px 12px;background:#0d1b2a;border:1px solid #30363d;border-radius:7px;font-size:.72rem;color:#8b949e">
+      <span style="text-transform:uppercase;letter-spacing:.5px">Opponent (${esc(cpuT.name)})</span>
+      <span style="float:right;color:#c9d1d9">${esc(oppOffLabel)} &bull; ${esc(oppDefLabel)}</span>
+    </div>`;
+  }
+
   const ov=document.createElement('div'); ov.id='playCallOverlay';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;z-index:9999';
   ov.innerHTML=`<div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:22px 26px;min-width:370px;max-width:470px">
@@ -2314,6 +2326,7 @@ function showStrategyOverlay(snap, fromDisplayIdx, context){
     <div id="pcDropdowns"></div>
     <div style="font-size:.68rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;margin-top:14px">Defense</div>
     <div class="pc-strat-grid">${defBtns}</div>
+    ${oppStratHtml}
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
       <button id="pcPlayOnBtn" style="background:#1c2b3a;color:#8b949e;border:1px solid #30363d;padding:7px 16px;border-radius:7px;cursor:pointer;font-size:.82rem">${skipMap[context]}</button>
       <button id="pcConfirmBtn" style="background:#238636;color:#fff;border:none;padding:7px 18px;border-radius:7px;cursor:pointer;font-size:.82rem;font-weight:700">${confirmMap[context]}</button>
