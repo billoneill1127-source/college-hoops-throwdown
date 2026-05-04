@@ -283,7 +283,7 @@ header { background: var(--primary); color: #fff; padding: 0 28px; position: sti
 <header>
   <button class="back-btn" id="backBtn" style="display:none" onclick="handleBack()">&#8592; Back</button>
   <div class="header-brand">
-    <div class="header-sub">2025–26 Season &nbsp;·&nbsp; v3.2</div>
+    <div class="header-sub">2025–26 Season &nbsp;·&nbsp; v3.3</div>
     <div class="header-logo">College Hoops <span>Throwdown</span></div>
   </div>
 </header>
@@ -343,6 +343,9 @@ header { background: var(--primary); color: #fff; padding: 0 28px; position: sti
     <p>Inspired by THE ULTIMATE COLLEGE BASKETBALL GAME (1984)</p>
 
     <h3 style="margin-top:1.2em">Version History</h3>
+
+    <p><strong>v3.3</strong><br>
+    Season mode unified schedule. All conference and non-conference games (P1 and CPU) now live in a single schedule array with an isUserGame flag, eliminating the dual-schedule sync bug that caused standings to drop games. Conference schedule uses a proper two-pass round-robin (same rotation, home/away flipped) with rotation-based rematch assignment — guarantees every team reaches exactly 18 conference games for all conference sizes. Season-complete screen win/loss record now correctly counts only P1's games. Tournament bracket filler pool excludes all teams from P1's conference. Season tournament CPU games now simulate before P1 is prompted (matching standalone tournament behavior). "← Back to Season" button added to tournament header when launched from season mode.</p>
 
     <p><strong>v3.2</strong><br>
     Announcement engine overhaul. Table-driven CPU defense selection (CPU_DEFENSE_TABLE) replaces ad-hoc mid-run defense changes; defense is re-evaluated at every stoppage via cpuPickDefense(). Defense establishment and change announcements restored. Game situation banter system: ge_checkSituation() fires commentary between possessions for big leads (15+, 20+), comebacks, ties, close games under three minutes, last-minute drama, and overtime. narrate() now auto-enriches every template with live game context ({leading}, {trailing}, {leading_nick}, {trailing_nick}, {diff}, {city}) without requiring explicit passing at each call site. Season-ending NCAA Tournament: after a 30-game season, eligible teams earn conference bids seeded by finish position and distributed across four regions (East, Midwest, South, West) via a per-conference cycle. Tournament bracket region renamed South (was Southeast). Stats page no longer shows a multi-season dropdown — always shows the current season. Stale season data cleared from localStorage when a new season starts.</p>

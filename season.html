@@ -197,7 +197,7 @@ header { background: var(--primary); color: #fff; padding: 0 20px; position: sti
   <a href="index.html" class="back-btn" id="backBtn">← Main Menu</a>
   <div class="header-brand">
     <div class="header-logo">🏀 <span>SEASON</span> MODE</div>
-    <div class="header-sub">2025–26 &nbsp;·&nbsp; v3.2</div>
+    <div class="header-sub">2025–26 &nbsp;·&nbsp; v3.3</div>
   </div>
   <div class="header-info" id="headerInfo"><a href="stats.html" class="hdr-link">Stats ›</a></div>
 </header>
@@ -270,6 +270,7 @@ header { background: var(--primary); color: #fff; padding: 0 20px; position: sti
 // ── State ──────────────────────────────────────────────────────────────────────
 let _pendingSimResult = null;  // holds result while modal is open
 let _pendingSimSlot   = null;
+let _simulatingAll    = false; // true while simulateRest() loop is running
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 // Normalize team id for window.TEAMS lookup (mirrors season_engine._normalizeId)
@@ -308,7 +309,9 @@ document.addEventListener('DOMContentLoaded', function () {
 // ── Init ──────────────────────────────────────────────────────────────────────
 function init() {
   const season = SeasonEngine.getActive();
-  if (season) {
+  const completed = !season ? SeasonEngine.getLastCompleted() : null;
+
+  if (season || completed) {
     showScreen('dashboard');
     renderDashboard();
   } else {
@@ -404,17 +407,20 @@ function renderDashboard() {
     renderSimRestBtn(season);
     renderQuitBtn();
   } else {
-    // Season may have just completed — find the most recent completed season
-    const allSeasonKeys = Store.keys('season:');
-    let lastSeason = null;
-    for (const k of allSeasonKeys) {
-      if (k.endsWith(':meta')) {
-        const s = Store.get(k);
-        if (s && s.status === 'complete') {
-          if (!lastSeason || s.seasonId > lastSeason.seasonId) lastSeason = s;
+    // Season may have just completed — use in-memory cache first, then scan localStorage
+    let lastSeason = SeasonEngine.getLastCompleted();
+    if (!lastSeason) {
+      const allSeasonKeys = Store.keys('season:');
+      for (const k of allSeasonKeys) {
+        if (k.endsWith(':meta')) {
+          const s = Store.get(k);
+          if (s && s.status === 'complete') {
+            if (!lastSeason || s.seasonId > lastSeason.seasonId) lastSeason = s;
+          }
         }
       }
     }
+    console.log('[renderDashboard] lastSeason source:', lastSeason ? 'found' : 'null', 'schedule resolved:', lastSeason?.schedule?.filter(g => g.result)?.length);
     renderHeader(lastSeason);
     renderSeasonComplete(lastSeason);
     if (lastSeason) {
@@ -433,7 +439,7 @@ function renderDashboard() {
 // ── Header ────────────────────────────────────────────────────────────────────
 function renderHeader(season) {
   const hi = document.getElementById('headerInfo');
-  if (!season) { hi.innerHTML = ''; return; }
+  if (!season) return;
 
   let ow, ol, cw, cl, str;
   if (SeasonEngine.getActive()) {
@@ -450,6 +456,7 @@ function renderHeader(season) {
     const results = [];
     for (const slot of (season.schedule || [])) {
       if (!slot.result) continue;
+      if (!slot.isUserGame) continue;
       const won = slot.result.winnerId === uid;
       results.push(won ? 'W' : 'L');
       if (won) ow++; else ol++;
@@ -506,11 +513,15 @@ function renderNextGame(season) {
     ? '<span class="conf-badge">CONF</span>' : '';
 
   const dateStr = slot.date || '';
+  const _ngUserGames = season.schedule
+    .filter(g => g.isUserGame)
+    .sort((a, b) => a.roundIndex - b.roundIndex);
+  const _ngOrdinal = _ngUserGames.findIndex(g => g.gameId === slot.gameId) + 1;
 
   panel.innerHTML =
     `<div class="next-game-card">` +
       `<div class="ng-label">NEXT GAME</div>` +
-      `<div class="ng-game-num">Game ${slot.gameIndex + 1} of 30</div>` +
+      `<div class="ng-game-num">Game ${_ngOrdinal} of 30</div>` +
       (dateStr ? `<div class="ng-date">${dateStr}</div>` : '') +
       `<div class="ng-matchup">${esc(season.userTeamName)} vs ${esc(oppName)}</div>` +
       `<div class="ng-opp-record">${esc(oppName)} ${oppRec}</div>` +
@@ -534,6 +545,7 @@ function renderSeasonComplete(season) {
   const uid = season.userTeamId;
   let w = 0, l = 0;
   for (const slot of (season.schedule || [])) {
+    if (!slot.isUserGame) continue;
     if (slot.result) {
       if (slot.result.winnerId === uid) w++; else l++;
     }
@@ -604,7 +616,13 @@ function newSeason() {
 
 // ── Conference Standings Panel ────────────────────────────────────────────────
 function renderStandings(season) {
-  let rows = SeasonEngine.getConferenceStandings(season.currentGame);
+  const _userGames = (season.schedule || [])
+    .filter(g => g.isUserGame)
+    .sort((a, b) => a.roundIndex - b.roundIndex);
+  const _lastRoundIndex = season.currentGame >= 30
+    ? 31
+    : _userGames.filter(g => g.result).reduce((max, g) => Math.max(max, g.roundIndex), 0);
+  let rows = SeasonEngine.getConferenceStandings(_lastRoundIndex);
 
   // Build user row from getUserRecord() so the user always appears
   // even if the engine's conf scan missed them.
@@ -646,6 +664,7 @@ function renderStandings(season) {
 }
 
 function renderStandingsFromRows(rows, season, titlePrefix) {
+  console.log('[renderStandingsFromRows] rows:', rows?.slice(0,3).map(r => r.teamName + ' ' + r.confWins + '-' + r.confLosses));
   const panel    = document.getElementById('standingsPanel');
   const confName = season.userConference;
 
@@ -681,12 +700,14 @@ function renderStandingsFromRows(rows, season, titlePrefix) {
 // ── Schedule Panel ────────────────────────────────────────────────────────────
 function renderSchedule(season) {
   const panel    = document.getElementById('schedulePanel');
-  const schedule = season.schedule || [];
+  const schedule = (season.schedule || [])
+    .filter(g => g.isUserGame)
+    .sort((a, b) => a.roundIndex - b.roundIndex);
   const nextSlot = SeasonEngine.getNextGame();
-  const nextIdx  = nextSlot ? nextSlot.gameIndex : -1;
+  const nextGameId = nextSlot ? nextSlot.gameId : null;
 
   const rows = schedule.map((slot, i) => {
-    const isNext     = i === nextIdx;
+    const isNext     = slot.gameId === nextGameId;
     const isConf     = slot.conference === 'conference';
     const userIsHome = slot.homeTeamId === season.userTeamId;
     const userTeam   = userIsHome ? slot.homeName : slot.awayName;
@@ -738,7 +759,7 @@ function renderSchedule(season) {
 // ── Simulate Rest Button ──────────────────────────────────────────────────────
 function renderSimRestBtn(season) {
   const panel   = document.getElementById('simRestPanel');
-  const pending = (season.schedule || []).filter(g => g.status === 'pending');
+  const pending = (season.schedule || []).filter(g => g.isUserGame && g.status === 'pending');
   if (pending.length < 2) { panel.innerHTML = ''; return; }
 
   panel.innerHTML =
@@ -748,31 +769,13 @@ function renderSimRestBtn(season) {
     `</button>`;
 }
 
-// ── Quit Season Button ────────────────────────────────────────────────────────
+// ── Reset Season Button ───────────────────────────────────────────────────────
 function renderQuitBtn() {
   const panel = document.getElementById('quitSeasonPanel');
   panel.innerHTML =
     `<div style="text-align:center;margin-top:8px">` +
-      `<button class="quit-season-btn" onclick="quitSeason()">✕ Abandon Season</button>` +
+      `<button class="quit-season-btn" onclick="resetSeasonData()">✕ Reset Season</button>` +
     `</div>`;
-}
-
-function quitSeason() {
-  if (!confirm('Are you sure you want to quit this season?\nAll progress will be lost.')) return;
-  const season = SeasonEngine.getActive();
-  if (season) {
-    const sid = season.seasonId;
-    // Compute W-L for audit log before data is gone
-    const rec = SeasonEngine.getUserRecord();
-    const wl  = rec.overall.w + '-' + rec.overall.l;
-    Store.del('season:active');
-    Store.del('season:' + sid + ':meta');
-    Store.del('season:' + sid + ':conf_schedule');
-    if (typeof BoxScore !== 'undefined') BoxScore.purgeAll(sid);
-    Store.del('settings:userTeamId');
-    console.log('[CHT] Season quit and purged — ' + season.userTeamName + ' ' + wl);
-  }
-  window.location.reload();
 }
 
 // ── Play Game (handoff to index.html) ─────────────────────────────────────────
@@ -783,8 +786,12 @@ function playGame() {
 
   const homeTeam = findTeam(slot.homeTeamId);
   const awayTeam = findTeam(slot.awayTeamId);
+  const _userGames = season.schedule
+    .filter(g => g.isUserGame)
+    .sort((a, b) => a.roundIndex - b.roundIndex);
+  const _ordinalIdx = _userGames.findIndex(g => g.gameId === slot.gameId);
   Store.set('season:pending_game', {
-    gameIndex:    slot.gameIndex,
+    gameIndex:    _ordinalIdx,
     homeTeamId:   slot.homeTeamId,
     awayTeamId:   slot.awayTeamId,
     homeTeamName: homeTeam ? homeTeam.name : '',
@@ -883,10 +890,16 @@ function showSimModal(result, slot, season) {
 }
 
 function onSimContinue() {
+  if (_simulatingAll) return; // stale modal confirm during batch sim — ignore
   document.getElementById('simModal').style.display = 'none';
 
   if (_pendingSimResult && _pendingSimSlot) {
-    SeasonEngine.recordResult(_pendingSimSlot.gameIndex, {
+    const _season = SeasonEngine.getActive();
+    const _userGames = (_season ? _season.schedule : [])
+      .filter(g => g.isUserGame)
+      .sort((a, b) => a.roundIndex - b.roundIndex);
+    const _ordinalIdx = _userGames.findIndex(g => g.gameId === _pendingSimSlot.gameId);
+    SeasonEngine.recordResult(_ordinalIdx, {
       homeScore: _pendingSimResult.homeScore,
       awayScore: _pendingSimResult.awayScore,
       winnerId:  _pendingSimResult.winnerId,
@@ -903,10 +916,11 @@ function onSimContinue() {
 
 // ── Simulate Rest of Season ───────────────────────────────────────────────────
 async function simulateRest() {
+  _simulatingAll = true;
   const season = SeasonEngine.getActive();
-  if (!season) return;
+  if (!season) { _simulatingAll = false; return; }
 
-  const pending = season.schedule.filter(g => g.status === 'pending');
+  const pending = season.schedule.filter(g => g.isUserGame && g.status === 'pending');
   if (!confirm(`Simulate all ${pending.length} remaining games? This cannot be undone.`)) return;
 
   const overlay   = document.getElementById('progressOverlay');
@@ -935,7 +949,12 @@ async function simulateRest() {
 
     // Check if season still active before recording (may have completed mid-loop)
     if (SeasonEngine.getActive()) {
-      SeasonEngine.recordResult(slot.gameIndex, {
+      const _activeSeason = SeasonEngine.getActive();
+      const userGames = (_activeSeason ? _activeSeason.schedule : [])
+        .filter(g => g.isUserGame)
+        .sort((a, b) => a.roundIndex - b.roundIndex);
+      const ordinalIdx = userGames.findIndex(g => g.gameId === slot.gameId);
+      SeasonEngine.recordResult(ordinalIdx, {
         homeScore: result.homeScore,
         awayScore: result.awayScore,
         winnerId:  result.winnerId,
@@ -945,8 +964,24 @@ async function simulateRest() {
     }
   }
 
+  _simulatingAll = false;
   overlay.style.display = 'none';
   renderDashboard();
+}
+
+// ── Reset Season Data ─────────────────────────────────────────────────────────
+function resetSeasonData() {
+  if (!confirm('This will end your current season and clear all season data. Are you sure?')) return;
+  const keysToRemove = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && (key.startsWith('season:') || key.startsWith('game:') || key === 'tournament:current')) {
+      keysToRemove.push(key);
+    }
+  }
+  keysToRemove.forEach(k => localStorage.removeItem(k));
+  localStorage.removeItem('settings:userTeamId');
+  window.location.reload();
 }
 </script>
 </body>

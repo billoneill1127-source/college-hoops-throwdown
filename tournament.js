@@ -388,8 +388,15 @@ window.Tournament = (function () {
     }
 
     // Fill empty slots with top-rated unplaced teams (includes at-large conf bids)
+    // Exclude all teams from P1's conference — they were already handled via bids.
+    const userTeam = (window.TEAMS || []).find(t => t.id === p1TeamId);
+    const userConference = userTeam?.conference || '';
     const filler = (window.TEAMS || [])
-      .filter(t => t.net_rating != null && !placedIds.has(t.id))
+      .filter(t =>
+        t.net_rating != null &&
+        !placedIds.has(t.id) &&
+        (userConference ? t.conference !== userConference : true)
+      )
       .sort((a, b) => b.net_rating - a.net_rating);
 
     for (let i = 0; i < emptySlots.length && i < filler.length; i++) {

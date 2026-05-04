@@ -208,12 +208,16 @@ window.TournamentPage = (function () {
     const contentId = containerId + '-content';
     if (!document.getElementById(contentId)) {
       const outerEl = document.getElementById(containerId);
+      const _peek = Tournament.load();
+      const _backBtn = (_peek && _peek.fromSeason)
+        ? '<a class="back-btn" href="season.html">\u2190 Back to Season</a>'
+        : '<button class="back-btn" onclick="showScreen(\'home\')">\u2190 Main Menu</button>';
       outerEl.innerHTML =
         '<div class="tp-page-header">' +
-          '<button class="back-btn" onclick="showScreen(\'home\')">\u2190 Main Menu</button>' +
+          _backBtn +
           '<div class="tp-page-header-brand">' +
             '<div class="tp-page-header-logo">\uD83C\uDFC0 <span>TOURNAMENT</span> MODE</div>' +
-            '<div class="tp-page-header-sub">2025\u201326 &nbsp;\u00B7&nbsp; v2.4</div>' +
+            '<div class="tp-page-header-sub">2025\u201326 &nbsp;\u00B7&nbsp; v3.3</div>' +
           '</div>' +
         '</div>' +
         '<div id="' + contentId + '"></div>';
@@ -246,7 +250,15 @@ window.TournamentPage = (function () {
     const pendingPlayer = _state.games.find(g =>
       g.round === _state.currentRound && g.isPlayerGame && g.winnerId === null
     );
-    if (pendingPlayer) {
+    const currentRoundGamesResolved = _state.games.filter(
+      g => g.round === _state.currentRound && g.winnerId !== null
+    ).length;
+
+    if (pendingPlayer && currentRoundGamesResolved === 0) {
+      // Fresh round — simulate CPU games first just like start() does
+      _runRound();
+    } else if (pendingPlayer) {
+      // Resuming mid-round — CPU games already done, go straight to P1's prompt
       setTimeout(() => _showPlayPrompt(pendingPlayer), 150);
     } else {
       _runRound();
@@ -268,10 +280,16 @@ window.TournamentPage = (function () {
 
   function _runRound() {
     _state = Tournament.load();
-    if (!_state || _state.status !== 'active') return;
+    if (!_state || _state.status !== 'active') {
+      console.log('[_runRound] early exit — status:', _state?.status);
+      return;
+    }
 
     const round = _state.currentRound;
     const allPending = _state.games.filter(g => g.round === round && g.winnerId === null);
+    console.log('[_runRound] round:', round, 'pending:', allPending.length,
+      'cpu:', allPending.filter(g => !g.isPlayerGame).length,
+      'player:', allPending.filter(g => g.isPlayerGame).length);
 
     if (!allPending.length) { _advanceRound(); return; }
 
@@ -324,10 +342,12 @@ window.TournamentPage = (function () {
   // ── Round advancement ──────────────────────────────────────────────────────
 
   function _advanceRound() {
+    console.log('[_advanceRound] fired — completed:', _state?.currentRound);
     _state = Tournament.load();
     if (!_state) return;
 
     const completed = _state.currentRound;
+    console.log('[_advanceRound] completed round:', completed, 'fromSeason:', _state?.fromSeason);
 
     if (completed === 6) { _showChampion(); return; }
 
@@ -424,6 +444,9 @@ window.TournamentPage = (function () {
 
   // Called on init() if tournament_return is in sessionStorage (page-reload fallback)
   function _handlePlayedGameReturn() {
+    console.log('[_handlePlayedGameReturn] fired — gameId:',
+      sessionStorage.getItem('tournament_game_id'),
+      'fromSeason:', _state?.fromSeason);
     const gameId = sessionStorage.getItem('tournament_game_id');
     sessionStorage.removeItem('tournament_return');
     sessionStorage.removeItem('tournament_game_id');
@@ -586,6 +609,15 @@ window.TournamentPage = (function () {
     btn.innerHTML = '&#9654; Simulate Rest of Tournament';
     btn.addEventListener('click', _simRestOfTournament);
     container.appendChild(btn);
+
+    if (_state && _state.fromSeason && !document.getElementById('btn-season-back-elim')) {
+      const backBtn = document.createElement('button');
+      backBtn.id = 'btn-season-back-elim';
+      backBtn.textContent = '\u2190 Back to Season';
+      backBtn.style.cssText = 'display:block;margin:12px auto;padding:8px 18px;background:#1a3a5c;color:white;border:none;border-radius:4px;cursor:pointer;font-size:14px;font-weight:600;';
+      backBtn.onclick = () => { window.location.href = 'season.html'; };
+      btn.parentNode.insertBefore(backBtn, btn.nextSibling);
+    }
   }
 
   function _simRestOfTournament() {
@@ -649,20 +681,26 @@ window.TournamentPage = (function () {
     const existing = container.querySelector('.tp-champion-card');
     if (existing) existing.remove();
 
+    const actionBtn = _state.fromSeason
+      ? `<button class="tp-back-season-btn" onclick="window.location.href='season.html'">&#8592; Back to Season</button>`
+      : `<button class="tp-new-tourn-btn" id="tp-new-tourn-btn">Start New Tournament</button>`;
+
     const card = document.createElement('div');
     card.className = 'tp-champion-card';
-    card.innerHTML = `
-<div class="tp-champ-name" style="color:${esc(champion.primaryColor || '#0d2240')}">${esc(champion.name)}</div>
-<div class="tp-champ-nick">${esc(champion.nickname || '')}</div>
-<div class="tp-champ-label">2026 NCAA Champion</div>
-<button class="tp-new-tourn-btn" id="tp-new-tourn-btn">Start New Tournament</button>`;
+    card.innerHTML =
+      `<div class="tp-champ-name" style="color:${esc(champion.primaryColor || '#0d2240')}">${esc(champion.name)}</div>` +
+      `<div class="tp-champ-nick">${esc(champion.nickname || '')}</div>` +
+      `<div class="tp-champ-label">2026 NCAA Champion</div>` +
+      actionBtn;
     container.appendChild(card);
 
-    document.getElementById('tp-new-tourn-btn').addEventListener('click', function () {
-      Tournament.clear();
-      _state = null;
-      _renderEntry();
-    });
+    if (!_state.fromSeason) {
+      document.getElementById('tp-new-tourn-btn').addEventListener('click', function () {
+        Tournament.clear();
+        _state = null;
+        _renderEntry();
+      });
+    }
   }
 
   // ── Public API ─────────────────────────────────────────────────────────────

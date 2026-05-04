@@ -6,7 +6,7 @@ window.SeasonEngine = (() => {
 
   // ── Game dates (ordinal lookup table) ────────────────────────────────────────
   // Indices  0-11: non-conference games (Nov 20 – Dec 21)
-  // Indices 12-29: conference games     (Jan 2  – Mar 5)
+  // Indices 12-31: conference games     (Jan 2  – Mar 11)
 
   const GAME_DATES = [
     'Nov 20', 'Nov 23', 'Nov 26', 'Nov 29',
@@ -16,7 +16,7 @@ window.SeasonEngine = (() => {
     'Jan 17', 'Jan 20', 'Jan 24', 'Jan 27',
     'Jan 31', 'Feb 3',  'Feb 7',  'Feb 10',
     'Feb 14', 'Feb 17', 'Feb 21', 'Feb 24',
-    'Feb 28', 'Mar 5',
+    'Feb 28', 'Mar 5',  'Mar 8',  'Mar 11',
   ];
 
   // ── Conference tournament seeding ────────────────────────────────────────────
@@ -70,6 +70,8 @@ window.SeasonEngine = (() => {
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
+  let _lastCompleted = null;
+
   function shuffle(arr) {
     const a = arr.slice();
     for (let i = a.length - 1; i > 0; i--) {
@@ -98,19 +100,28 @@ window.SeasonEngine = (() => {
   // reaches exactly 18 conference games.
   //
   // Each game is assigned roundIndex = 12 + r (its absolute GAME_DATES index).
-  // Odd-sized conferences get a virtual BYE team; BYE matchups are discarded.
+  // Odd-sized conferences get a virtual Idle placeholder; Idle matchups are discarded.
 
   function _buildConferenceSchedule(conferenceTeams) {
+    // ── Setup: pad to even count with Idle placeholder ────────────────────────
     let teams = conferenceTeams.slice().sort((a, b) => a.name.localeCompare(b.name));
     if (teams.length % 2 !== 0) {
-      teams = [...teams, { id: 'BYE', name: 'BYE' }];
+      teams = [...teams, { id: 'Idle', name: 'Idle' }];
     }
-    const N = teams.length; // even
+    const N = teams.length; // always even
 
     // ── Standard round-robin: fix teams[0], rotate teams[1..N-1] ─────────────
-    // N-1 rounds; each round produces N/2 pairs (one may be a BYE, which is skipped).
+    // N-1 rounds; each round produces N/2 pairs (one may be Idle, which is skipped).
+    // Guarantees each team appears at most once per round.
     const rotating      = teams.slice(1);
-    const firstMeetings = []; // { home, away, round }
+    const firstMeetings = []; // { home, away, roundIndex }
+
+    // Track which roundIndex slots each team already occupies
+    const teamSlots = {}; // normalizedId → Set<roundIndex>
+    const claimSlot = (id, ri) => {
+      if (!teamSlots[id]) teamSlots[id] = new Set();
+      teamSlots[id].add(ri);
+    };
 
     for (let r = 0; r < N - 1; r++) {
       const arrangement = [teams[0]];
@@ -118,19 +129,25 @@ window.SeasonEngine = (() => {
         arrangement.push(rotating[(i + r) % (N - 1)]);
       }
 
+      const roundIndex = 12 + r;
+
       for (let i = 0; i < N / 2; i++) {
         const teamA = arrangement[i];
         const teamB = arrangement[N - 1 - i];
-        if (teamA.id === 'BYE' || teamB.id === 'BYE') continue;
+        if (teamA.id === 'Idle' || teamB.id === 'Idle') continue;
 
-        // Balance home/away by round + pair-index parity
         const homeTeam = (r + i) % 2 === 0 ? teamA : teamB;
         const awayTeam = (r + i) % 2 === 0 ? teamB : teamA;
+        const idH = _normalizeId(homeTeam.id);
+        const idA = _normalizeId(awayTeam.id);
+
         firstMeetings.push({
-          home: { id: _normalizeId(homeTeam.id), name: homeTeam.name },
-          away: { id: _normalizeId(awayTeam.id), name: awayTeam.name },
-          round: r,
+          home:       { id: idH, name: homeTeam.name },
+          away:       { id: idA, name: awayTeam.name },
+          roundIndex,
         });
+        claimSlot(idH, roundIndex);
+        claimSlot(idA, roundIndex);
       }
     }
 
@@ -141,34 +158,73 @@ window.SeasonEngine = (() => {
       firstMeetingCount[g.away.id] = (firstMeetingCount[g.away.id] || 0) + 1;
     }
 
-    const rematchCount = {};
+    // Pass 2 — same rotation, home/away flipped, roundIndex starts at 12 + (N-1)
+    const rematches = [];
+    const rematchGameCounts = {};
     for (const t of conferenceTeams) {
-      rematchCount[t.id] = Math.max(0, 18 - (firstMeetingCount[t.id] || 0));
+      rematchGameCounts[_normalizeId(t.id)] = 0;
     }
 
-    const rematches = [];
-    for (const g of shuffle(firstMeetings)) {
-      if (rematchCount[g.home.id] > 0 && rematchCount[g.away.id] > 0) {
-        rematches.push({ home: g.away, away: g.home }); // flip home/away
-        rematchCount[g.home.id]--;
-        rematchCount[g.away.id]--;
+    for (let r = 0; r < N - 1; r++) {
+      const arrangement = [teams[0]];
+      for (let i = 0; i < N - 1; i++) {
+        arrangement.push(rotating[(i + r) % (N - 1)]);
+      }
+      const roundIndex = 12 + (N - 1) + r;
+      if (roundIndex > GAME_DATES.length - 1) break;
+
+      for (let i = 0; i < N / 2; i++) {
+        const teamA = arrangement[i];
+        const teamB = arrangement[N - 1 - i];
+        if (teamA.id === 'Idle' || teamB.id === 'Idle') continue;
+
+        const idA = _normalizeId(teamA.id);
+        const idB = _normalizeId(teamB.id);
+
+        // Skip if either team already has 18 games
+        const totalA = (firstMeetingCount[idA] || 0) + (rematchGameCounts[idA] || 0);
+        const totalB = (firstMeetingCount[idB] || 0) + (rematchGameCounts[idB] || 0);
+        if (totalA >= 18 || totalB >= 18) continue;
+
+        // Flip home/away from Pass 1
+        const homeTeam = (r + i) % 2 === 0 ? teamB : teamA;
+        const awayTeam = (r + i) % 2 === 0 ? teamA : teamB;
+        const idH  = _normalizeId(homeTeam.id);
+        const idAw = _normalizeId(awayTeam.id);
+
+        rematches.push({
+          home: { id: idH,  name: homeTeam.name },
+          away: { id: idAw, name: awayTeam.name },
+          roundIndex,
+        });
+        claimSlot(idH,  roundIndex);
+        claimSlot(idAw, roundIndex);
+        rematchGameCounts[idA]++;
+        rematchGameCounts[idB]++;
       }
     }
 
-    // ── Assign ordinal GAME_DATES indices and build output ────────────────────
-    const numFirstRounds = N - 1;
-    const allGames = [];
-
-    for (const g of firstMeetings) {
-      allGames.push({ home: g.home, away: g.away, roundIndex: 12 + g.round });
+    // ── Validation ────────────────────────────────────────────────────────────
+    const allGames    = [...firstMeetings, ...rematches];
+    const gameCounts  = {};
+    for (const g of allGames) {
+      gameCounts[g.home.id] = (gameCounts[g.home.id] || 0) + 1;
+      gameCounts[g.away.id] = (gameCounts[g.away.id] || 0) + 1;
     }
-    rematches.forEach((g, i) => {
-      allGames.push({
-        home: g.home, away: g.away,
-        roundIndex: Math.min(12 + numFirstRounds + i, 29),
-      });
-    });
+    for (const t of conferenceTeams) {
+      const id  = _normalizeId(t.id);
+      const cnt = gameCounts[id] || 0;
+      if (cnt !== 18) {
+        console.warn(`[_buildConferenceSchedule] ${t.name} has ${cnt} conf games (expected 18)`);
+      }
+    }
+    console.log(
+      `[_buildConferenceSchedule] ${conferenceTeams.length}-team conf:`,
+      allGames.length, 'total games | per-team:',
+      Object.entries(gameCounts).map(([id, n]) => `${id}:${n}`).join(', ')
+    );
 
+    // ── Build output ──────────────────────────────────────────────────────────
     return allGames
       .sort((a, b) => a.roundIndex - b.roundIndex)
       .map((g, idx) => ({
@@ -297,50 +353,71 @@ window.SeasonEngine = (() => {
     return { nonConfGames, userNcSlots };
   }
 
-  // ── SeasonEngine._buildSchedule ───────────────────────────────────────────────
+  // ── SeasonEngine._buildUnifiedSchedule ────────────────────────────────────────
   //
-  // Derives the user's personal 30-game schedule. Non-conf slots are supplied
-  // by the caller (pre-built by _buildAllNonConfCoordinated). Conference games
-  // come from the master confSchedule (filtered to user's team, sorted by
-  // roundIndex). All dates are set by ordinal lookup: GAME_DATES[gameIndex].
+  // Combines conference and non-conference games for ALL teams into one flat array.
+  // Every entry has isUserGame:true when P1 is involved.
 
-  function _buildSchedule(userTeam, confSchedule, userNcSlots) {
+  function _buildUnifiedSchedule(conferenceTeams, userTeam) {
+    const uid = userTeam.id;
 
-    // ── Conference games: pull from master schedule, sort by roundIndex ───────
+    const confGames = _buildConferenceSchedule(conferenceTeams);
+    const { nonConfGames, userNcSlots } = _buildAllNonConfCoordinated(
+      conferenceTeams, userTeam
+    );
 
-    const userConfSlots = (confSchedule || [])
-      .filter(g => g.homeTeamId === userTeam.id || g.awayTeamId === userTeam.id)
-      .sort((a, b) => a.roundIndex - b.roundIndex);
+    const unified = [];
 
-    const confGames = userConfSlots.map((g, i) => {
-      const masterOpp = g.homeTeamId === userTeam.id
-        ? { id: g.awayTeamId, name: g.awayName }
-        : { id: g.homeTeamId, name: g.homeName };
-      return { opp: masterOpp, userIsHome: (i % 2 === 0) };
-    });
-
-    console.log('[CHT] Conf sequence:',
-      confGames.map(g => g.userIsHome ? 'H' : 'A').join('-'));
-
-    // ── Build final slot list — non-conf first, then conference ───────────────
-
-    const slots = (userNcSlots || []).slice();
-
-    confGames.forEach((g, i) => {
-      slots.push({
-        gameIndex:  12 + i,
-        date:       GAME_DATES[12 + i],
-        homeTeamId: g.userIsHome ? userTeam.id   : g.opp.id,
-        homeName:   g.userIsHome ? userTeam.name : g.opp.name,
-        awayTeamId: g.userIsHome ? g.opp.id      : userTeam.id,
-        awayName:   g.userIsHome ? g.opp.name    : userTeam.name,
+    for (const g of confGames) {
+      unified.push({
+        gameId:     g.gameId,
+        roundIndex: g.roundIndex,
+        date:       g.date,
+        homeTeamId: g.homeTeamId,
+        homeName:   g.homeName,
+        awayTeamId: g.awayTeamId,
+        awayName:   g.awayName,
         conference: 'conference',
+        isUserGame: g.homeTeamId === uid || g.awayTeamId === uid,
         status:     'pending',
         result:     null,
       });
-    });
+    }
 
-    return slots;
+    for (const g of userNcSlots) {
+      unified.push({
+        gameId:     'unc_' + g.gameIndex,
+        roundIndex: g.gameIndex,
+        date:       g.date,
+        homeTeamId: g.homeTeamId,
+        homeName:   g.homeName,
+        awayTeamId: g.awayTeamId,
+        awayName:   g.awayName,
+        conference: 'nonconf',
+        isUserGame: true,
+        status:     'pending',
+        result:     null,
+      });
+    }
+
+    for (const g of nonConfGames) {
+      unified.push({
+        gameId:     'cnc_' + g.teamId + '_' + g.gameIndex,
+        roundIndex: g.gameIndex,
+        date:       g.date,
+        homeTeamId: g.homeTeamId,
+        homeName:   g.homeName,
+        awayTeamId: g.awayTeamId,
+        awayName:   g.awayName,
+        conference: 'nonconf',
+        isUserGame: false,
+        status:     'pending',
+        result:     null,
+      });
+    }
+
+    unified.sort((a, b) => a.roundIndex - b.roundIndex);
+    return unified;
   }
 
   // ── SeasonEngine.create ───────────────────────────────────────────────────────
@@ -353,11 +430,11 @@ window.SeasonEngine = (() => {
       return null;
     }
 
-    // Clear all stale season data before starting new season
+    // Clear all stale season and game data before starting new season
     const keysToRemove = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith('season:')) keysToRemove.push(key);
+      if (key && (key.startsWith('season:') || key.startsWith('game:'))) keysToRemove.push(key);
     }
     keysToRemove.forEach(k => localStorage.removeItem(k));
 
@@ -374,24 +451,18 @@ window.SeasonEngine = (() => {
       schedule:       [],
     };
 
-    // ── Build schedules ───────────────────────────────────────────────────────
+    // ── Build unified schedule ────────────────────────────────────────────────
     const conferenceTeams = getTeams().filter(t => t.conference === userTeam.conference);
-    const confSchedule    = _buildConferenceSchedule(conferenceTeams);
 
-    // Single coordinated non-conf pass — prevents the same opponent appearing
-    // in two games on the same date across all conference teams.
-    const { nonConfGames, userNcSlots } = _buildAllNonConfCoordinated(conferenceTeams, userTeam);
-    const masterData = { confSchedule, nonConfGames, lastSimIndex: null };
-
-    season.schedule = _buildSchedule(userTeam, confSchedule, userNcSlots);
+    season.schedule = _buildUnifiedSchedule(conferenceTeams, userTeam);
 
     Store.set('season:active', season);
     Store.set('season:' + seasonId + ':meta', season);
-    Store.set('season:' + seasonId + ':conf_schedule', masterData);
 
+    const userGameCount = season.schedule.filter(g => g.isUserGame).length;
+    const totalCount    = season.schedule.length;
     console.log(
-      `[CHT] Season created — ${userTeam.name} | conf games: ${confSchedule.length}` +
-      ` | non-user NC games: ${nonConfGames.length}`
+      `[CHT] Season created — ${userTeam.name} | unified schedule: ${totalCount} games (${userGameCount} user games)`
     );
 
     return season;
@@ -403,26 +474,24 @@ window.SeasonEngine = (() => {
     const season = Store.get('season:active') || null;
     if (!season) return null;
 
+    // Discard stale pre-refactor data — unified schedule should have
+    // exactly 30 user games. More than 30 means old code wrote this.
+    if (season.schedule) {
+      const userGameCount = season.schedule.filter(g => g.isUserGame).length;
+      console.log('[getActive] userGameCount:', userGameCount, 'discarding:', userGameCount > 30);
+      if (userGameCount > 30) {
+        console.warn('[SeasonEngine] stale pre-refactor season detected, discarding');
+        Store.del('season:active');
+        return null;
+      }
+    }
+
     // One-time migration: underscore ids → hyphen ids
     if (!season._idsMigrated) {
       season.userTeamId = _toHyphen(season.userTeamId);
       for (const slot of (season.schedule || [])) {
         slot.homeTeamId = _toHyphen(slot.homeTeamId);
         slot.awayTeamId = _toHyphen(slot.awayTeamId);
-      }
-      const confKey = 'season:' + season.seasonId + ':conf_schedule';
-      const masterData = Store.get(confKey);
-      if (masterData) {
-        for (const g of (masterData.confSchedule || [])) {
-          g.homeTeamId = _toHyphen(g.homeTeamId);
-          g.awayTeamId = _toHyphen(g.awayTeamId);
-        }
-        for (const g of (masterData.nonConfGames || [])) {
-          g.homeTeamId = _toHyphen(g.homeTeamId);
-          g.awayTeamId = _toHyphen(g.awayTeamId);
-          if (g.teamId) g.teamId = _toHyphen(g.teamId);
-        }
-        Store.set(confKey, masterData);
       }
       season._idsMigrated = true;
       Store.set('season:active', season);
@@ -440,256 +509,180 @@ window.SeasonEngine = (() => {
   // ── SeasonEngine.getNextGame ──────────────────────────────────────────────────
 
   function getNextGame() {
-    return getSchedule().find(g => g.status === 'pending') || null;
+    return (season => {
+      if (!season) return null;
+      return season.schedule
+        .filter(g => g.isUserGame)
+        .sort((a, b) => a.roundIndex - b.roundIndex)
+        .find(g => g.status === 'pending') || null;
+    })(getActive());
   }
 
   // ── SeasonEngine.recordResult ─────────────────────────────────────────────────
+  //
+  // Records P1's Nth game result (gameIndex = 0-based ordinal among user games).
+  // Finds the slot by sorting isUserGame entries by roundIndex and indexing into that list.
+  // Result is written directly onto the unified slot in season.schedule.
 
   function recordResult(gameIndex, result) {
     const season = getActive();
     if (!season) { console.error('[SeasonEngine] No active season'); return; }
 
-    const slot = season.schedule[gameIndex];
-    slot.status = result.method;
-    slot.result = result;
+    const userGames = season.schedule
+      .filter(g => g.isUserGame)
+      .sort((a, b) => a.roundIndex - b.roundIndex);
+
+    const slot = userGames[gameIndex];
+
+    if (!slot) {
+      console.warn('[recordResult] no user slot found for gameIndex:', gameIndex);
+      return;
+    }
+
+    if (slot.result) {
+      console.warn('[recordResult] slot already resolved:', slot.gameId);
+      return;
+    }
+
+    slot.status = result.method || 'played';
+    slot.result = {
+      homeScore: result.homeScore,
+      awayScore: result.awayScore,
+      winnerId:  result.winnerId,
+      method:    result.method,
+    };
+
     season.currentGame++;
 
-    // Sync conf game results to master schedule so standings are accurate.
-    // Without this, the interleaved personal schedule and the round-ordered
-    // master schedule would disagree on which teams have played.
-    if (slot.conference === 'conference') {
-      const masterData = getConfSchedule();
-      if (masterData) {
-        const uid   = season.userTeamId;
-        const oppId = slot.homeTeamId === uid ? slot.awayTeamId : slot.homeTeamId;
-        const masterGame = masterData.confSchedule.find(g =>
-          (g.homeTeamId === uid || g.awayTeamId === uid) &&
-          (g.homeTeamId === oppId || g.awayTeamId === oppId)
-        );
-        if (masterGame && !masterGame.result) {
-          // Translate score to master home/away orientation
-          const flip = masterGame.homeTeamId !== slot.homeTeamId;
-          masterGame.result = {
-            homeScore: flip ? result.awayScore : result.homeScore,
-            awayScore: flip ? result.homeScore : result.awayScore,
-            winnerId:  result.winnerId,
-            method:    result.method,
-          };
-          masterGame.status = result.method;
-          Store.set('season:' + season.seasonId + ':conf_schedule', masterData);
-        }
-      }
-    }
+    Store.set('season:active', season);
+    Store.set(`season:${season.seasonId}:meta`, season);
 
     if (season.currentGame >= 30) {
       complete(season);
-    } else {
-      Store.set('season:active', season);
-      Store.set('season:' + season.seasonId + ':meta', season);
     }
-  }
-
-  // ── SeasonEngine.getConfSchedule ──────────────────────────────────────────────
-
-  function getConfSchedule() {
-    const season = getActive();
-    if (!season) return null;
-    return Store.get('season:' + season.seasonId + ':conf_schedule') || null;
   }
 
   // ── SeasonEngine.simulateToIndex ──────────────────────────────────────────────
   //
-  // Simulates games for every non-user conference team so that each team has
-  // resolved exactly gameIndex game slots — matching the user's total games played.
-  //
-  // Per-team sequence (12 nonConf + 18 conf = 30 games total):
-  //   [0-11]  non-conf games, sorted by gameIndex
-  //   [12-29] ALL conf games including user matchups, sorted by roundIndex
-  //
-  // slice(0, gameIndex) gives every team exactly gameIndex slots. User games
-  // inside the slice are already resolved via recordResult and are skipped by
-  // the pending+non-user filter, keeping confGP balanced across all teams.
-  //
+  // Simulates all non-user pending games at or before currentRoundIndex.
+  // Reads and writes directly on season.schedule (unified array).
   // No-op when window.CpuSim is unavailable (e.g. stats.html read-only context).
 
-  function simulateToIndex(gameIndex) {
+  function simulateToIndex(currentRoundIndex) {
     if (typeof window.CpuSim === 'undefined') return;
 
     const season = getActive();
     if (!season) return;
 
-    const masterData = getConfSchedule();
-    if (!masterData) return;
+    const toSimulate = season.schedule.filter(g =>
+      !g.isUserGame &&
+      g.status === 'pending' &&
+      g.roundIndex <= currentRoundIndex
+    );
 
-    const uid = season.userTeamId;
+    if (toSimulate.length === 0) {
+      console.log(`[CHT] simulateToIndex(${currentRoundIndex}): 0 games to simulate`);
+      return;
+    }
+
+    const allTeams = getTeams();
     let simCount = 0;
-    // Collect all non-user conference team IDs
-    const confTeamIds = new Set();
-    for (const g of masterData.confSchedule) {
-      if (g.homeTeamId !== uid) confTeamIds.add(g.homeTeamId);
-      if (g.awayTeamId !== uid) confTeamIds.add(g.awayTeamId);
+
+    for (const game of toSimulate) {
+      const homeTeam = allTeams.find(t => t.id === game.homeTeamId);
+      const awayTeam = allTeams.find(t => t.id === game.awayTeamId);
+      if (!homeTeam || !awayTeam) {
+        console.warn('[simulateToIndex] team not found:',
+          !homeTeam ? game.homeTeamId : game.awayTeamId);
+        continue;
+      }
+
+      const result = CpuSim.simulateGame(homeTeam, awayTeam, {
+        neutralSite: false,
+        saveForStats: true,
+        seasonId: season.seasonId,
+      });
+
+      game.status = 'simulated';
+      game.result = {
+        homeScore: result.homeScore,
+        awayScore: result.awayScore,
+        winnerId:  result.winnerId,
+        method:    'simulated',
+      };
+      simCount++;
     }
 
-    for (const teamId of confTeamIds) {
-      // Non-conf games for this team (gameIndex 0-11), sorted
-      const nonConf = masterData.nonConfGames
-        .filter(g => g.teamId === teamId)
-        .sort((a, b) => a.gameIndex - b.gameIndex);
+    Store.set('season:active', season);
+    Store.set(`season:${season.seasonId}:meta`, season);
 
-      // ALL conf games for this team (including user matchups), sorted by roundIndex
-      // Combined = 12 nonConf + 18 conf = 30 per team (mirrors user's 30-game schedule)
-      const conf = masterData.confSchedule
-        .filter(g => g.homeTeamId === teamId || g.awayTeamId === teamId)
-        .sort((a, b) => a.roundIndex - b.roundIndex);
-
-      const combined = [...nonConf, ...conf];
-
-      // Count pending user games that fall within the first gameIndex slots.
-      // These can't be simulated but occupy slice positions — extend the slice
-      // to compensate so every team ends up with the same number of non-user
-      // conf games resolved (fixes confGP:1 for teams whose earliest conf
-      // game is a pending user matchup).
-      let pendingUserSlots = 0;
-      for (let i = 0; i < Math.min(gameIndex, combined.length); i++) {
-        const g = combined[i];
-        if (g.status === 'pending' &&
-            (g.homeTeamId === uid || g.awayTeamId === uid)) {
-          pendingUserSlots++;
-        }
-      }
-      const sliceEnd = Math.min(gameIndex + pendingUserSlots, combined.length);
-
-      const toSimulate = combined
-        .slice(0, sliceEnd)
-        .filter(g => g.status === 'pending' &&
-                     g.homeTeamId !== uid && g.awayTeamId !== uid);
-
-      for (const game of toSimulate) {
-        const homeTeam = getTeams().find(t => t.id === game.homeTeamId);
-        const awayTeam = getTeams().find(t => t.id === game.awayTeamId);
-        if (!homeTeam || !awayTeam) continue;
-
-        const result = CpuSim.simulateGame(homeTeam, awayTeam, { isUserTeamInvolved: false, saveForStats: true, seasonId: season.seasonId });
-        game.status = 'simulated';
-        game.result = {
-          homeScore: result.homeScore,
-          awayScore: result.awayScore,
-          winnerId:  result.winnerId,
-          method:    'simulated',
-        };
-        simCount++;
-      }
-    }
-
-    masterData.lastSimIndex = gameIndex;
-    Store.set('season:' + season.seasonId + ':conf_schedule', masterData);
-    console.log('[CHT] simulateToIndex(' + gameIndex + '): simulated ' + simCount + ' games across ' + confTeamIds.size + ' teams');
+    console.log(`[CHT] simulateToIndex(${currentRoundIndex}): simulated ${simCount} games`);
   }
 
   // ── SeasonEngine.getConferenceStandings ───────────────────────────────────────
   //
-  // Calls simulateToIndex(gameIndex) then builds full conference standings
-  // combining master conf schedule (non-user games) with the user's personal
-  // schedule (user's games).
+  // Simulates all non-user games up to currentRoundIndex, then builds standings
+  // from a single pass over season.schedule (unified array).
   //
-  // Returns array sorted by confWins DESC, confWinPct DESC, diff DESC:
-  //   { teamId, teamName, gp, wins, losses, confWins, confLosses,
-  //     confWinPct, diff, winPct, ovr, conf }
+  // Returns array sorted by conf win differential DESC, overall differential DESC.
 
-  function getConferenceStandings(gameIndex) {
-    simulateToIndex(gameIndex);
+  function getConferenceStandings(currentRoundIndex) {
+    simulateToIndex(currentRoundIndex);
 
     const season = getActive();
     if (!season) return [];
 
-    const masterData = getConfSchedule();
-    if (!masterData) return [];
-
-    // Determine which teamIds are in the conference via confSchedule
     const confTeamIds = new Set();
-    for (const g of masterData.confSchedule) {
-      confTeamIds.add(g.homeTeamId);
-      confTeamIds.add(g.awayTeamId);
+    for (const g of season.schedule) {
+      if (g.conference === 'conference') {
+        confTeamIds.add(g.homeTeamId);
+        confTeamIds.add(g.awayTeamId);
+      }
     }
 
     const teamMap = {};
+    const ensureRow = (id, name) => {
+      if (!teamMap[id]) teamMap[id] = {
+        teamId: id, teamName: name,
+        confWins: 0, confLosses: 0,
+        wins: 0, losses: 0, gp: 0,
+        ptsFor: 0, ptsAgainst: 0,
+      };
+      return teamMap[id];
+    };
 
-    function ensureRow(teamId, teamName) {
-      if (!teamMap[teamId]) {
-        teamMap[teamId] = {
-          teamId, teamName,
-          gp: 0, wins: 0, losses: 0,
-          confGp: 0, confWins: 0, confLosses: 0,
-          ptsFor: 0, ptsAgainst: 0,
-        };
+    for (const game of season.schedule) {
+      if (!game.result) continue;
+      if (game.roundIndex > currentRoundIndex) continue;
+
+      const { homeTeamId, awayTeamId, homeName, awayName, conference, result } = game;
+      const homeWon = result.homeScore > result.awayScore;
+      const isConf  = conference === 'conference';
+
+      if (confTeamIds.has(homeTeamId)) {
+        const row = ensureRow(homeTeamId, homeName);
+        row.gp++;
+        row.ptsFor     += result.homeScore;
+        row.ptsAgainst += result.awayScore;
+        if (homeWon) { row.wins++; if (isConf) row.confWins++; }
+        else         { row.losses++; if (isConf) row.confLosses++; }
       }
-      return teamMap[teamId];
-    }
 
-    function recordGame(homeId, homeName, awayId, awayName,
-                        homeScore, awayScore, winnerId, isConf) {
-      const home = ensureRow(homeId, homeName);
-      const away = ensureRow(awayId, awayName);
-      // Normalize winnerId: match by id OR by name
-      const homeWon = winnerId === homeId || winnerId === homeName;
-
-      home.gp++; home.ptsFor += homeScore; home.ptsAgainst += awayScore;
-      away.gp++; away.ptsFor += awayScore; away.ptsAgainst += homeScore;
-      if (homeWon) { home.wins++; away.losses++; }
-      else         { away.wins++; home.losses++; }
-
-      if (isConf) {
-        home.confGp++; away.confGp++;
-        if (homeWon) { home.confWins++; away.confLosses++; }
-        else         { away.confWins++; home.confLosses++; }
+      if (confTeamIds.has(awayTeamId)) {
+        const row = ensureRow(awayTeamId, awayName);
+        row.gp++;
+        row.ptsFor     += result.awayScore;
+        row.ptsAgainst += result.homeScore;
+        if (!homeWon) { row.wins++; if (isConf) row.confWins++; }
+        else          { row.losses++; if (isConf) row.confLosses++; }
       }
     }
 
-    // 1. All completed conference games from master schedule (includes user games
-    //    synced via recordResult; redundant index filter removed — simulateToIndex
-    //    controls what has been simulated, so result presence is sufficient).
-    for (const g of masterData.confSchedule) {
-      if (!g.result) continue;
-      recordGame(g.homeTeamId, g.homeName, g.awayTeamId, g.awayName,
-                 g.result.homeScore, g.result.awayScore, g.result.winnerId, true);
-    }
-
-    // 2. Non-conf games for non-user conference teams (overall record only)
-    for (const g of masterData.nonConfGames) {
-      if (!g.result) continue;
-      const isHome       = g.homeTeamId === g.teamId;
-      const confTeamName = isHome ? g.homeName : g.awayName;
-      const row          = ensureRow(g.teamId, confTeamName);
-      const homeWon      = g.result.winnerId === g.homeTeamId ||
-                           g.result.winnerId === g.homeName;
-      const confTeamWon  = isHome ? homeWon : !homeWon;
-
-      row.gp++;
-      row.ptsFor     += isHome ? g.result.homeScore : g.result.awayScore;
-      row.ptsAgainst += isHome ? g.result.awayScore : g.result.homeScore;
-      if (confTeamWon) row.wins++; else row.losses++;
-    }
-
-    // 3. User's non-conf games from personal schedule (user's overall record)
-    for (const slot of season.schedule) {
-      if (!slot.result || slot.conference !== 'nonconf') continue;
-      const isUserHome = slot.homeTeamId === season.userTeamId;
-      const row        = ensureRow(season.userTeamId, season.userTeamName);
-      const homeWon    = slot.result.winnerId === slot.homeTeamId ||
-                         slot.result.winnerId === slot.homeName;
-      const userWon    = isUserHome ? homeWon : !homeWon;
-
-      row.gp++;
-      row.ptsFor     += isUserHome ? slot.result.homeScore : slot.result.awayScore;
-      row.ptsAgainst += isUserHome ? slot.result.awayScore : slot.result.homeScore;
-      if (userWon) row.wins++; else row.losses++;
-    }
-
-    // Build and sort output — only conference teams
-    const standings = Object.values(teamMap)
+    const rows = Object.values(teamMap)
       .filter(r => confTeamIds.has(r.teamId))
       .map(r => {
-        const confWinPct = r.confGp > 0 ? r.confWins / r.confGp : 0;
+        const confGp     = r.confWins + r.confLosses;
+        const confWinPct = confGp > 0 ? r.confWins / confGp : 0;
         const diff       = r.gp > 0 ? (r.ptsFor - r.ptsAgainst) / r.gp : 0;
         return {
           teamId:     r.teamId,
@@ -714,11 +707,9 @@ window.SeasonEngine = (() => {
         (b.confWins - a.confWins) || (b.confWinPct - a.confWinPct) || (b.diff - a.diff)
       );
 
-    console.log('[CHT] Standings built:', standings.length, 'teams,',
-      'games simulated through index', gameIndex,
-      '| sample:', standings[0]?.teamName, standings[0]?.conf, standings[0]?.ovr);
+    console.log(`[CHT] Standings built: ${rows.length} teams | sample: ${rows[0]?.teamName} ${rows[0]?.conf} ${rows[0]?.ovr}`);
 
-    return standings;
+    return rows;
   }
 
   // ── SeasonEngine.getStandings ─────────────────────────────────────────────────
@@ -798,6 +789,12 @@ window.SeasonEngine = (() => {
 
   function getUserRecord() {
     const season = getActive();
+    if (season) {
+      const userGames = season.schedule?.filter(g => g.isUserGame) || [];
+      console.log('[getUserRecord] userGames count:', userGames.length,
+        'with results:', userGames.filter(g => g.result).length,
+        'losses:', userGames.filter(g => g.result && g.result.winnerId !== season.userTeamId).length);
+    }
     if (!season) return { overall: { w: 0, l: 0 }, conference: { w: 0, l: 0 }, streak: '' };
 
     const uid = season.userTeamId;
@@ -805,6 +802,7 @@ window.SeasonEngine = (() => {
     const results = []; // chronological W/L for streak
 
     for (const slot of season.schedule) {
+      if (!slot.isUserGame) continue;
       if (!slot.result) continue;
       const won = slot.result.winnerId === uid;
       results.push(won ? 'W' : 'L');
@@ -837,42 +835,65 @@ window.SeasonEngine = (() => {
 
     // Simulate remaining conf games and persist final standings before clearing
     // the active session so the complete-season view and stats.html have data.
-    const finalStandings = getConferenceStandings(30);
+    const finalStandings = getConferenceStandings(31);
     Store.set('season:' + season.seasonId + ':final_standings', finalStandings);
 
-    season.status = 'complete';
-    Store.set('season:' + season.seasonId + ':meta', season);
+    // Re-read from localStorage: simulateToIndex() inside getConferenceStandings()
+    // wrote the fully-resolved schedule to 'season:active'. The in-memory `season`
+    // reference predates that write, so spread the fresh copy instead.
+    const freshSeason = Store.get('season:active') || season;
+    freshSeason.status = 'complete';
+    Store.set('season:' + freshSeason.seasonId + ':meta', freshSeason);
+    _lastCompleted = { ...freshSeason };
     Store.del('season:active');
 
     if (typeof BoxScore !== 'undefined') {
-      BoxScore.purgeDetail(season.seasonId);
+      BoxScore.purgeDetail(freshSeason.seasonId);
     }
 
-    // Compute final record directly from season (active is already removed)
-    const uid = season.userTeamId;
+    // Compute final record directly from freshSeason (active is already removed)
+    const uid = freshSeason.userTeamId;
     let w = 0, l = 0;
-    for (const slot of season.schedule) {
+    for (const slot of freshSeason.schedule) {
+      if (!slot.isUserGame) continue;
       if (slot.result && slot.result.winnerId === uid) w++; else if (slot.result) l++;
     }
-    console.log(`[CHT] Season complete — ${season.userTeamName} finished ${w}-${l}`);
+    console.log(`[CHT] Season complete — ${freshSeason.userTeamName} finished ${w}-${l}`);
   }
 
   // ── Public API ────────────────────────────────────────────────────────────────
 
   return {
     create,
-    _buildSchedule,
+    _buildUnifiedSchedule,
     getActive,
     getSchedule,
     getNextGame,
     recordResult,
-    getConfSchedule,
     simulateToIndex,
     getConferenceStandings,
     getStandings,
     getUserRecord,
     complete,
     getConferenceTournamentBids,
+    getLastCompleted: () => {
+      if (_lastCompleted) return _lastCompleted;
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('season:') && key.endsWith(':meta')) {
+            const data = Store.get(key);
+            if (data && data.status === 'complete') {
+              _lastCompleted = data;
+              return _lastCompleted;
+            }
+          }
+        }
+      } catch(e) {
+        console.warn('[SeasonEngine] getLastCompleted scan failed:', e);
+      }
+      return null;
+    },
   };
 
 })();
