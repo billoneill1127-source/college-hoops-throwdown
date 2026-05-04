@@ -2372,7 +2372,7 @@ function showStrategyOverlay(snap, fromDisplayIdx, context){
       const sec=b.dataset.section;
       ov.querySelectorAll(`.pc-strat-btn[data-section="${sec}"]`).forEach(x=>x.classList.remove('pc-sel'));
       b.classList.add('pc-sel');
-      if(sec==='off'){ selOff=b.dataset.strat; renderDropdowns(); }
+      if(sec==='off'){ selOff=b.dataset.strat; renderDropdowns(); const e=ov.querySelector('#pcPlayerErr'); if(e)e.textContent=''; }
       else selDef=b.dataset.strat;
     });
   });
@@ -2397,8 +2397,30 @@ function showStrategyOverlay(snap, fromDisplayIdx, context){
 
   // Confirm / Apply / Start
   document.getElementById('pcConfirmBtn').addEventListener('click',()=>{
-    ov.remove();
     const shooterName=getShooter();
+    const needsOne=['high_post','low_post'];
+    const needsTwo=['pick_and_roll','pick_and_pop'];
+    let playerErr=null;
+    if(needsTwo.includes(selOff)){
+      const bhVal=(document.getElementById('pcBH')||{}).value||'';
+      if(!bhVal&&!shooterName) playerErr='Select both players before continuing.';
+      else if(!bhVal) playerErr='Select a ball handler before continuing.';
+      else if(!shooterName) playerErr='Select a '+(selOff==='pick_and_roll'?'roller':'popper')+' before continuing.';
+    } else if(needsOne.includes(selOff)&&!shooterName){
+      playerErr='Select a post player before continuing.';
+    }
+    if(playerErr){
+      let errEl=ov.querySelector('#pcPlayerErr');
+      if(!errEl){
+        errEl=document.createElement('div');
+        errEl.id='pcPlayerErr';
+        errEl.style.cssText='color:#f85149;font-size:.72rem;margin-top:6px;text-align:right';
+        ov.querySelector('#pcDropdowns').after(errEl);
+      }
+      errEl.textContent=playerErr;
+      return;
+    }
+    ov.remove();
 
     if(context==='pregame'){
       // normalizeStrat is idempotent on already-normalized keys
