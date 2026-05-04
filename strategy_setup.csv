@@ -1,0 +1,38 @@
+Strategy modifiers,,,,,,,,,,,,,
+Offense,Defense,three_pa_rate_mod,center_weight_mod,forward_weight_mod,guard_weight_mod,two_pt_pct_mod,three_pt_pct_mod,offensive_rebound_pct,Added Assist Check,Added Steal Check,Added Turnover Check,Added Foul Check,Offense Fast Break
+Five Out,Man to Man,5,0,0,0.5,-1,-2,0,0,0,0,0,No
+Five Out,2-3 Zone,5,0,0,0.5,-1,1,3,0,0,0,0,No
+Five Out,1-3-1 Zone,-10,0,0,0,-3,-1,5,0,0,0,0,No
+Five Out,Matchup Zone,-10,0,0.5,0,-1,-2,3,0,0,0,0,No
+Five Out,Half Court Trap,-10,0.5,0.5,0,0,0,3,0,0,1,1,No
+Five Out,Full Court Press,0,0.5,0.5,0,0,0,3,0,1,2,1,Yes
+Pick & Roll,Man to Man,-10,0,0,0.5,0,0,0,1,0,0,0,No
+Pick & Roll,2-3 Zone,-10,0,0,0.5,1,1,3,0,0,0,0,No
+Pick & Roll,1-3-1 Zone,-10,0,0,0,-3,-3,5,0,0,0,0,No
+Pick & Roll,Matchup Zone,-10,0,0.5,0,1,0,3,1,0,0,0,No
+Pick & Roll,Half Court Trap,-20,0.5,0.5,0,2,0,3,1,0,1,1,No
+Pick & Roll,Full Court Press,0,0.5,0.5,0,0,0,3,0,1,2,1,Yes
+Pick & Pop,Man to Man,5,0,0,0.5,0,0,0,0,0,0,0,No
+Pick & Pop,2-3 Zone,5,0,0,0.5,0,2,3,0,0,0,0,No
+Pick & Pop,1-3-1 Zone,-10,0,0,0,-3,-3,5,0,0,0,0,No
+Pick & Pop,Matchup Zone,-10,0,0.5,0,0,0,3,0,0,0,0,No
+Pick & Pop,Half Court Trap,-20,0.5,0.5,0,1,0,3,0,0,1,1,No
+Pick & Pop,Full Court Press,0,0.5,0.5,0,0,0,3,0,1,2,1,Yes
+Motion,Man to Man,0,0,0,0,1,0,0,0,0,0,0,No
+Motion,2-3 Zone,5,0,0,0,-2,1,3,0,0,0,0,No
+Motion,1-3-1 Zone,-10,0,0.5,0,-3,-3,5,0,0,0,0,No
+Motion,Matchup Zone,-10,0,0,0,0,0,3,0,0,0,0,No
+Motion,Half Court Trap,-20,0.5,0.5,0,2,0,3,1,0,1,1,No
+Motion,Full Court Press,0,0.5,0.5,0,0,0,3,0,1,2,1,Yes
+High Post,Man to Man,5,0,0,0.5,0,0,0,0,0,0,0,No
+High Post,2-3 Zone,5,0,0,0.5,0,1,3,0,0,0,0,No
+High Post,1-3-1 Zone,-10,0,0,0,-2,-3,5,0,0,0,0,No
+High Post,Matchup Zone,-10,0,0.5,0,0,2,3,0,0,0,0,No
+High Post,Half Court Trap,-20,0.5,0.5,0,1,0,3,0,0,1,1,No
+High Post,Full Court Press,0,0.5,0.5,0,0,0,3,0,1,2,1,Yes
+Low Post,Man to Man,0,1,0,0,0,0,0,0,0,0,0,No
+Low Post,2-3 Zone,0,0,0,0.5,-2,1,3,0,0,0,0,No
+Low Post,1-3-1 Zone,-10,0.5,0,0,0,-1,5,0,0,0,0,No
+Low Post,Matchup Zone,-10,0,0.5,0,2,1,3,0,0,0,0,No
+Low Post,Half Court Trap,-20,0.5,0.5,0,2,0,3,0,0,1,1,No
+Low Post,Full Court Press,0,0.5,0.5,0,0,0,3,0,1,2,1,Yes
