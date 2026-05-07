@@ -8,8 +8,18 @@ window.TournamentPage = (function () {
 
   let _containerId = null;
   let _state       = null;
+  let _seasonMode  = false;
 
   // ── Utilities ──────────────────────────────────────────────────────────────
+
+  function _loadState() {
+    return _seasonMode ? Tournament.loadSeason() : Tournament.load() || null;
+  }
+
+  function _saveState(state) {
+    if (_seasonMode) Tournament.saveSeason(state);
+    else Tournament.save(state);
+  }
 
   function esc(s) {
     return String(s ?? '')
@@ -158,13 +168,13 @@ window.TournamentPage = (function () {
     el.addEventListener('click', function (e) {
       const playBtn = e.target.closest('.tb-play-btn');
       if (playBtn && playBtn.dataset.gameId) {
-        _state = Tournament.load();
+        _state = _loadState();
         const game = _state && _state.games.find(g => g.id === playBtn.dataset.gameId);
         if (game) { _playGame(game); return; }
       }
       const simBtn = e.target.closest('.tb-sim-btn');
       if (simBtn && simBtn.dataset.gameId) {
-        _state = Tournament.load();
+        _state = _loadState();
         const game = _state && _state.games.find(g => g.id === simBtn.dataset.gameId);
         if (game) { _simPlayerGame(game); return; }
       }
@@ -196,32 +206,33 @@ window.TournamentPage = (function () {
   // ── Bracket rendering helpers ──────────────────────────────────────────────
 
   function _renderBracket() {
-    TournamentBracket.render(_containerId);
+    const staleBtn = document.getElementById('btn-season-back');
+    if (staleBtn) staleBtn.remove();
+    TournamentBracket.render(_containerId, _state);
   }
 
   // ── Public: init ───────────────────────────────────────────────────────────
 
-  function init(containerId) {
+  function init(containerId, seasonMode) {
+    _seasonMode = !!seasonMode;
     _injectStyles();
 
-    // Inject header + content wrapper once; re-renders target the inner div
+    // Always re-inject header and content wrapper for a clean slate
     const contentId = containerId + '-content';
-    if (!document.getElementById(contentId)) {
-      const outerEl = document.getElementById(containerId);
-      const _peek = Tournament.load();
-      const _backBtn = (_peek && _peek.fromSeason)
-        ? '<a class="back-btn" href="season.html">\u2190 Back to Season</a>'
-        : '<button class="back-btn" onclick="showScreen(\'home\')">\u2190 Main Menu</button>';
-      outerEl.innerHTML =
-        '<div class="tp-page-header">' +
-          _backBtn +
-          '<div class="tp-page-header-brand">' +
-            '<div class="tp-page-header-logo">\uD83C\uDFC0 <span>TOURNAMENT</span> MODE</div>' +
-            '<div class="tp-page-header-sub">2025\u201326 &nbsp;\u00B7&nbsp; v3.3</div>' +
-          '</div>' +
+    const outerEl = document.getElementById(containerId);
+    const _peek = _loadState();
+    const _backBtn = (_peek && _peek.fromSeason)
+      ? '<a class="back-btn" href="season.html">\u2190 Back to Season</a>'
+      : '<button class="back-btn" onclick="showScreen(\'home\')">\u2190 Main Menu</button>';
+    outerEl.innerHTML =
+      '<div class="tp-page-header">' +
+        _backBtn +
+        '<div class="tp-page-header-brand">' +
+          '<div class="tp-page-header-logo">\uD83C\uDFC0 <span>TOURNAMENT</span> MODE</div>' +
+          '<div class="tp-page-header-sub">2025\u201326 &nbsp;\u00B7&nbsp; v3.3</div>' +
         '</div>' +
-        '<div id="' + contentId + '"></div>';
-    }
+      '</div>' +
+      '<div id="' + contentId + '"></div>';
     _containerId = contentId;
     _bindContainerEvents();
 
@@ -231,7 +242,7 @@ window.TournamentPage = (function () {
       return;
     }
 
-    _state = Tournament.load();
+    _state = _loadState();
     if (!_state) { _renderEntry(); return; }
 
     if (_state.status === 'complete') {
@@ -279,18 +290,13 @@ window.TournamentPage = (function () {
   // ── Core round loop ────────────────────────────────────────────────────────
 
   function _runRound() {
-    _state = Tournament.load();
+    _state = _loadState();
     if (!_state || _state.status !== 'active') {
-      console.log('[_runRound] early exit — status:', _state?.status);
       return;
     }
 
     const round = _state.currentRound;
     const allPending = _state.games.filter(g => g.round === round && g.winnerId === null);
-    console.log('[_runRound] round:', round, 'pending:', allPending.length,
-      'cpu:', allPending.filter(g => !g.isPlayerGame).length,
-      'player:', allPending.filter(g => g.isPlayerGame).length);
-
     if (!allPending.length) { _advanceRound(); return; }
 
     const playerGames = allPending.filter(g => g.isPlayerGame);
@@ -308,7 +314,7 @@ window.TournamentPage = (function () {
       if (!ht || !at) continue;
       const r = CpuSim.simulateGame(ht, at, { neutralSite: true, saveForStats: false });
       Tournament.recordResult(_state, game.id, r.homeScore, r.awayScore);
-      _state = Tournament.load();
+      _state = _loadState();
     }
 
     // Animate user-region CPU games — scores come from updated state so this IS the reveal
@@ -322,7 +328,7 @@ window.TournamentPage = (function () {
       // Re-render so non-user-region tabs now show their results too
       _renderBracket();
       TournamentBracket.setActiveTab(activeTab);
-      _state = Tournament.load();
+      _state = _loadState();
 
       if (playerGames.length > 0 && !Tournament.isEliminated(_state)) {
         setTimeout(function () {
@@ -342,12 +348,10 @@ window.TournamentPage = (function () {
   // ── Round advancement ──────────────────────────────────────────────────────
 
   function _advanceRound() {
-    console.log('[_advanceRound] fired — completed:', _state?.currentRound);
-    _state = Tournament.load();
+    _state = _loadState();
     if (!_state) return;
 
     const completed = _state.currentRound;
-    console.log('[_advanceRound] completed round:', completed, 'fromSeason:', _state?.fromSeason);
 
     if (completed === 6) { _showChampion(); return; }
 
@@ -355,18 +359,18 @@ window.TournamentPage = (function () {
     if (completed < 4) {
       for (const region of ['East', 'South', 'Midwest', 'West']) {
         Tournament.generateNextRound(_state, region);
-        _state = Tournament.load();
+        _state = _loadState();
       }
     } else if (completed === 4) {
       Tournament.generateFinalFour(_state);
-      _state = Tournament.load();
+      _state = _loadState();
     } else if (completed === 5) {
       Tournament.generateChampionship(_state);
-      _state = Tournament.load();
+      _state = _loadState();
     }
 
     _state.currentRound = completed + 1;
-    Tournament.save(_state);
+    _saveState(_state);
 
     _renderBracket();
     const activeTab = completed >= 4 ? 'Final Four' : (_state.userRegion || 'East');
@@ -419,11 +423,11 @@ window.TournamentPage = (function () {
     sessionStorage.removeItem('tournament_away_score');
     if (!gameId) return;
 
-    _state = Tournament.load();
+    _state = _loadState();
     if (!_state) return;
 
     Tournament.recordResult(_state, gameId, homeScore, awayScore);
-    _state = Tournament.load();
+    _state = _loadState();
 
     // Return to tournament screen
     if (typeof showScreen === 'function') showScreen('tournament');
@@ -444,9 +448,6 @@ window.TournamentPage = (function () {
 
   // Called on init() if tournament_return is in sessionStorage (page-reload fallback)
   function _handlePlayedGameReturn() {
-    console.log('[_handlePlayedGameReturn] fired — gameId:',
-      sessionStorage.getItem('tournament_game_id'),
-      'fromSeason:', _state?.fromSeason);
     const gameId = sessionStorage.getItem('tournament_game_id');
     sessionStorage.removeItem('tournament_return');
     sessionStorage.removeItem('tournament_game_id');
@@ -455,11 +456,11 @@ window.TournamentPage = (function () {
     sessionStorage.removeItem('tournament_home_score');
     sessionStorage.removeItem('tournament_away_score');
 
-    _state = Tournament.load();
-    if (!_state || !gameId) { init(_containerId); return; }
+    _state = _loadState();
+    if (!_state || !gameId) { init(_containerId, _seasonMode); return; }
 
     Tournament.recordResult(_state, gameId, hs, as_);
-    _state = Tournament.load();
+    _state = _loadState();
 
     _renderBracket();
     const game    = _state.games.find(g => g.id === gameId);
@@ -485,7 +486,7 @@ window.TournamentPage = (function () {
       { neutralSite: true, saveForStats: false });
 
     Tournament.recordResult(_state, game.id, result.homeScore, result.awayScore);
-    _state = Tournament.load();
+    _state = _loadState();
 
     const userWon = _state.games.find(g => g.id === game.id)?.winnerId === _state.userTeamId;
     _showSimBoxScore(game, result, homeTeam, awayTeam, !userWon);
@@ -621,7 +622,7 @@ window.TournamentPage = (function () {
   }
 
   function _simRestOfTournament() {
-    _state = Tournament.load();
+    _state = _loadState();
     if (!_state) return;
 
     // Keep looping until no games remain to be played.
@@ -631,10 +632,10 @@ window.TournamentPage = (function () {
     while (safety++ < 20) {
       for (const region of ['East', 'South', 'Midwest', 'West']) {
         Tournament.generateNextRound(_state, region);
-        _state = Tournament.load();
+        _state = _loadState();
       }
-      Tournament.generateFinalFour(_state);    _state = Tournament.load();
-      Tournament.generateChampionship(_state); _state = Tournament.load();
+      Tournament.generateFinalFour(_state);    _state = _loadState();
+      Tournament.generateChampionship(_state); _state = _loadState();
 
       const ready = _state.games.filter(g =>
         g.winnerId === null && g.homeTeamId && g.awayTeamId
@@ -647,7 +648,7 @@ window.TournamentPage = (function () {
         if (!ht || !at) continue;
         const r = CpuSim.simulateGame(ht, at, { neutralSite: true, saveForStats: false });
         Tournament.recordResult(_state, game.id, r.homeScore, r.awayScore);
-        _state = Tournament.load();
+        _state = _loadState();
       }
     }
 
@@ -659,7 +660,7 @@ window.TournamentPage = (function () {
   // ── Champion display ───────────────────────────────────────────────────────
 
   function _showChampion() {
-    _state = Tournament.load();
+    _state = _loadState();
     if (!_state) return;
 
     const champGame = _state.games.find(g => g.round === 6 && g.winnerId);
@@ -670,7 +671,7 @@ window.TournamentPage = (function () {
     // Persist completion
     _state.status   = 'complete';
     _state.champion = champion.id;
-    Tournament.save(_state);
+    _saveState(_state);
 
     // In-bracket trophy card
     TournamentBracket.showChampion(champion);
@@ -696,7 +697,7 @@ window.TournamentPage = (function () {
 
     if (!_state.fromSeason) {
       document.getElementById('tp-new-tourn-btn').addEventListener('click', function () {
-        Tournament.clear();
+        Tournament.clear(); // standalone only — season key untouched
         _state = null;
         _renderEntry();
       });

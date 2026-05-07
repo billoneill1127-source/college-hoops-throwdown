@@ -1300,7 +1300,7 @@ function logEv(text,type){
 
 function ge_buildTeam(td,isHome){
   const elig=[...(td.players||[])].filter(p=>(p.minutes_per_game||0)>0&&p.fga_per_100!=null).sort((a,b)=>(b.minutes_per_game||0)-(a.minutes_per_game||0)).map(p=>({...p,three_pa_rate:(p.three_pa_per_100&&p.fga_per_100)?clamp(p.three_pa_per_100/p.fga_per_100,0,1):(GE_THREE_PA_DEFAULTS[p.position]||0.25),gamePF:0,halfSecs:0,totalGameSecs:0,halfTov:0,consec_misses:0,halfFGA:0,halfFTA:0,_carriedLoad:0,sitUntilH2:false,sitUntilNextTO:false,milestonesHit:new Set(),consecutiveMakes:0,consecutive3Makes:0}));
-  return { name:td.name, nickname:td.nickname||'', city:td.city||'', isHome, primaryColor:td.primaryColor||'#888', head_coach:td.head_coach||'', possessions_per_game:td.possessions_per_game||70, offensive_rebound_pct:td.offensive_rebound_pct||0.28, defensive_rebound_pct:td.defensive_rebound_pct||0.72, assist_rate:td.assist_rate||0.54, team_fouls_per_game:td.team_fouls_per_game||18, home_fg_bonus:td.home_fg_bonus||0.02, lineup:elig.slice(0,5), bench:elig.slice(5), strategy_offense:null, strategy_defense:null, lastLoggedDefense:null, teamFouls:0, currentRun:0 };
+  return { id:td.id, name:td.name, nickname:td.nickname||'', city:td.city||'', isHome, primaryColor:td.primaryColor||'#888', head_coach:td.head_coach||'', possessions_per_game:td.possessions_per_game||70, offensive_rebound_pct:td.offensive_rebound_pct||0.28, defensive_rebound_pct:td.defensive_rebound_pct||0.72, assist_rate:td.assist_rate||0.54, team_fouls_per_game:td.team_fouls_per_game||18, home_fg_bonus:td.home_fg_bonus||0.02, lineup:elig.slice(0,5), bench:elig.slice(5), strategy_offense:null, strategy_defense:null, lastLoggedDefense:null, teamFouls:0, currentRun:0 };
 }
 
 function restoreGameState(snap,newP1Lineup){
@@ -2641,6 +2641,14 @@ function initApp() {
       console.warn('[CHT] Pending game team lookup failed — homeTeamName:', _pg.homeTeamName, 'awayTeamName:', _pg.awayTeamName);
     }
 
+    // Resume an in-progress season tournament
+    if (sessionStorage.getItem('resume_season_tournament') === 'true') {
+      sessionStorage.removeItem('resume_season_tournament');
+      showScreen('tournament');
+      TournamentPage.init('screenTournament', true);
+      return;
+    }
+
     // Season-ending tournament launch
     if (sessionStorage.getItem('season_tournament') === 'true') {
       sessionStorage.removeItem('season_tournament');
@@ -2654,9 +2662,9 @@ function initApp() {
       const _bids  = typeof SeasonEngine !== 'undefined'
         ? SeasonEngine.getConferenceTournamentBids(_conf, _rows)
         : [];
-      Tournament.generateFromSeason(_p1Id, _bids);
+      Tournament.generateFromSeason(_p1Id, _bids, _seaId);
       showScreen('tournament');
-      TournamentPage.init('screenTournament');
+      TournamentPage.init('screenTournament', true);
       return;
     }
 

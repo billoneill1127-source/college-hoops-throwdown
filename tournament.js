@@ -7,7 +7,8 @@
 window.Tournament = (function () {
   'use strict';
 
-  const STORAGE_KEY = 'tournament:current';
+  const STORAGE_KEY        = 'tournament:current';
+  const SEASON_STORAGE_KEY = 'tournament:season';
   const REGIONS = ['East', 'South', 'Midwest', 'West'];
 
   // Round 1 bracket order: [higher seed, lower seed]
@@ -206,7 +207,11 @@ window.Tournament = (function () {
 
   /** Persist tournament state to localStorage. */
   function save(state) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    if (state && state.fromSeason) {
+      localStorage.setItem(SEASON_STORAGE_KEY, JSON.stringify(state));
+    } else {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
   }
 
   /** Look up a team object by id from window.TEAMS. */
@@ -228,7 +233,11 @@ window.Tournament = (function () {
     game.homeScore = homeScore;
     game.awayScore = awayScore;
     game.winnerId  = homeScore > awayScore ? game.homeTeamId : game.awayTeamId;
-    save(state);
+    if (state.fromSeason) {
+      localStorage.setItem(SEASON_STORAGE_KEY, JSON.stringify(state));
+    } else {
+      save(state);
+    }
     return state;
   }
 
@@ -361,7 +370,7 @@ window.Tournament = (function () {
    *                                    Each: { teamId, seed, region } (seed/region may be null for at-large)
    * @returns {object} tournament state (also persisted to localStorage)
    */
-  function generateFromSeason(p1TeamId, conferenceBids) {
+  function generateFromSeason(p1TeamId, conferenceBids, seasonId) {
     const ALL_SEEDS = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16];
 
     // Place pre-seeded conference bids (those with seed + region assigned)
@@ -443,9 +452,10 @@ window.Tournament = (function () {
       currentRound: 1,
       status:       'active',
       fromSeason:   true,
+      seasonId:     seasonId || '',
     };
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(SEASON_STORAGE_KEY, JSON.stringify(state));
     return state;
   }
 
@@ -454,11 +464,30 @@ window.Tournament = (function () {
     localStorage.removeItem(STORAGE_KEY);
   }
 
+  /** Load season tournament state from localStorage. Returns null if none exists. */
+  function loadSeason() {
+    try { return JSON.parse(localStorage.getItem(SEASON_STORAGE_KEY)) || null; }
+    catch(e) { return null; }
+  }
+
+  /** Persist season tournament state to localStorage. */
+  function saveSeason(state) {
+    localStorage.setItem(SEASON_STORAGE_KEY, JSON.stringify(state));
+  }
+
+  /** Remove season tournament state from localStorage. */
+  function clearSeason() {
+    localStorage.removeItem(SEASON_STORAGE_KEY);
+  }
+
   return {
     generate,
     generateFromSeason,
     load,
     save,
+    loadSeason,
+    saveSeason,
+    clearSeason,
     getTeam,
     recordResult,
     generateNextRound,

@@ -478,7 +478,6 @@ window.SeasonEngine = (() => {
     // exactly 30 user games. More than 30 means old code wrote this.
     if (season.schedule) {
       const userGameCount = season.schedule.filter(g => g.isUserGame).length;
-      console.log('[getActive] userGameCount:', userGameCount, 'discarding:', userGameCount > 30);
       if (userGameCount > 30) {
         console.warn('[SeasonEngine] stale pre-refactor season detected, discarding');
         Store.del('season:active');
@@ -791,9 +790,6 @@ window.SeasonEngine = (() => {
     const season = getActive();
     if (season) {
       const userGames = season.schedule?.filter(g => g.isUserGame) || [];
-      console.log('[getUserRecord] userGames count:', userGames.length,
-        'with results:', userGames.filter(g => g.result).length,
-        'losses:', userGames.filter(g => g.result && g.result.winnerId !== season.userTeamId).length);
     }
     if (!season) return { overall: { w: 0, l: 0 }, conference: { w: 0, l: 0 }, streak: '' };
 
@@ -861,6 +857,28 @@ window.SeasonEngine = (() => {
     console.log(`[CHT] Season complete — ${freshSeason.userTeamName} finished ${w}-${l}`);
   }
 
+  // ── SeasonEngine.recordTournamentResult ───────────────────────────────────────
+
+  function recordTournamentResult(homeName, awayName, homeScore, awayScore) {
+    let season = getActive();
+    const isActive = !!season;
+    if (!season) season = _lastCompleted;
+    if (!season) return;
+
+    season.tournamentResults = season.tournamentResults || [];
+    season.tournamentResults.push({
+      home:         homeName,
+      away:         awayName,
+      homeScore:    homeScore,
+      awayScore:    awayScore,
+      isTournament: true
+    });
+
+    if (isActive) Store.set('season:active', season);
+    Store.set(`season:${season.seasonId}:meta`, season);
+    _lastCompleted = { ...season };
+  }
+
   // ── Public API ────────────────────────────────────────────────────────────────
 
   return {
@@ -875,6 +893,7 @@ window.SeasonEngine = (() => {
     getStandings,
     getUserRecord,
     complete,
+    recordTournamentResult,
     getConferenceTournamentBids,
     getLastCompleted: () => {
       if (_lastCompleted) return _lastCompleted;

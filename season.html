@@ -95,6 +95,8 @@ header { background: var(--primary); color: #fff; padding: 0 20px; position: sti
 .ti-title { font-size: 1rem; font-weight: 800; color: var(--primary); margin-bottom: 8px; }
 .ti-body { font-size: .84rem; color: var(--text-muted); margin-bottom: 14px; line-height: 1.55; }
 .ti-miss { background: var(--surface); border-radius: 8px; padding: 14px 16px; margin: 16px 0; font-size: .84rem; color: var(--text-muted); text-align: center; }
+.ti-complete { background: var(--surface); border-radius: 8px; padding: 14px 16px; margin: 16px 0; font-size: .9rem; font-weight: 600; text-align: center; }
+.tournament-divider td { background: #f8a100; color: white; font-weight: bold; text-align: center; padding: 6px; }
 
 /* Generic panel */
 .panel { background: var(--card-bg); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; margin-bottom: 16px; }
@@ -565,7 +567,20 @@ function renderSeasonComplete(season) {
       '<div class="tournament-invite">' +
         '<div class="ti-title">🏆 NCAA Tournament Bid!</div>' +
         '<div class="ti-body">' + esc(season.userTeamName) + ' has earned a bid to the NCAA Tournament' + seedLine + '.</div>' +
-        '<button class="action-btn" onclick="launchTournament(\'' + uid.replace(/'/g, "\\'") + '\',\'' + season.seasonId.replace(/'/g, "\\'") + '\')">NCAA TOURNAMENT ▶</button>' +
+        (function() {
+          const ex = typeof Tournament !== 'undefined' ? Tournament.loadSeason() : null;
+          const inProgress = ex && ex.fromSeason && ex.status === 'active' && !ex.champion &&
+            ex.seasonId === season.seasonId;
+          const complete = ex && ex.fromSeason && ex.champion &&
+            ex.seasonId === season.seasonId;
+          const label = inProgress ? 'Continue Tournament ▶' : 'NCAA TOURNAMENT ▶';
+          if (complete) {
+            const champ = typeof Tournament !== 'undefined' && Tournament.getTeam ? Tournament.getTeam(ex.champion) : null;
+            return '<div class="ti-complete">🏆 ' + (champ ? esc(champ.name) : ex.champion) + ' won the NCAA Tournament!</div>';
+          }
+          const btnHtml = '<button class="action-btn" onclick="launchTournament(\'' + uid.replace(/'/g, "\\'") + '\',\'' + season.seasonId.replace(/'/g, "\\'") + '\')">' + label + '</button>';
+          return btnHtml;
+        })() +
       '</div>';
   } else {
     const rank = finalStandings.findIndex(r => r.teamId === uid);
@@ -590,9 +605,17 @@ function renderSeasonComplete(season) {
 }
 
 function launchTournament(userTeamId, seasonId) {
-  sessionStorage.setItem('season_tournament',           'true');
-  sessionStorage.setItem('season_tournament_p1',         userTeamId);
-  sessionStorage.setItem('season_tournament_season_id',  seasonId);
+  const existing = typeof Tournament !== 'undefined' ? Tournament.loadSeason() : null;
+  if (existing && existing.fromSeason && existing.status === 'active' &&
+      !existing.champion && existing.seasonId === seasonId) {
+    sessionStorage.setItem('resume_season_tournament', 'true');
+    if (typeof Store !== 'undefined') Store.del('season:pending_game');
+    window.location.href = 'index.html';
+    return;
+  }
+  sessionStorage.setItem('season_tournament',          'true');
+  sessionStorage.setItem('season_tournament_p1',        userTeamId);
+  sessionStorage.setItem('season_tournament_season_id', seasonId);
   window.location.href = 'index.html';
 }
 
@@ -744,13 +767,35 @@ function renderSchedule(season) {
       `</tr>`;
   }).join('');
 
+  let tournamentRows = '';
+  const tResults = season.tournamentResults || [];
+  if (tResults.length > 0) {
+    tournamentRows += '<tr class="tournament-divider"><td colspan="7">🏆 NCAA TOURNAMENT</td></tr>';
+    tResults.forEach((game, i) => {
+      const p1IsHome = game.home === season.userTeamName;
+      const p1Score  = p1IsHome ? game.homeScore : game.awayScore;
+      const oppScore = p1IsHome ? game.awayScore : game.homeScore;
+      const opp      = p1IsHome ? game.away : game.home;
+      const won      = p1Score > oppScore;
+      tournamentRows += '<tr style="border-left:3px solid #f8a100;" class="' + (won ? 'win' : 'loss') + '">' +
+        '<td style="color:var(--text-muted);font-size:.72rem">NCAA</td>' +
+        '<td style="color:var(--text-muted);font-size:.72rem">' + (i + 31) + '</td>' +
+        '<td>' + (p1IsHome ? '' : esc(opp)) + '</td>' +
+        '<td style="color:var(--text-muted);font-size:.75rem">@</td>' +
+        '<td>' + (p1IsHome ? esc(opp) : '') + '</td>' +
+        '<td></td>' +
+        '<td><span class="sched-result ' + (won ? 'win' : 'loss') + '">' + (won ? 'W' : 'L') + ' ' + p1Score + '–' + oppScore + '</span></td>' +
+        '</tr>';
+    });
+  }
+
   panel.innerHTML =
     `<div class="panel">` +
       `<div class="panel-hdr"><span class="panel-title">📅 Full Schedule</span></div>` +
       `<div class="sched-table-wrap">` +
         `<table class="sched-table">` +
           `<thead><tr><th>Date</th><th>#</th><th>Away</th><th></th><th>Home</th><th></th><th>Result</th></tr></thead>` +
-          `<tbody>${rows}</tbody>` +
+          `<tbody>${rows}${tournamentRows}</tbody>` +
         `</table>` +
       `</div>` +
     `</div>`;
@@ -975,7 +1020,7 @@ function resetSeasonData() {
   const keysToRemove = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key && (key.startsWith('season:') || key.startsWith('game:') || key === 'tournament:current')) {
+    if (key && (key.startsWith('season:') || key.startsWith('game:') || key === 'tournament:current' || key === 'tournament:season')) {
       keysToRemove.push(key);
     }
   }
@@ -984,5 +1029,6 @@ function resetSeasonData() {
   window.location.reload();
 }
 </script>
+<script src="tournament.js"></script>
 </body>
 </html>

@@ -673,9 +673,9 @@ window.TournamentBracket = (function () {
 
   // ── Public: render ────────────────────────────────────────────────────────
 
-  function render(containerId) {
+  function render(containerId, state) {
     _container = containerId;
-    _state     = Tournament.load();
+    _state     = state || Tournament.loadSeason() || Tournament.load();
 
     const el = document.getElementById(containerId);
     if (!el) return;
