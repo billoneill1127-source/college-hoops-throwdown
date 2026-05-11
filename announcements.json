@@ -103,14 +103,14 @@
     "fastbreak": [
       "Look out {city}, here comes {team}!",
       "{team} on the run — watch out!",
-      "The {team} have the numbers....",
+      "The {nickname} have the numbers....",
       "{team} in transition — pushing the pace!",
       "The {nickname} are on the run!"
     ],
     "foul_shot": [
       "Foul on {defender}! {player} going to the line for {ftcount}.",
       "{player} draws the contact — {defender} with the foul. Free throws.",
-      "And the foul! {player} will shoot {ftcount}.",
+      "{player} fouled attacking the rim!  He will shoot {ftcount}.",
       "{defender} reaches in — that's a foul. {player} at the stripe.",
       "{player} gets to the line — {ftcount} coming.",
       "Contact on the shot! {player} heads to the stripe."
