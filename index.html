@@ -808,7 +808,7 @@ function renderLineupPane(foulOutPlayerName) {
       const foBadge = fo ? '<span style="margin-left:5px;color:#f85149;font-size:.65rem;font-weight:700">FO</span>' : '';
       return '<tr data-idx="'+i+'"'+(inLU&&!fo?' class="selected"':'')+' style="'+(fo?'opacity:.45':'')+'">'+
         '<td><input type="checkbox" class="select-cb lineup-check" data-idx="'+i+'"'+(inLU&&!fo?' checked':'')+(fo?' disabled':'')+' style="'+(fo?'cursor:not-allowed':'')+'"></td>'+
-        '<td><strong>'+esc(p.name)+'</strong>'+inBadge+foBadge+'</td>'+
+        '<td>'+ge_fatigueDot(p)+'<strong style="margin-left:5px;">'+esc(p.name)+'</strong>'+inBadge+foBadge+'</td>'+
         '<td><span class="pos-badge">'+esc(p.position||'')+'</span></td>'+
         '<td class="num-col">'+mins+'</td>'+
         '<td class="num-col">'+(st.pts||0)+'</td>'+
