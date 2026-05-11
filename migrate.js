@@ -77,6 +77,18 @@ function isAllNull(p) {
   return STAT_FIELDS.every(f => p[f] == null);
 }
 
+// ── Load persisted team colors (secondaryColor set via team_colors.json) ──────
+const TEAM_COLORS_FILE = path.join(DATA_OUT_DIR, 'team_colors.json');
+let savedTeamColors = {};  // teamName → { primaryColor, secondaryColor }
+if (fs.existsSync(TEAM_COLORS_FILE)) {
+  try {
+    const colorArr = JSON.parse(fs.readFileSync(TEAM_COLORS_FILE, 'utf8'));
+    colorArr.forEach(c => { savedTeamColors[c.name] = c; });
+  } catch (e) {
+    console.warn(`[WARN] Could not parse team_colors.json: ${e.message}`);
+  }
+}
+
 // ── Load persisted net_ratings (set via set_ratings.py) ───────────────────────
 // Ratings survive migrate.js re-runs; migrate never overwrites with null if a
 // value already exists in ratings.json.
@@ -245,6 +257,7 @@ for (const [srSlug, td] of Object.entries(teamDataMap).sort()) {
     type:                  TRACKED_CONFERENCES.has(meta.conference) ? 'real' : 'independent',
     city:                  meta.city                  || '',
     primaryColor:          meta.primaryColor          || '',
+    secondaryColor:        (savedTeamColors[meta.name] || {}).secondaryColor || '',
     head_coach:            teamStats.head_coach        || '',
     net_rating:            savedRatings[srSlug] ?? null,
     possessions_per_game:  savedTeamStats[srSlug]?.possessions_per_game  ?? teamStats.possessions_per_game  ?? 70,
